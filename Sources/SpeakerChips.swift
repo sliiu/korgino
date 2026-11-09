@@ -53,16 +53,92 @@ struct SpeakerChipButton: View {
     /// The voice assigned to this person, or nil for the usual one.
     var voiceID: String? = nil
     var onVoice: ((String?) -> Void)? = nil
+    /// 实时字幕传圆标。别的地方不传，仍是名字胶囊。
+    private var customLabel: Bool
+    private var label: AnyView
     @State private var editing = false
     @State private var draft = ""
     @FocusState private var focused: Bool
+
+    init(
+        speaker: Int,
+        token: String,
+        canDelete: Bool,
+        onRename: @escaping (String) -> Void,
+        onDelete: @escaping () -> Void,
+        others: [(id: Int, token: String)] = [],
+        onMerge: ((Int) -> Void)? = nil,
+        voices: [SpeakerVoice]? = nil,
+        voiceID: String? = nil,
+        onVoice: ((String?) -> Void)? = nil
+    ) {
+        self.init(
+            speaker: speaker, token: token, canDelete: canDelete,
+            onRename: onRename, onDelete: onDelete, others: others, onMerge: onMerge,
+            voices: voices, voiceID: voiceID, onVoice: onVoice,
+            custom: false, label: AnyView(EmptyView())
+        )
+    }
+
+    init<Label: View>(
+        speaker: Int,
+        token: String,
+        canDelete: Bool,
+        onRename: @escaping (String) -> Void,
+        onDelete: @escaping () -> Void,
+        others: [(id: Int, token: String)] = [],
+        onMerge: ((Int) -> Void)? = nil,
+        voices: [SpeakerVoice]? = nil,
+        voiceID: String? = nil,
+        onVoice: ((String?) -> Void)? = nil,
+        @ViewBuilder label: () -> Label
+    ) {
+        self.init(
+            speaker: speaker, token: token, canDelete: canDelete,
+            onRename: onRename, onDelete: onDelete, others: others, onMerge: onMerge,
+            voices: voices, voiceID: voiceID, onVoice: onVoice,
+            custom: true, label: AnyView(label())
+        )
+    }
+
+    private init(
+        speaker: Int,
+        token: String,
+        canDelete: Bool,
+        onRename: @escaping (String) -> Void,
+        onDelete: @escaping () -> Void,
+        others: [(id: Int, token: String)],
+        onMerge: ((Int) -> Void)?,
+        voices: [SpeakerVoice]?,
+        voiceID: String?,
+        onVoice: ((String?) -> Void)?,
+        custom: Bool,
+        label: AnyView
+    ) {
+        self.speaker = speaker
+        self.token = token
+        self.canDelete = canDelete
+        self.onRename = onRename
+        self.onDelete = onDelete
+        self.others = others
+        self.onMerge = onMerge
+        self.voices = voices
+        self.voiceID = voiceID
+        self.onVoice = onVoice
+        self.customLabel = custom
+        self.label = label
+    }
 
     var body: some View {
         Button {
             draft = SpeakerMarkText.display(token)
             editing = true
         } label: {
-            SpeakerChip(speaker: speaker, token: token)
+            if customLabel {
+                label
+            } else {
+                SpeakerChip(speaker: speaker, token: token)
+            }
         }
         .buttonStyle(.plain)
         .help(chipHelp)

@@ -31,6 +31,11 @@ struct ImmersiveCaptionLines: Equatable {
     var sourceMask: [NSRange] = []
     var translation = ""
     var translationPartial = false
+
+    /// 翻译没出来。沉浸字幕用深色 ErrorLine，不把整行涂红。
+    var translationFailed: Bool {
+        translation.hasPrefix(L("翻译失败"))
+    }
 }
 
 /// 主文件里的字幕游标状态用到它。

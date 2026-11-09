@@ -737,7 +737,7 @@ struct MeetingRecordsView: View {
     }
 }
 
-private struct MeetingRecordDetail: View {
+struct MeetingRecordDetail: View {
     @ObservedObject var model: MeetingRecordsModel
     var entry: MeetingRecordsModel.Entry
     @ObservedObject private var voiceprint = VoiceprintModel.shared
