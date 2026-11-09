@@ -210,15 +210,25 @@ final class SelectionPluginStore: ObservableObject {
         return plugin
     }
 
-    /// 翻译是划词的根，删不掉。自己加的可以删。
+    /// 自己加的和内置的都能删。删掉的内置项记下来，升级或重启都不会再补回来。
     func remove(id: String) {
-        guard id != SelectionPlugin.translateID else { return }
         plugins.removeAll { $0.id == id }
-        // 删掉的内置项记下来，升级或重启都不会再补回来。
         if SelectionPlugin.builtin.contains(where: { $0.id == id }) {
             var gone = Set(UserDefaults.standard.stringArray(forKey: Self.removedKey) ?? [])
             gone.insert(id)
             UserDefaults.standard.set(Array(gone), forKey: Self.removedKey)
+        }
+        save()
+    }
+
+    /// 把 `id` 插到 `before` 前面。`before` 为空就放到最后。设置页拖动排序用。
+    func move(id: String, before: String?) {
+        guard let from = plugins.firstIndex(where: { $0.id == id }) else { return }
+        let item = plugins.remove(at: from)
+        if let before, let to = plugins.firstIndex(where: { $0.id == before }) {
+            plugins.insert(item, at: to)
+        } else {
+            plugins.append(item)
         }
         save()
     }
@@ -262,10 +272,6 @@ final class SelectionPluginStore: ObservableObject {
         where !merged.contains(where: { $0.id == builtin.id }) && !removed.contains(builtin.id) {
             merged.append(builtin)
         }
-        // 翻译不能丢。
-        if !merged.contains(where: { $0.isTranslate }) {
-            merged.insert(SelectionPlugin.builtin[0], at: 0)
-        }
         plugins = merged
         save()
     }
@@ -290,6 +296,7 @@ final class SelectionPluginBar {
     private let model = SelectionPluginBarModel()
     private var outsideMonitor: Any?
     private var localMonitor: Any?
+    private var keyMonitor: Any?
     private var shownAt = Date()
 
     static let barHeight: CGFloat = 34
@@ -297,30 +304,48 @@ final class SelectionPluginBar {
     static let labelRow: CGFloat = 24
     /// 条四周留出来画阴影。窗口自带的阴影按第一次画出来的样子算，名字一出一隐就对不上了。
     static let margin: CGFloat = 8
-    private let gap: CGFloat = 6
+    /// 放大镜就地展开后，搜索框的宽度。
+    static let searchWidth: CGFloat = 168
+    /// 「⋯」打开后的菜单宽度。
+    static let menuWidth: CGFloat = 240
+    /// 条上直接露出的勾选插件数，其余收进「⋯」。
+    static let barSlots = 5
+    private let gap: CGFloat = 8
 
     var isVisible: Bool { panel?.isVisible == true }
 
     /// `rect` 是辅助功能坐标，主屏左上角为原点；nil 时贴着鼠标。
-    func show(source: String, plugins: [SelectionPlugin], rect: CGRect?, run: @escaping (SelectionPlugin, String) -> Void) {
-        guard !plugins.isEmpty else { return }
+    /// `plugins` 是这一次划词用的那一份（按应用可以另选）。`catalog` 是设置里的全表，搜索用。
+    func show(
+        source: String,
+        plugins: [SelectionPlugin],
+        catalog: [SelectionPlugin],
+        rect: CGRect?,
+        run: @escaping (SelectionPlugin, String) -> Void
+    ) {
+        guard !plugins.isEmpty || !catalog.isEmpty else { return }
         hide()
         model.source = source
         model.plugins = plugins
+        model.catalog = catalog
         model.hovered = nil
+        model.mode = .icons
+        model.query = ""
+        model.highlight = 0
         model.onPick = run
         model.onDismiss = { [weak self] in self?.hide() }
+        model.onManage = { [weak self] in
+            self?.hide()
+            // 设置页的划词插件在「功能」里。节的选择是私有的，打开这一页后用户自己点「划词插件」。
+            PreferencesController.shared.show(tab: .features)
+        }
+        model.onLayout = { [weak self] in self?.relayout() }
 
-        let barWidth = Self.measuredWidth(count: plugins.count)
-        let widest = (plugins.map(\.title) + [L("收起")]).map(Self.labelWidth).max() ?? 0
-        let size = NSSize(
-            width: max(barWidth, widest) + Self.margin * 2,
-            height: Self.barHeight + Self.labelRow + Self.margin * 2
-        )
         let panel = ensurePanel()
+        let size = panelSize()
         // 先定好面板的大小和位置，再把内容铺满。反过来做，内容会被 autoresizing 按尺寸差再拉一次，
         // 宽度变成「新 × 2 − 旧」，条就偏到一边，只露出左半或右半。
-        place(rect: rect, size: size, barWidth: barWidth)
+        place(rect: rect, size: size)
         let host = makeHosting()
         if host.superview !== panel.contentView {
             panel.contentView?.subviews.forEach { $0.removeFromSuperview() }
@@ -339,23 +364,42 @@ final class SelectionPluginBar {
         removeOutsideMonitor()
         model.onPick = { _, _ in }
         model.onDismiss = {}
+        model.onManage = {}
+        model.onLayout = {}
         model.hovered = nil
+        model.mode = .icons
+        model.query = ""
         panel?.orderOut(nil)
         panel?.alphaValue = 0
     }
 
-    /// 一排按插件数算出来的宽度：每枚 28、间距 2、左右各 5 的内边距，
-    /// 再加分隔线和收起钮。和 `SelectionPluginBarView` 里的排法一一对应。
+    /// 一排图标时的宽度：放大镜、分隔线、最多 5 枚、分隔线、「⋯」。
+    /// 每枚 28、间距 2、左右各 5 的内边距。和 `SelectionPluginBarView` 里的排法一一对应。
     static func measuredWidth(count: Int) -> CGFloat {
-        // HStack 的 spacing 2 落在每两枚之间：插件之间、插件与分隔线、分隔线与收起钮。
-        // 分隔线自己另有左右 2 的内边距。
-        let buttons = CGFloat(count) * 28 + CGFloat(max(0, count - 1)) * 2
-        return 10 + buttons + 2 + 2 + 2 + 1 + 2 + 26
+        let shown = min(count, barSlots)
+        let pieces = 2 + shown
+        let buttons = CGFloat(pieces) * 28
+        let gaps = CGFloat(max(0, pieces + 1)) * 2
+        let rules = CGFloat(2) * (4 + 1)
+        return 10 + buttons + gaps + rules
     }
 
-    /// 第 `index` 枚按钮的中心，从条的左边算起。收起钮的 `index` 是插件数。
-    static func buttonCenter(index: Int, count: Int) -> CGFloat {
-        index < count ? 5 + CGFloat(index) * 30 + 14 : 30 * CGFloat(count) + 25
+    /// 放大镜就地展开后的宽度：搜索框取代放大镜，其余照旧。
+    static func searchBarWidth(count: Int) -> CGFloat {
+        measuredWidth(count: count) - 28 + searchWidth
+    }
+
+    /// 第 `index` 枚按钮的中心，从条的左边算起。
+    /// 0 是放大镜，1…n 是露出的插件，「⋯」是 `shown + 1`。
+    /// 放大镜就地变成搜索框时，左边那一截按搜索框的宽度算。
+    static func buttonCenter(index: Int, shown: Int, searching: Bool = false) -> CGFloat {
+        let rule: CGFloat = 9
+        let lead: CGFloat = searching ? searchWidth : 28
+        if index == 0 { return 5 + lead / 2 }
+        if index <= shown {
+            return 5 + lead + rule + CGFloat(index - 1) * 30 + 14
+        }
+        return 5 + lead + rule + CGFloat(shown) * 30 + rule + 14
     }
 
     static let labelMaxWidth: CGFloat = 220
@@ -365,6 +409,60 @@ final class SelectionPluginBar {
         let font = Theme.TypeScale.nsCaptionMedium
         let text = ceil((title as NSString).size(withAttributes: [.font: font]).width)
         return min(text + 16, labelMaxWidth)
+    }
+
+    /// 搜索或菜单展开时，面板跟着变。条贴着选区的那一边不动，多出来的高度朝另一侧长。
+    private func relayout() {
+        guard let panel, panel.isVisible else { return }
+        let old = panel.frame
+        let size = panelSize()
+        var frame = old
+        frame.size = size
+        frame.origin.x = old.midX - size.width / 2
+        if model.labelBelow {
+            frame.origin.y = old.maxY - size.height
+        }
+        if let visible = OverlayPlacement.screen(containing: frame)?.visibleFrame {
+            if frame.minY < visible.minY { frame.origin.y = visible.minY }
+            if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
+            if frame.maxX > visible.maxX { frame.origin.x = visible.maxX - frame.width }
+            if frame.minX < visible.minX { frame.origin.x = visible.minX }
+        }
+        panel.setFrame(frame, display: true)
+        hosting?.frame = panel.contentView?.bounds ?? NSRect(origin: .zero, size: size)
+    }
+
+    private func currentBarWidth() -> CGFloat {
+        let count = model.plugins.count
+        return model.mode == .search ? Self.searchBarWidth(count: count) : Self.measuredWidth(count: count)
+    }
+
+    /// 搜索框下面那张结果卡的高度，和视图里的排法一致。
+    static func resultsHeight(rows: Int) -> CGFloat {
+        8 + CGFloat(max(rows, 1)) * 28 + 8
+    }
+
+    /// 「⋯」菜单的高度：顶上搜索、结果、底部分隔和「管理插件…」。
+    static func menuHeight(rows: Int) -> CGFloat {
+        8 + 28 + 4 + CGFloat(max(rows, 1)) * 28 + 4 + 28 + 8
+    }
+
+    /// 面板要比条宽：名字胶囊、搜索结果和「⋯」菜单都不能被裁掉。
+    private func panelSize() -> NSSize {
+        let barWidth = currentBarWidth()
+        let names = model.plugins.prefix(Self.barSlots).map(\.title) + [L("搜索插件"), L("更多插件")]
+        let widest = names.map(Self.labelWidth).max() ?? 0
+        var width = max(barWidth, widest)
+        var height = Self.barHeight + Self.labelRow
+        let rows = model.menuRows.count
+        if model.mode == .menu {
+            width = max(width, Self.menuWidth)
+            height = Self.barHeight + 6 + Self.menuHeight(rows: rows)
+        } else if model.mode == .search {
+            width = max(width, Self.menuWidth)
+            height = Self.barHeight + 6 + Self.resultsHeight(rows: rows)
+        }
+        return NSSize(width: width + Self.margin * 2, height: height + Self.margin * 2)
     }
 
     private func makeHosting() -> NSHostingView<SelectionPluginBarView> {
@@ -382,28 +480,65 @@ final class SelectionPluginBar {
     /// 鼠标点到别处就收起来。全局监控收不到打在我们自己窗口里的点击，
     /// 所以另外挂一个本地监控：去点菜单栏、偏好设置时这条也该让开。
     /// 刚弹出来的那一小会儿认不动：点图标的那一下本来就在自己窗口里。
+    /// 键盘另挂一条：面板不是 key，搜索框的方向键和 Esc 从这里进。
     private func installOutsideMonitor() {
         removeOutsideMonitor()
         outsideMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown]
-        ) { [weak self] _ in
+        ) { [weak self] event in
+            let key = event.type == .keyDown
+            let code = event.keyCode
+            let chars = event.charactersIgnoringModifiers ?? ""
             Task { @MainActor in
                 guard let self, Date().timeIntervalSince(self.shownAt) > 0.2 else { return }
-                self.hide()
+                if key {
+                    self.handleKey(code: code, characters: chars)
+                } else {
+                    self.hide()
+                }
             }
         }
         localMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown]
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
         ) { [weak self] event in
             guard let self, Date().timeIntervalSince(self.shownAt) > 0.2 else { return event }
             let frame = self.panel?.frame ?? .zero
-            if event.type == .keyDown {
-                self.hide()
-            } else if !frame.contains(NSEvent.mouseLocation) {
+            if !frame.contains(NSEvent.mouseLocation) {
                 self.hide()
             }
             return event
         }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self, self.panel?.isVisible == true else { return event }
+            let searching = self.model.mode != .icons
+            let frame = self.panel?.frame ?? .zero
+            // 图标态下，按键发生在别处（用户还在原来的应用里打字）不该把条收掉。
+            // 搜索展开后，方向键、回车、Esc 和输入都归这条。
+            if !searching, !frame.contains(NSEvent.mouseLocation) { return event }
+            self.handleKey(code: event.keyCode, characters: event.charactersIgnoringModifiers ?? "")
+            return searching ? nil : event
+        }
+    }
+
+    /// 回车用高亮的那一个，↑↓ 移动，Esc 先收起搜索或菜单，再收起整条。
+    private func handleKey(code: UInt16, characters: String) {
+        guard model.mode != .icons else {
+            if code == 53 { hide() }
+            return
+        }
+        switch code {
+        case 53:
+            model.closeSearch()
+        case 125:
+            model.moveHighlight(1)
+        case 126:
+            model.moveHighlight(-1)
+        case 36, 76:
+            model.commitHighlight()
+        default:
+            break
+        }
+        _ = characters
     }
 
     private func removeOutsideMonitor() {
@@ -411,13 +546,16 @@ final class SelectionPluginBar {
         outsideMonitor = nil
         if let localMonitor { NSEvent.removeMonitor(localMonitor) }
         localMonitor = nil
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
     }
 
     /// 先摆条，再把面板围着条展开：名字那一行放在背向选区的一侧，四周再留出画阴影的边。
-    private func place(rect: CGRect?, size: NSSize, barWidth: CGFloat) {
+    /// 选区上方留 8 磅；上面放不下整块（含名字和菜单）就改到选区下方。
+    private func place(rect: CGRect?, size: NSSize) {
         guard let panel else { return }
         let barHeight = Self.barHeight
-        let row = Self.labelRow
+        let barWidth = currentBarWidth()
         var bar: NSRect
         var visible: NSRect?
         var below = false
@@ -427,7 +565,7 @@ final class SelectionPluginBar {
             bar = NSRect(x: onScreen.midX - barWidth / 2, y: onScreen.maxY + gap, width: barWidth, height: barHeight)
             visible = OverlayPlacement.screen(containing: onScreen)?.visibleFrame
             // 上面连名字一起放不下就放选区下面。
-            if let v = visible, bar.maxY + row > v.maxY - 4 {
+            if let v = visible, bar.maxY + (size.height - barHeight) > v.maxY - 4 {
                 bar.origin.y = onScreen.minY - gap - barHeight
                 below = true
             }
@@ -435,14 +573,16 @@ final class SelectionPluginBar {
             let mouse = NSEvent.mouseLocation
             bar = NSRect(x: mouse.x + 10, y: mouse.y + 12, width: barWidth, height: barHeight)
             visible = (NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main)?.visibleFrame
-            if let v = visible, bar.maxY + row > v.maxY - 4 {
+            if let v = visible, bar.maxY + (size.height - barHeight) > v.maxY - 4 {
                 bar.origin.y = mouse.y - 12 - barHeight
                 below = true
             }
         }
+        model.labelBelow = below
+        let extra = size.height - barHeight - Self.margin * 2
         var frame = NSRect(
             x: bar.midX - size.width / 2,
-            y: (below ? bar.minY - row : bar.minY) - Self.margin,
+            y: (below ? bar.minY - extra : bar.minY) - Self.margin,
             width: size.width,
             height: size.height
         )
@@ -452,7 +592,6 @@ final class SelectionPluginBar {
             if frame.maxX > v.maxX { frame.origin.x = v.maxX - frame.width }
             if frame.minX < v.minX { frame.origin.x = v.minX }
         }
-        model.labelBelow = below
         panel.setFrame(frame, display: true)
     }
 
@@ -473,43 +612,169 @@ final class SelectionPluginBar {
     }
 }
 
+/// 条上正在干什么：一排图标、放大镜就地变成搜索框、或「⋯」打开的菜单。
+enum SelectionPluginBarMode: Equatable {
+    case icons
+    case search
+    case menu
+}
+
+/// 菜单或搜索结果里的一行。没勾选的标「未勾选」。
+struct SelectionPluginMenuRow: Identifiable, Equatable {
+    let plugin: SelectionPlugin
+    var id: String { plugin.id }
+    var unticked: Bool { !plugin.enabled }
+}
+
 @MainActor
 final class SelectionPluginBarModel: ObservableObject {
     @Published var source = ""
+    /// 这一次划词要用的插件，顺序就是条上的顺序。
     @Published var plugins: [SelectionPlugin] = []
-    /// 鼠标停在哪一枚上。收起钮是 `dismissID`。
+    /// 设置里的全表。搜索时连没勾选的也列出来。
+    @Published var catalog: [SelectionPlugin] = []
+    /// 鼠标停在哪一枚上。放大镜是 `searchID`，「⋯」是 `moreID`。
     @Published var hovered: String?
-    /// 条摆在选区下面时，名字写在条的下面。
+    /// 悬停满 400 ms 才把名字写出来。移开或换一枚就取消。
+    @Published var tipID: String?
+    /// 条摆在选区下面时，名字写在条的下面，菜单也改到条的下面。
     @Published var labelBelow = false
+    @Published var mode: SelectionPluginBarMode = .icons
+    @Published var query = ""
+    /// 搜索结果或菜单里键盘高亮的那一行。
+    @Published var highlight = 0
     var onPick: (SelectionPlugin, String) -> Void = { _, _ in }
     var onDismiss: () -> Void = {}
+    var onManage: () -> Void = {}
+    var onLayout: () -> Void = {}
 
-    static let dismissID = "__dismiss"
+    static let searchID = "__search"
+    static let moreID = "__more"
+
+    private var tipTask: Task<Void, Never>?
+
+    /// 直接露在条上的，勾选里的前 5 个。
+    var shown: [SelectionPlugin] { Array(plugins.prefix(SelectionPluginBar.barSlots)) }
+    /// 第 6 个起，收进「⋯」。
+    var overflow: [SelectionPlugin] { Array(plugins.dropFirst(SelectionPluginBar.barSlots)) }
+
+    /// 放大镜：不输入时列出全部插件。
+    /// 「⋯」：不输入时只列收进来的。两边输入后都搜全部，没勾选的标出来。
+    var menuRows: [SelectionPluginMenuRow] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source: [SelectionPlugin]
+        if needle.isEmpty {
+            source = mode == .search ? catalog : overflow
+        } else {
+            source = catalog.filter { $0.title.localizedCaseInsensitiveContains(needle) }
+        }
+        return source.map { SelectionPluginMenuRow(plugin: $0) }
+    }
+
+    func hover(_ id: String, _ inside: Bool) {
+        if inside {
+            hovered = id
+            scheduleTip(id)
+        } else if hovered == id {
+            hovered = nil
+            cancelTip()
+        }
+    }
+
+    /// 名字提示不跟着鼠标立刻出，停够 400 ms 才写。
+    private func scheduleTip(_ id: String) {
+        tipTask?.cancel()
+        tipID = nil
+        tipTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard !Task.isCancelled, hovered == id else { return }
+            tipID = id
+        }
+    }
+
+    private func cancelTip() {
+        tipTask?.cancel()
+        tipTask = nil
+        tipID = nil
+    }
+
+    func openSearch() {
+        cancelTip()
+        query = ""
+        highlight = 0
+        mode = .search
+        onLayout()
+    }
+
+    func openMenu() {
+        cancelTip()
+        query = ""
+        highlight = 0
+        mode = .menu
+        onLayout()
+    }
+
+    func closeSearch() {
+        guard mode != .icons else { return }
+        query = ""
+        highlight = 0
+        mode = .icons
+        onLayout()
+    }
+
+    func moveHighlight(_ delta: Int) {
+        let count = menuRows.count
+        guard count > 0 else { return }
+        highlight = (highlight + delta + count) % count
+    }
+
+    /// 输入变了，结果行数跟着变，面板要重新量。
+    func queryChanged() {
+        highlight = 0
+        guard mode != .icons else { return }
+        onLayout()
+    }
+
+    func commitHighlight() {
+        let rows = menuRows
+        guard rows.indices.contains(highlight) else { return }
+        pick(rows[highlight].plugin)
+    }
+
+    func pick(_ plugin: SelectionPlugin) {
+        let source = source
+        onPick(plugin, source)
+    }
 }
 
-/// 一排图标：磨砂底 + 每枚一个圆形按钮，和截图工具条同一套样子。
-/// 面板不是 key，系统的 `.help` 气泡出不来，所以名字自己画在条外面那一行。
+/// 一排图标：最左放大镜，中间勾选的前 5 个，最右「⋯」。
+/// 面板不是 key，系统的 `.help` 气泡出不来，所以名字自己画在条外面那一行，悬停 400 ms 才出。
 struct SelectionPluginBarView: View {
     @ObservedObject var model: SelectionPluginBarModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         GeometryReader { geo in
-            let barWidth = SelectionPluginBar.measuredWidth(count: model.plugins.count)
+            let barWidth = model.mode == .search
+                ? SelectionPluginBar.searchBarWidth(count: model.plugins.count)
+                : SelectionPluginBar.measuredWidth(count: model.plugins.count)
             let margin = SelectionPluginBar.margin
             let barHeight = SelectionPluginBar.barHeight
             let row = SelectionPluginBar.labelRow
+            let barY = margin + (model.labelBelow
+                ? geo.size.height - margin * 2 - barHeight
+                : (model.mode == .icons ? row : 0)) + barHeight / 2
             ZStack(alignment: .topLeading) {
                 bar
                     .frame(width: barWidth, height: barHeight)
-                    .position(
-                        x: geo.size.width / 2,
-                        y: margin + (model.labelBelow ? 0 : row) + barHeight / 2
-                    )
-                if let tip {
+                    .position(x: geo.size.width / 2, y: barY)
+                if model.mode == .icons, let tip {
                     let width = SelectionPluginBar.labelWidth(tip.title)
                     let center = (geo.size.width - barWidth) / 2
-                        + SelectionPluginBar.buttonCenter(index: tip.index, count: model.plugins.count)
+                        + SelectionPluginBar.buttonCenter(
+                            index: tip.index, shown: model.shown.count, searching: model.mode == .search
+                        )
                     label(tip.title)
                         .frame(width: width)
                         .position(
@@ -519,16 +784,69 @@ struct SelectionPluginBarView: View {
                         .transition(.opacity)
                         .id(tip.index)
                 }
+                if model.mode == .search {
+                    resultsCard
+                        .frame(width: SelectionPluginBar.menuWidth)
+                        .position(
+                            x: searchCardX(barWidth: barWidth, width: geo.size.width),
+                            y: popoverY(barY: barY, barHeight: barHeight, height: resultsHeight)
+                        )
+                }
+                if model.mode == .menu {
+                    menu
+                        .frame(width: SelectionPluginBar.menuWidth)
+                        .position(
+                            x: min(
+                                geo.size.width - margin - SelectionPluginBar.menuWidth / 2,
+                                max(margin + SelectionPluginBar.menuWidth / 2, moreCenter(barWidth: barWidth, width: geo.size.width))
+                            ),
+                            y: popoverY(barY: barY, barHeight: barHeight, height: menuHeight)
+                        )
+                }
             }
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.hovered)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.tipID)
         }
     }
 
     private var tip: (title: String, index: Int)? {
-        guard let hovered = model.hovered else { return nil }
-        if hovered == SelectionPluginBarModel.dismissID { return (L("收起"), model.plugins.count) }
-        guard let index = model.plugins.firstIndex(where: { $0.id == hovered }) else { return nil }
-        return (model.plugins[index].title, index)
+        guard let id = model.tipID else { return nil }
+        if id == SelectionPluginBarModel.searchID { return (L("搜索插件"), 0) }
+        if id == SelectionPluginBarModel.moreID { return (L("更多插件"), model.shown.count + 1) }
+        guard let index = model.shown.firstIndex(where: { $0.id == id }) else { return nil }
+        return (model.shown[index].title, index + 1)
+    }
+
+    /// 放大镜（或就地展开的搜索框）的中心，结果卡挂在它下面（或上面）。
+    private func searchCardX(barWidth: CGFloat, width: CGFloat) -> CGFloat {
+        let anchor = SelectionPluginBar.buttonCenter(
+            index: 0, shown: model.shown.count, searching: model.mode == .search
+        )
+        let center = (width - barWidth) / 2 + anchor
+        let half = SelectionPluginBar.menuWidth / 2
+        return min(width - SelectionPluginBar.margin - half, max(SelectionPluginBar.margin + half, center))
+    }
+
+    /// 「⋯」按钮的中心，菜单挂在它下面（或上面）。
+    private func moreCenter(barWidth: CGFloat, width: CGFloat) -> CGFloat {
+        (width - barWidth) / 2 + SelectionPluginBar.buttonCenter(
+            index: model.shown.count + 1, shown: model.shown.count, searching: model.mode == .search
+        )
+    }
+
+    /// 条背向选区的一侧。条在选区上方时卡片在条下，条在选区下方时卡片在条上。
+    private func popoverY(barY: CGFloat, barHeight: CGFloat, height: CGFloat) -> CGFloat {
+        if model.labelBelow {
+            return barY - barHeight / 2 - 6 - height / 2
+        }
+        return barY + barHeight / 2 + 6 + height / 2
+    }
+
+    private var resultsHeight: CGFloat {
+        SelectionPluginBar.resultsHeight(rows: model.menuRows.count)
+    }
+
+    private var menuHeight: CGFloat {
+        SelectionPluginBar.menuHeight(rows: model.menuRows.count)
     }
 
     private func label(_ title: String) -> some View {
@@ -545,57 +863,29 @@ struct SelectionPluginBarView: View {
             .allowsHitTesting(false)
     }
 
-    private func hover(_ id: String, _ inside: Bool) {
-        if inside {
-            model.hovered = id
-        } else if model.hovered == id {
-            model.hovered = nil
-        }
-    }
-
     private var bar: some View {
         HStack(spacing: 2) {
-            ForEach(model.plugins) { plugin in
-                Button {
-                    let source = model.source
-                    model.onPick(plugin, source)
-                } label: {
-                    Image(systemName: plugin.symbol)
-                        .font(Theme.TypeScale.reading)
-                        .frame(width: 28, height: 28)
-                        .contentShape(Rectangle())
-                        .background(
-                            Circle().fill(
-                                Color.primary.opacity(model.hovered == plugin.id ? 0.16 : 0.0001)
-                            )
-                        )
-                        .foregroundStyle(Color.primary.opacity(0.92))
+            if model.mode == .search {
+                searchField
+            } else {
+                iconButton(symbol: "magnifyingglass", id: SelectionPluginBarModel.searchID, label: L("搜索插件")) {
+                    model.openSearch()
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(plugin.title)
-                .onHover { hover(plugin.id, $0) }
             }
-            Rectangle()
-                .fill(Color.primary.opacity(0.14))
-                .frame(width: 1, height: 16)
-                .padding(.horizontal, 2)
-            Button {
-                model.onDismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(Theme.TypeScale.caption).fontWeight(.semibold)
-                    .frame(width: 26, height: 28)
-                    .contentShape(Rectangle())
-                    .background(
-                        Circle().fill(
-                            Color.primary.opacity(model.hovered == SelectionPluginBarModel.dismissID ? 0.16 : 0.0001)
-                        )
-                    )
-                    .foregroundStyle(Color.primary.opacity(0.7))
+            divider
+            ForEach(model.shown) { plugin in
+                iconButton(symbol: plugin.symbol, id: plugin.id, label: plugin.title) {
+                    model.pick(plugin)
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("收起"))
-            .onHover { hover(SelectionPluginBarModel.dismissID, $0) }
+            divider
+            iconButton(symbol: "ellipsis", id: SelectionPluginBarModel.moreID, label: L("更多插件")) {
+                if model.mode == .menu {
+                    model.closeSearch()
+                } else {
+                    model.openMenu()
+                }
+            }
         }
         .padding(.horizontal, 5)
         .frame(height: 34)
@@ -604,6 +894,172 @@ struct SelectionPluginBarView: View {
             Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
+    }
+
+    /// 放大镜点开后就地变成的搜索框。输入的是全部插件，不限于条上那几个。
+    private var searchField: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(Color.primary.opacity(0.55))
+            TextField(L("搜索全部插件"), text: $model.query)
+                .textFieldStyle(.plain)
+                .font(Theme.TypeScale.label)
+                .focused($searchFocused)
+                .onAppear { searchFocused = true }
+                .onSubmit { model.commitHighlight() }
+                .onChange(of: model.query) { _, _ in model.queryChanged() }
+            if !model.query.isEmpty {
+                Button {
+                    model.query = ""
+                    model.queryChanged()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(Color.primary.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("清除"))
+            }
+        }
+        .padding(.horizontal, 8)
+        .frame(width: SelectionPluginBar.searchWidth, height: 28)
+        .background(Capsule().fill(Color.primary.opacity(0.08)))
+    }
+
+    /// 放大镜搜出来的列表。和「⋯」里是同一份结果，挂在搜索框背向选区的一侧。
+    private var resultsCard: some View {
+        resultList
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.16), radius: 8, y: 3)
+    }
+
+    private var menu: some View {
+        VStack(spacing: 0) {
+            menuSearch
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+            resultList
+                .padding(.top, 4)
+            Divider().padding(.horizontal, 8).padding(.vertical, 4)
+            Button {
+                model.onManage()
+            } label: {
+                HStack {
+                    Text(L("管理插件…"))
+                        .font(Theme.TypeScale.label)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 4)
+        }
+        .frame(width: SelectionPluginBar.menuWidth)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.16), radius: 8, y: 3)
+    }
+
+    /// 「⋯」打开后顶上默认就是搜索框，和放大镜同一个功能。
+    private var menuSearch: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(Color.primary.opacity(0.55))
+            TextField(L("搜索全部插件"), text: $model.query)
+                .textFieldStyle(.plain)
+                .font(Theme.TypeScale.label)
+                .focused($searchFocused)
+                .onAppear { searchFocused = true }
+                .onSubmit { model.commitHighlight() }
+                .onChange(of: model.query) { _, _ in model.queryChanged() }
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 28)
+        .background(Capsule().fill(Color.primary.opacity(0.06)))
+    }
+
+    private var resultList: some View {
+        VStack(spacing: 0) {
+            if model.menuRows.isEmpty {
+                Text(model.query.isEmpty ? L("没有更多插件") : L("没有匹配的插件"))
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+            } else {
+                ForEach(Array(model.menuRows.enumerated()), id: \.element.id) { index, row in
+                    Button {
+                        model.pick(row.plugin)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: row.plugin.symbol)
+                                .font(Theme.TypeScale.label)
+                                .frame(width: 16)
+                            Text(row.plugin.title)
+                                .font(Theme.TypeScale.label)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            if row.unticked {
+                                Text(L("未勾选"))
+                                    .font(Theme.TypeScale.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .frame(height: 28)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(model.highlight == index ? Color.accentColor : Color.clear)
+                        )
+                        .foregroundStyle(model.highlight == index ? Color.white : Color.primary)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { inside in
+                        if inside { model.highlight = index }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.14))
+            .frame(width: 1, height: 16)
+            .padding(.horizontal, 2)
+    }
+
+    private func iconButton(symbol: String, id: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(Theme.TypeScale.labelMedium)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+                .background(
+                    Circle().fill(Color.primary.opacity(model.hovered == id ? 0.16 : 0.0001))
+                )
+                .foregroundStyle(Color.primary.opacity(0.92))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .onHover { model.hover(id, $0) }
     }
 }
 
@@ -778,7 +1234,9 @@ final class SelectionPluginWatcher {
             writable: found.writable,
             markers: found.markers
         )
-        SelectionPluginBar.shared.show(source: text, plugins: plugins, rect: rect) { plugin, source in
+        SelectionPluginBar.shared.show(
+            source: text, plugins: plugins, catalog: SelectionPluginStore.shared.plugins, rect: rect
+        ) { plugin, source in
             SelectionPluginBar.shared.hide()
             SelectionPluginRunner.run(plugin, source: source, slot: slot, app: app)
         }
@@ -796,7 +1254,9 @@ final class SelectionPluginWatcher {
               let text = copied?.trimmingCharacters(in: .whitespacesAndNewlines),
               !text.isEmpty, text.count <= SelectionPlugin.sourceLimit else { return false }
         let slot = WriteBackSlot(element: nil, original: text, sourceApp: app)
-        SelectionPluginBar.shared.show(source: text, plugins: plugins, rect: nil) { plugin, source in
+        SelectionPluginBar.shared.show(
+            source: text, plugins: plugins, catalog: SelectionPluginStore.shared.plugins, rect: nil
+        ) { plugin, source in
             SelectionPluginBar.shared.hide()
             SelectionPluginRunner.run(plugin, source: source, slot: slot, app: app)
         }
@@ -960,6 +1420,7 @@ struct SelectionPluginSettingsSection: View {
     @State private var adding = false
     @State private var editing: SelectionPlugin?
     @State private var confirmReset = false
+    @State private var dragging: String?
 
     var body: some View {
         Group {
@@ -999,9 +1460,7 @@ struct SelectionPluginSettingsSection: View {
                 }
 
                 Section {
-                    ForEach(store.plugins) { plugin in
-                        pluginRow(plugin)
-                    }
+                    pluginList
                     Button {
                         adding = true
                     } label: {
@@ -1014,7 +1473,7 @@ struct SelectionPluginSettingsSection: View {
                 } header: {
                     Text(L("插件"))
                 } footer: {
-                    Text(L("勾选的插件才会出现在划词条上。翻译是划词的根本，删不掉。"))
+                    Text(L("勾选的可以拖动排序。前 5 个出现在划词条上，其余收进「⋯」。没勾选的不在条上，放大镜和「⋯」里搜得到。翻译也是普通插件，可以不勾。"))
                 }
             }
         }
@@ -1044,8 +1503,33 @@ struct SelectionPluginSettingsSection: View {
         }
     }
 
-    private func pluginRow(_ plugin: SelectionPlugin) -> some View {
+    /// 勾上的在前，按表里的顺序；前 5 个和后面的之间写一条「以下收进「⋯」」。没勾的排在最后。
+    private var pluginList: some View {
+        let enabled = store.plugins.filter(\.enabled)
+        let disabled = store.plugins.filter { !$0.enabled }
+        return Group {
+            ForEach(Array(enabled.enumerated()), id: \.element.id) { index, plugin in
+                if index == SelectionPluginBar.barSlots {
+                    Text(L("以下收进「⋯」"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                pluginRow(plugin, draggable: true)
+            }
+            ForEach(disabled) { plugin in
+                pluginRow(plugin, draggable: false)
+            }
+        }
+    }
+
+    private func pluginRow(_ plugin: SelectionPlugin, draggable: Bool) -> some View {
         HStack(spacing: 8) {
+            if draggable {
+                Image(systemName: "line.3.horizontal")
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+            }
             Toggle(isOn: Binding(
                 get: { plugin.enabled },
                 set: { store.setEnabled($0, id: plugin.id) }
@@ -1053,7 +1537,6 @@ struct SelectionPluginSettingsSection: View {
                 EmptyView()
             }
             .toggleStyle(CheckToggleStyle())
-            .disabled(plugin.isTranslate)
 
             Image(systemName: plugin.symbol)
                 .font(Theme.TypeScale.body)
@@ -1061,28 +1544,62 @@ struct SelectionPluginSettingsSection: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(plugin.title)
                 Text(plugin.summary)
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            if !plugin.isTranslate {
-                Button {
-                    editing = plugin
-                } label: {
-                    Image(systemName: "pencil")
-                }
-                .buttonStyle(.borderless)
-                .help(L("编辑"))
-                Button {
-                    store.remove(id: plugin.id)
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderless)
-                .help(L("删除"))
+            Button {
+                editing = plugin
+            } label: {
+                Image(systemName: "pencil")
             }
+            .buttonStyle(.borderless)
+            .help(L("编辑"))
+            .disabled(plugin.isTranslate)
+            Button {
+                store.remove(id: plugin.id)
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+            .help(L("删除"))
         }
+        .opacity(dragging == plugin.id ? 0.4 : 1)
+        .onDrag {
+            guard draggable else { return NSItemProvider() }
+            dragging = plugin.id
+            return NSItemProvider(object: plugin.id as NSString)
+        }
+        .onDrop(of: [.plainText], delegate: PluginReorderDrop(
+            target: plugin.id,
+            dragging: $dragging,
+            enabled: draggable,
+            move: { store.move(id: $0, before: $1) }
+        ))
+    }
+}
+
+/// 勾选的插件之间拖动换序。拖进某一行就插到它前面，和设置里别的可排序列表一样。
+/// 拖到没勾选的行上不起作用。
+private struct PluginReorderDrop: DropDelegate {
+    let target: String
+    @Binding var dragging: String?
+    let enabled: Bool
+    let move: (String, String?) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard enabled, let dragging, dragging != target else { return }
+        move(dragging, target)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: enabled ? .move : .forbidden)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        dragging = nil
+        return true
     }
 }
 
