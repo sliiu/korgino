@@ -365,6 +365,28 @@ final class FileTranslateController: ObservableObject {
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private var dictTask: Task<Void, Never>?
 
+    /// 主窗口翻译页嵌进来时为 true。文件还是这份，只是不再另开窗口。
+    @Published var embedded = false
+
+    /// 嵌在翻译页里：选文件或接住拖进来的文件，不出自己的窗口。
+    func openInPlace() {
+        embedded = true
+        lastError = nil
+        let hasSource = !sourcePreview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || (directVision && canDirectVision)
+        if hasSource {
+            if !isRunning { startTranslate() }
+            return
+        }
+        chooseFile()
+    }
+
+    /// 翻译页点「‹ 返回」：停掉进行中的翻译，回到输入页。已读的文件留着，下次再进来接着用。
+    func leaveEmbedded() {
+        embedded = false
+        if isRunning { cancel() }
+    }
+
     /// Menu / hotkey entry:
     /// - If dialog already has source text → re-translate.
     /// - Else open the dialog for pick / drop.
@@ -399,6 +421,35 @@ final class FileTranslateController: ObservableObject {
         loadSource(url: url)
     }
 
+    /// 翻译页把文件拖进原文卡时用。媒体仍交给媒体字幕，别的文件就地打开，不弹窗口。
+    func handleEmbeddedDrop(providers: [NSItemProvider]) -> Bool {
+        for p in providers {
+            if p.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                p.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                    let url: URL? = {
+                        if let u = item as? URL { return u }
+                        if let data = item as? Data {
+                            return URL(dataRepresentation: data, relativeTo: nil)
+                        }
+                        if let s = item as? String { return URL(fileURLWithPath: s) }
+                        return nil
+                    }()
+                    guard let url else { return }
+                    Task { @MainActor in
+                        if MediaDrop.looksLikeMedia(url) {
+                            MediaCaptionsController.shared.add(url)
+                            return
+                        }
+                        self.embedded = true
+                        self.loadSource(url: url)
+                    }
+                }
+                return true
+            }
+        }
+        return false
+    }
+
     func handleDrop(providers: [NSItemProvider]) -> Bool {
         for p in providers {
             if p.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
@@ -431,7 +482,7 @@ final class FileTranslateController: ObservableObject {
         progressLabel = String(format: L("正在读取：%@…"), String(describing: url.lastPathComponent))
         lastError = nil
         overFreeLimit = false
-        showWindow()
+        if !embedded { showWindow() }
         Task { @MainActor in
             let accessed = url.startAccessingSecurityScopedResource()
             defer { if accessed { url.stopAccessingSecurityScopedResource() } }
@@ -719,7 +770,7 @@ final class FileTranslateController: ObservableObject {
         } else {
             finishRun(record: true)
         }
-        showWindow()
+        if !embedded { showWindow() }
     }
 
     private func setProgress(_ id: UUID, run: UUID, _ text: String) {
@@ -1055,9 +1106,12 @@ struct FileTranslateView: View {
             Divider()
             footer
         }
-        .frame(minWidth: 720, maxWidth: .infinity, minHeight: 480, maxHeight: .infinity)
+        .frame(minWidth: model.embedded ? 0 : 720, maxWidth: .infinity, minHeight: model.embedded ? 0 : 480, maxHeight: .infinity)
         .background(Theme.windowFill)
-        .toolbar { toolbarContent }
+        .toolbar { if !model.embedded { toolbarContent } }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if model.embedded { embeddedBar }
+        }
         .onAppear { model.applyScrollSync() }
         .controlSize(.small)
     }
@@ -1169,6 +1223,61 @@ struct FileTranslateView: View {
         .padding(.top, 12)
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// 嵌在翻译页里时没有窗口工具栏，同一排按钮放在视图顶上。
+    private var embeddedBar: some View {
+        HStack(spacing: 2) {
+            IconButton(systemImage: "folder", help: L("选择文件…"), size: 12) {
+                model.chooseFile()
+            }
+            .disabled(model.isRunning)
+            Spacer(minLength: 8)
+            IconButton(
+                systemImage: model.splitLayout ? "rectangle.split.2x1" : "rectangle.split.1x2",
+                help: model.splitLayout ? L("布局：左右") : L("布局：上下"),
+                size: 12
+            ) { model.splitLayout.toggle() }
+            IconButton(
+                systemImage: "doc.viewfinder",
+                help: model.directVision
+                    ? L("整页直读：已开启，扫描件/图片不先抽文字，直接交给视觉模型")
+                    : L("整页直读：PDF / 图片整页交给视觉模型，跳过抽文字"),
+                tint: model.directVision ? .accentColor : nil,
+                size: 12
+            ) { model.directVision.toggle() }
+            .disabled(!model.canDirectVision || model.isRunning)
+            IconButton(
+                systemImage: "arrow.up.arrow.down",
+                help: L("同步原文与译文滚动位置"),
+                tint: model.syncScroll && model.scrollSyncAvailable ? .accentColor : nil,
+                size: 12
+            ) { model.syncScroll.toggle() }
+            .disabled(!model.scrollSyncAvailable)
+            if model.isRunning {
+                IconButton(systemImage: "stop.fill", help: L("取消"), size: 12) {
+                    model.cancel()
+                }
+            } else {
+                Button {
+                    model.startTranslate()
+                } label: {
+                    Label(
+                        model.hasTranslation ? L("重新翻译") : L("翻译"),
+                        systemImage: model.hasTranslation ? "arrow.clockwise" : "translate"
+                    )
+                    .labelStyle(.titleAndIcon)
+                    .font(Theme.TypeScale.label)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(model.sourcePreview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                          && !(model.directVision && model.canDirectVision))
+                .help(L("用当前原文（可先编辑）调用已启用的翻译引擎"))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 
     @ToolbarContentBuilder
