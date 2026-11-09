@@ -1195,6 +1195,22 @@ enum MicInput {
         )
         if status != noErr { throw TErr(L("无法切换到这个麦克风")) }
     }
+
+    /// Only a non-zero hardware input format is safe to hand to `installTap`.
+    /// Falling back to `outputFormat` installs a tap whose format does not match the bus;
+    /// that raises an Objective-C exception instead of a Swift error.
+    /// The format is sometimes still zero for a moment after the device is selected, so wait briefly.
+    /// Sleeping (not spinning the run loop) so a nested event loop cannot deliver mouseMoved into SwiftUI.
+    static func readyInputFormat(_ input: AVAudioInputNode) throws -> AVAudioFormat {
+        let deadline = Date().addingTimeInterval(0.4)
+        while true {
+            let format = input.inputFormat(forBus: 0)
+            if format.sampleRate > 0, format.channelCount > 0 { return format }
+            if Date() >= deadline { break }
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        throw TErr(L("麦克风还没就绪"))
+    }
 }
 
 extension SystemAudioTranslateController {
@@ -1206,11 +1222,7 @@ extension SystemAudioTranslateController {
             try MicInput.select(deviceID, on: input)
             choseDevice = true
         }
-        let hw = input.inputFormat(forBus: 0)
-        let format = (hw.sampleRate > 0 && hw.channelCount > 0) ? hw : input.outputFormat(forBus: 0)
-        guard format.channelCount > 0, format.sampleRate > 0 else {
-            throw TErr(L("麦克风不可用（无输入格式）。请检查系统设置 › 声音 › 输入。"))
-        }
+        let format = try MicInput.readyInputFormat(input)
         // Not a call, but the mic lane is still listening to the virtual device — chosen, or reached through
         // 系统默认. It starts fine and hears silence, which looks like the app ignoring you. Say so instead.
         micOnRelay = !relayDeviceUID.isEmpty && MicInput.effectiveUID(chosen: micDeviceUID) == relayDeviceUID

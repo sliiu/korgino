@@ -35,7 +35,12 @@ extension SystemAudioTranslateController {
         if captureMicrophone {
             let perm = AVCaptureDevice.authorizationStatus(for: .audio)
             if perm == .notDetermined {
-                let granted = await AVCaptureDevice.requestAccess(for: .audio)
+                // The system sheet runs a nested event loop. Mouse moves that arrive as it
+                // closes must not reach the live-caption SwiftUI view: SwiftUI's hover
+                // path calls assumeIsolated while the executor pointer is still bad.
+                let granted = await LiveCaptionHost.whileMicrophonePrompt {
+                    await AVCaptureDevice.requestAccess(for: .audio)
+                }
                 if !granted { throw TErr(L("需要麦克风权限")) }
             } else if perm != .authorized {
                 throw TErr(L("麦克风权限未授予：系统设置 › 隐私与安全性 › 麦克风 › 允许 Korgino"))

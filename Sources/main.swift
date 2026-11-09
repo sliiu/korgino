@@ -172,10 +172,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
 
-        if !AXIsProcessTrusted() {
-            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            _ = AXIsProcessTrustedWithOptions(opts)
-        }
+        // 不再弹系统辅助功能框。首次启动用自己的面板列四项权限，跳过或关掉之后不再自动出现。
+        LaunchPermissionPanel.presentIfNeeded()
     }
 
     private func item(
