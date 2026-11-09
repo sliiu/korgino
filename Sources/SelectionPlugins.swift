@@ -336,8 +336,7 @@ final class SelectionPluginBar {
         model.onDismiss = { [weak self] in self?.hide() }
         model.onManage = { [weak self] in
             self?.hide()
-            // 设置页的划词插件在「功能」里。节的选择是私有的，打开这一页后用户自己点「划词插件」。
-            PreferencesController.shared.show(tab: .features)
+            PreferencesController.shared.show(tab: .plugins)
         }
         model.onLayout = { [weak self] in self?.relayout() }
 

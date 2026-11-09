@@ -179,7 +179,7 @@ private struct MaskConfirmView: View {
                 Button(L("取消")) { choose(nil) }
                     .keyboardShortcut(.cancelAction)
                 Button(L("发送原文")) { choose(.original) }
-                Button(L("发送遮盖版")) { choose(.masked) }
+                Button(L("发送脱敏版")) { choose(.masked) }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
             }

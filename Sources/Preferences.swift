@@ -1,82 +1,110 @@
 import AppKit
 import SwiftUI
 import ApplicationServices
+import AVFoundation
 import CoreGraphics
-import ServiceManagement
+import Speech
 import Translation
 import UniformTypeIdentifiers
 
 enum PreferencesTab: String, CaseIterable, Identifiable, Hashable {
-    case general, providers, recognition, features, privacy, permissions, about
+    case common, shortcuts, account
+    case providers, recognition, dictionary, plugins, apps, privacy, network
+    case voice
+    /// 菜单「关于」和购买入口还用这个名字进来。侧栏不列它，打开就落到账号页。
+    case about
+
     var id: String { rawValue }
+
     var title: String {
         switch self {
-        case .general: return L("通用")
-        case .providers: return L("翻译服务")
-        case .recognition: return L("识别")
-        case .features: return L("功能")
-        case .privacy: return L("隐私")
-        case .permissions: return L("权限")
-        case .about: return L("关于")
+        case .common: return L("常用")
+        case .shortcuts: return L("快捷键")
+        case .account: return L("账号与 Pro")
+        case .providers: return L("翻译服务与 AI")
+        case .recognition: return L("识别、朗读与 OCR")
+        case .dictionary: return L("词典")
+        case .plugins: return L("划词插件")
+        case .apps: return L("按应用设置")
+        case .privacy: return L("脱敏")
+        case .network: return L("网络与权限")
+        case .voice: return L("语音")
+        case .about: return L("账号与 Pro")
         }
     }
-    var systemImage: String {
+
+    /// 页顶那一句，说这页管什么。
+    var blurb: String {
         switch self {
-        case .general: return "gearshape"
-        case .providers: return "character.bubble"
-        case .recognition: return "text.viewfinder"
-        case .features: return "square.grid.2x2"
-        case .privacy: return "hand.raised"
-        case .permissions: return "lock.shield"
-        case .about: return "info.circle"
+        case .common: return L("平时改得最多的几项")
+        case .shortcuts: return L("点键帽录新组合，需含 ⌃ ⌥ ⇧ ⌘ 之一")
+        case .account: return L("购买、钥匙和版本")
+        case .providers: return L("填好密钥才能打开；打开的服务会出现在「各功能用哪几家」里")
+        case .recognition: return L("听、读、看图用哪家")
+        case .dictionary: return L("查词用哪几家")
+        case .plugins: return L("插件条上放什么")
+        case .apps: return L("某个应用里换服务、换语言或关掉某种触发")
+        case .privacy: return L("这台 Mac 上留下的始终是原文")
+        case .network: return L("连网方式和系统授权")
+        case .voice: return L("按住 Fn 说话，松开结束。按住时再按别的键就取消。")
+        case .about: return L("购买、钥匙和版本")
         }
     }
-    var toolbarIdentifier: NSToolbarItem.Identifier {
-        NSToolbarItem.Identifier("prefs.\(rawValue)")
-    }
-    static func from(toolbarIdentifier id: NSToolbarItem.Identifier) -> PreferencesTab? {
-        allCases.first { $0.toolbarIdentifier == id }
+
+    /// 侧栏上半，常用三页。
+    static let primary: [PreferencesTab] = [.common, .shortcuts, .account]
+    /// 侧栏「高级」下面的七页。语音不在这里，它在侧栏最底下。
+    static let advanced: [PreferencesTab] = [.providers, .recognition, .dictionary, .plugins, .apps, .privacy, .network]
+
+    /// 旧的顶部分页。菜单「关于」和购买入口还用 `.about` 这个名字进来，落到账号页。
+    static func migrated(_ raw: String) -> PreferencesTab? {
+        switch raw {
+        case "general": return .common
+        case "providers": return .providers
+        case "recognition": return .recognition
+        case "features": return .common
+        case "privacy": return .privacy
+        case "permissions": return .network
+        case "about": return .account
+        default: return nil
+        }
     }
 }
 
-/// Classic Mac preference window: titlebar (traffic lights) above icon toolbar.
+/// 设置窗口当前停在哪一页。侧栏点哪一页，内容区换哪一页。
 @MainActor
 final class PreferencesTabs: ObservableObject {
-    @Published var tab: PreferencesTab = .general
+    @Published var tab: PreferencesTab = .common
     @Published var epoch = 0
-    /// 功能页里的哪一节。语音页的「打开语音设置」直接落到「语音与字幕」。
-    @Published var featureSection = "translate"
 }
 
 @MainActor
-final class PreferencesController: NSObject, NSToolbarDelegate {
+final class PreferencesController: NSObject {
     static let shared = PreferencesController()
     private var window: NSWindow?
     private let tabs = PreferencesTabs()
-    private var selectedTab: PreferencesTab {
-        get { tabs.tab }
-        set { tabs.tab = newValue }
-    }
-    private let toolbarID = "Korgino.PreferencesToolbar"
 
     func show() {
         if window == nil {
             buildWindow()
         }
-        selectTab(selectedTab, updateToolbar: true)
+        window?.title = tabs.tab.title
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func show(tab: PreferencesTab) {
-        selectedTab = tab
+        tabs.tab = tab
         show()
     }
 
-    /// 打开偏好设置，并停在功能页的「语音与字幕」。
+    /// 打开偏好设置，并停在「语音」。主窗口侧栏「更多 › 语音」还没接进来之前，从这里进。
     func showVoice() {
-        tabs.featureSection = "voice"
-        show(tab: .features)
+        show(tab: .voice)
+    }
+
+    func close() {
+        window?.close()
     }
 
     private func buildWindow() {
@@ -85,116 +113,74 @@ final class PreferencesController: NSObject, NSToolbarDelegate {
         let host = NSHostingView(rootView: AnyView(root))
         host.translatesAutoresizingMaskIntoConstraints = false
 
-        // Classic Mac prefs: separate titlebar (traffic lights top-left) ABOVE
-        // the icon toolbar. Do NOT use fullSizeContentView — that merges lights
-        // into the same row as the tab icons.
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 640),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        w.title = L("Korgino 设置")
-        w.titleVisibility = .visible
-        w.titlebarAppearsTransparent = false
-        // Without fullSizeContentView, .preference keeps the lights in their own
-        // titlebar row and centers the icon toolbar below (System Settings style).
-        w.toolbarStyle = .preference
+        w.title = L("设置")
+        w.titleVisibility = .hidden
+        w.titlebarAppearsTransparent = true
+        w.toolbarStyle = .unified
         w.isReleasedWhenClosed = false
-        w.setContentSize(NSSize(width: 760, height: 560))
-        w.minSize = NSSize(width: 700, height: 480)
-        w.maxSize = NSSize(width: 980, height: 900)
-
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 760, height: 560))
-        container.wantsLayer = true
-        w.contentView = container
-
-        let toolbar = NSToolbar(identifier: toolbarID)
-        toolbar.delegate = self
-        toolbar.displayMode = .iconAndLabel
-        toolbar.allowsUserCustomization = false
-        toolbar.autosavesConfiguration = false
-        toolbar.selectedItemIdentifier = selectedTab.toolbarIdentifier
-        w.toolbar = toolbar
-
-        container.addSubview(host)
-        // Without fullSizeContentView, contentView is already below titlebar+toolbar.
+        w.setContentSize(NSSize(width: 860, height: 640))
+        w.minSize = NSSize(width: 760, height: 520)
+        w.contentView = host
         NSLayoutConstraint.activate([
-            host.topAnchor.constraint(equalTo: container.topAnchor),
-            host.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            host.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            host.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            host.topAnchor.constraint(equalTo: w.contentView!.topAnchor),
+            host.leadingAnchor.constraint(equalTo: w.contentView!.leadingAnchor),
+            host.trailingAnchor.constraint(equalTo: w.contentView!.trailingAnchor),
+            host.bottomAnchor.constraint(equalTo: w.contentView!.bottomAnchor),
         ])
         w.center()
         window = w
     }
 
-    private func selectTab(_ tab: PreferencesTab, updateToolbar: Bool) {
-        tabs.tab = tab
-        if updateToolbar {
-            window?.toolbar?.selectedItemIdentifier = tab.toolbarIdentifier
-        }
-        window?.title = tab.title
-    }
-
     func relocalize() {
         guard window != nil else { return }
-        let toolbar = NSToolbar(identifier: toolbarID)
-        toolbar.delegate = self
-        toolbar.displayMode = .iconAndLabel
-        toolbar.allowsUserCustomization = false
-        toolbar.autosavesConfiguration = false
-        toolbar.selectedItemIdentifier = selectedTab.toolbarIdentifier
-        window?.toolbar = toolbar
         tabs.epoch += 1
-        selectTab(selectedTab, updateToolbar: true)
-    }
-
-    @objc private func toolbarTabClicked(_ sender: NSToolbarItem) {
-        guard let tab = PreferencesTab.from(toolbarIdentifier: sender.itemIdentifier) else { return }
-        selectTab(tab, updateToolbar: true)
-    }
-
-    // MARK: NSToolbarDelegate
-
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        PreferencesTab.allCases.map(\.toolbarIdentifier) + [.flexibleSpace]
-    }
-
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        PreferencesTab.allCases.map(\.toolbarIdentifier)
-    }
-
-    func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        PreferencesTab.allCases.map(\.toolbarIdentifier)
-    }
-
-    func toolbar(
-        _ toolbar: NSToolbar,
-        itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
-        willBeInsertedIntoToolbar flag: Bool
-    ) -> NSToolbarItem? {
-        guard let tab = PreferencesTab.from(toolbarIdentifier: itemIdentifier) else { return nil }
-        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.label = tab.title
-        item.paletteLabel = tab.title
-        item.toolTip = tab.title
-        // Prefer large SF Symbols so preference toolbar icons read like Finder
-        let cfg = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-        if let img = NSImage(systemSymbolName: tab.systemImage, accessibilityDescription: tab.title)?
-            .withSymbolConfiguration(cfg) {
-            img.isTemplate = true
-            item.image = img
-        }
-        item.target = self
-        item.action = #selector(toolbarTabClicked(_:))
-        return item
+        window?.title = tabs.tab.title
     }
 }
 
 private enum ProviderSheet: String, Identifiable {
     case ai, asr, tts
     var id: String { rawValue }
+}
+
+/// 填写块里控件贴右的那一列。输入框、输入框加按钮、主机加端口都是这个宽。
+private enum SettingsMetrics {
+    static let controlWidth: CGFloat = 300
+}
+
+private struct SettingsFieldWidthKey: EnvironmentKey {
+    static let defaultValue: CGFloat? = nil
+}
+
+extension EnvironmentValues {
+    var settingsFieldWidth: CGFloat? {
+        get { self[SettingsFieldWidthKey.self] }
+        set { self[SettingsFieldWidthKey.self] = newValue }
+    }
+}
+
+/// 填写块里的输入框：贴右，宽 300。说明文字跟在控件下面。
+private struct SettingsField<Content: View>: View {
+    @Environment(\.settingsFieldWidth) private var width
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        if let width {
+            HStack {
+                Spacer(minLength: 12)
+                content()
+                    .frame(width: width)
+            }
+        } else {
+            content()
+        }
+    }
 }
 
 private struct ContactIcon: View {
@@ -404,61 +390,32 @@ private enum SVGMark {
     }
 }
 
-private struct RailItem: Identifiable {
-    let id: String
+/// 侧栏一项。选中是浅灰底，不带图标，跟效果图一致。
+private struct SettingsRailButton: View {
     let title: String
-    let symbol: String
-}
-
-private struct RailButton: View {
-    let title: String
-    let symbol: String
     let selected: Bool
     let action: () -> Void
     @State private var hover = false
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(Theme.TypeScale.body).fontWeight(.medium)
-                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-                    .frame(width: 16)
-                Text(title)
-                    .font(Theme.TypeScale.body).fontWeight(selected ? .semibold : .regular)
-                    .foregroundStyle(selected ? Color.primary : Color.secondary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(selected ? Color.accentColor.opacity(0.16) : (hover ? Color.primary.opacity(0.05) : .clear))
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            Text(title)
+                .font(Theme.TypeScale.body)
+                .fontWeight(selected ? .medium : .regular)
+                .foregroundStyle(selected ? Color.primary : Color.primary.opacity(0.85))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(selected ? Color.primary.opacity(0.08) : (hover ? Color.primary.opacity(0.04) : .clear))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
-private struct PaneSplit<Rail: View, Detail: View>: View {
-    @ViewBuilder var rail: () -> Rail
-    @ViewBuilder var detail: () -> Detail
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            rail()
-                .frame(width: 168)
-                .frame(maxHeight: .infinity, alignment: .top)
-            Divider()
-            detail()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 
@@ -474,7 +431,10 @@ struct PreferencesPane: View {
     @State private var axTrusted = AXIsProcessTrusted()
     @State private var screenTrusted = CGPreflightScreenCaptureAccess()
     @State private var listenTrusted = CGPreflightListenEventAccess()
-    @State private var loginEnabled = SMAppService.mainApp.status == .enabled
+    @State private var micTrusted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    @State private var speechTrusted = SFSpeechRecognizer.authorizationStatus() == .authorized
+    @State private var launchAtLogin = UserDefaults.standard.object(forKey: ConfigKeys.launchAtLogin) as? Bool ?? false
+    @State private var keepInMenuBar = UserDefaults.standard.object(forKey: ConfigKeys.keepInMenuBar) as? Bool ?? true
     @State private var applePackStatus = L("检查中…")
     @State private var providerSheet: ProviderSheet?
     @State private var expandedAIIds: Set<String> = []
@@ -485,885 +445,494 @@ struct PreferencesPane: View {
     @State private var keyInput = ""
     @State private var emailInput = ""
     @State private var showReissue = false
+    @State private var showThanks = false
     @State private var showWeChatQR = false
     @State private var asrTermDraft = ""
-    private var featureSection: Binding<String> {
-        Binding(
-            get: { tabs.featureSection },
-            set: { tabs.featureSection = $0 }
-        )
-    }
-    @State private var providerSection = "builtin"
-    @State private var recognitionSection = "ocr"
     @State private var openBuiltin: Set<String> = []
+    @State private var showMoreBuiltin = false
     @State private var openOCR: Set<String> = []
     @State private var hoveredOCR: String?
+    @State private var hoveredBuiltin: String?
+    @State private var showMoreIdentity = false
+    @State private var showMoreDevice = false
+    @State private var openMask: Set<UUID> = []
+    @State private var maskProbe = ""
+    @ObservedObject private var plugins = SelectionPluginStore.shared
     @ObservedObject private var pro = Pro.shared
     @ObservedObject private var media = MediaCaptionsController.shared
     @ObservedObject private var file = FileTranslateController.shared
+
     var body: some View {
-        pane
+        split
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Theme.windowFill)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: tab)
-        .sheet(item: $providerSheet) { sheet in
-            switch sheet {
-            case .ai:
-                AddProviderSheet(isPresented: Binding(
-                    get: { providerSheet == .ai },
-                    set: { if !$0 { providerSheet = nil } }
-                )) { preset in
-                    let idx = config.addProvider(from: preset)
-                    expandedAIIds.insert(config.aiProfiles[idx].id)
+            .sheet(item: $providerSheet) { sheet in
+                switch sheet {
+                case .ai:
+                    AddProviderSheet(isPresented: Binding(
+                        get: { providerSheet == .ai },
+                        set: { if !$0 { providerSheet = nil } }
+                    )) { preset in
+                        let idx = config.addProvider(from: preset)
+                        expandedAIIds.insert(config.aiProfiles[idx].id)
+                    }
+                    .environmentObject(config)
+                    .controlSize(.small)
+                case .asr:
+                    AddASRSheet(isPresented: Binding(
+                        get: { providerSheet == .asr },
+                        set: { if !$0 { providerSheet = nil } }
+                    )) { preset in
+                        let idx = config.addASR(from: preset)
+                        expandedASRIds.insert(config.asrProfiles[idx].id)
+                    }
+                    .environmentObject(config)
+                    .controlSize(.small)
+                case .tts:
+                    AddTTSSheet(isPresented: Binding(
+                        get: { providerSheet == .tts },
+                        set: { if !$0 { providerSheet = nil } }
+                    )) { preset in
+                        let idx = config.addTTS(from: preset)
+                        expandedTTSIds.insert(config.ttsProfiles[idx].id)
+                    }
+                    .environmentObject(config)
+                    .controlSize(.small)
                 }
-                .environmentObject(config)
-                .controlSize(.small)
-            case .asr:
-                AddASRSheet(isPresented: Binding(
-                    get: { providerSheet == .asr },
-                    set: { if !$0 { providerSheet = nil } }
-                )) { preset in
-                    let idx = config.addASR(from: preset)
-                    expandedASRIds.insert(config.asrProfiles[idx].id)
-                }
-                .environmentObject(config)
-                .controlSize(.small)
-            case .tts:
-                AddTTSSheet(isPresented: Binding(
-                    get: { providerSheet == .tts },
-                    set: { if !$0 { providerSheet = nil } }
-                )) { preset in
-                    let idx = config.addTTS(from: preset)
-                    expandedTTSIds.insert(config.ttsProfiles[idx].id)
-                }
-                .environmentObject(config)
-                .controlSize(.small)
             }
-        }
-        .onAppear {
-            refreshPermissions()
-            refreshApplePackStatus()
-        }
-        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
-            refreshPermissions()
-            loginEnabled = SMAppService.mainApp.status == .enabled
-        }
-        .controlSize(.small)
+            .onAppear {
+                refreshPermissions()
+                refreshApplePackStatus()
+            }
+            .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+                refreshPermissions()
+            }
+            .controlSize(.small)
     }
 
-    @ViewBuilder
-    private var pane: some View {
+    private var split: some View {
         let _ = tabs.epoch
-        switch tab {
-        case .features:
-            featuresSplit
-        case .providers:
-            providersSplit
-        case .recognition:
-            recognitionSplit
-        default:
-            ScrollView {
-                content
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-            }
+        return HStack(alignment: .top, spacing: 0) {
+            sidebar
+                .frame(width: 180)
+                .frame(maxHeight: .infinity, alignment: .top)
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(Theme.windowFill)
         }
     }
 
-    @ViewBuilder
-    private var content: some View {
-        switch tab {
-        case .general: generalTab
-        case .privacy: privacyTab
-        case .permissions: permissionsTab
-        case .about: aboutTab
-        default: EmptyView()
-        }
-    }
-
-    private func rail(_ items: [RailItem], selection: Binding<String>) -> some View {
-        rail(items, selection: selection) { EmptyView() }
-    }
-
-    private func rail<Footer: View>(_ items: [RailItem], selection: Binding<String>, @ViewBuilder footer: () -> Footer) -> some View {
+    private var sidebar: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(items) { item in
-                RailButton(title: item.title, symbol: item.symbol, selected: selection.wrappedValue == item.id) {
-                    selection.wrappedValue = item.id
+            Button {
+                PreferencesController.shared.close()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(Theme.TypeScale.caption)
+                    Text(L("返回"))
+                        .font(Theme.TypeScale.body)
                 }
-            }
-            footer()
-                .padding(.top, 10)
-        }
-        .padding(8)
-        .frame(maxHeight: .infinity, alignment: .top)
-    }
-
-    private func detailForm<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        ScrollView {
-            content()
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private var proStatus: String {
-        #if KORGI_DEV
-        if pro.devUnlocked { return L("开发版，当作已购买") }
-        #endif
-        if pro.purchased { return L("已购买") }
-        if Pro.testAccessOpen { return L("测试中，Pro 开到 2026-12-31") }
-        if Pro.channel == .direct {
-            switch license.record?.standing {
-            case .displaced: return L("这台已让出名额，现在是免费版")
-            case .revoked: return L("钥匙已失效，现在是免费版")
-            default: break
-            }
-        }
-        if let days = pro.trialDaysLeft { return String(format: L("试用中，剩余 %@ 天"), String(days)) }
-        if pro.trialEnd != nil { return L("试用已结束，现在是免费版") }
-        return L("免费版")
-    }
-
-    @ViewBuilder
-    private var proSections: some View {
-        Section {
-            LabeledContent("Pro", value: proStatus)
-            #if KORGI_DEV
-            Toggle(isOn: Binding(get: { !pro.devUnlocked }, set: { pro.devUnlocked = !$0 })) {
-                Text(L("按免费版运行"))
-                Text(L("只在开发版里出现"))
-            }
-            .toggleStyle(SegmentedToggleStyle())
-            #endif
-        } footer: {
-            if !pro.purchased && !Pro.testAccessOpen {
-                Text(Pro.channel == .store
-                     ? L("一次购买，之后一直可用。先试用 14 天也行，试用结束不会自动扣费。")
-                     : L("一次购买，之后一直可用。一把钥匙最多用在 3 台 Mac 上。"))
-            }
-        }
-        if !pro.purchased && !Pro.testAccessOpen {
-            Section {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(L("免费版就能用划词、快捷翻译、剪贴板、截图、词典、收藏、实时字幕和语音。快捷翻译两边都只用一家。"))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    planTable(groups: [
-                        (L("同时几家"), Self.providerRows),
-                        (L("能用多少"), Self.amountRows),
-                    ])
-                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 4)
+                .contentShape(Rectangle())
             }
-            if Pro.channel == .store {
-                Section {
-                    HStack {
-                        Button(pro.products[Pro.productID].map { String(format: L("购买 Pro（%@）"), $0.displayPrice) } ?? L("购买 Pro")) {
-                            Task { await pro.purchase(Pro.productID) }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(pro.busy || pro.products[Pro.productID] == nil)
-                        if pro.trialEnd == nil {
-                            Button(String(format: L("免费试用 %@ 天"), String(Pro.trialDays))) {
-                                Task { await pro.purchase(Pro.trialID) }
-                            }
-                            .disabled(pro.busy || pro.products[Pro.trialID] == nil)
-                        }
-                        Spacer()
-                        Button(L("恢复购买")) {
-                            Task { await pro.restore() }
-                        }
-                        .disabled(pro.busy)
-                    }
-                } footer: {
-                    if pro.products[Pro.productID] == nil {
-                        Text(L("这一份不是从 App Store 装的，现在买不了 Pro。上面免费版的功能都能用。"))
-                    }
+            .buttonStyle(.plain)
+            .padding(.top, 28)
+            .padding(.bottom, 8)
+            .help(L("关掉设置窗口"))
+
+            ForEach(PreferencesTab.primary) { item in
+                SettingsRailButton(title: item.title, selected: tab == item) {
+                    tabs.tab = item
                 }
-            } else {
-                directPurchaseSection
+            }
+
+            Text(L("高级"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.top, 14)
+                .padding(.bottom, 2)
+
+            ForEach(PreferencesTab.advanced) { item in
+                SettingsRailButton(title: item.title, selected: tab == item) {
+                    tabs.tab = item
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            SettingsRailButton(title: PreferencesTab.voice.title, selected: tab == .voice) {
+                tabs.tab = .voice
             }
         }
-        if Pro.channel == .direct && pro.purchased {
-            directManageSection
+        .padding(.horizontal, 10)
+        .padding(.bottom, 12)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.55))
+    }
+
+    private var detail: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                pageHeader
+                pageBody
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 28)
+            .padding(.top, 36)
+            .padding(.bottom, 28)
         }
     }
 
-    /// 公证包未购买：去付款页、填钥匙、忘了就按邮箱补发。见 docs/adr/0062。
-    @ViewBuilder
-    private var directPurchaseSection: some View {
-        Section {
-            HStack {
-                Button(L("购买 Pro")) {
-                    if let url = LicenseEndpoint.purchaseURL { NSWorkspace.shared.open(url) }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(LicenseEndpoint.purchaseURL == nil)
-                Spacer()
-            }
-            HStack {
-                TextField(L("钥匙"), text: $keyInput)
-                    .textFieldStyle(.roundedBorder)
-                Button(L("填入")) {
-                    let k = keyInput
-                    Task {
-                        await license.enter(key: k)
-                        if license.isActive { keyInput = "" }
-                    }
-                }
-                .disabled(license.busy || keyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            Button(L("忘了钥匙？")) { showReissue.toggle() }
-                .buttonStyle(.link)
-            if showReissue {
-                HStack {
-                    TextField(L("付款时用的邮箱"), text: $emailInput)
-                        .textFieldStyle(.roundedBorder)
-                    Button(L("发回")) {
-                        let e = emailInput
-                        Task { await license.reissue(email: e) }
-                    }
-                    .disabled(license.busy || emailInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-            if let note = license.note {
-                Text(note)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        } footer: {
-            if !license.isConfigured {
-                Text(L("尚未接入支付系统，现在买不了 Pro。上面免费版的功能都能用。"))
-            }
-        }
-    }
-
-    /// 公证包已购买：看钥匙尾号，可以把这台的名额让出来。只让出自己。
-    @ViewBuilder
-    private var directManageSection: some View {
-        Section {
-            if let rec = license.record {
-                LabeledContent(L("钥匙"), value: "…" + String(rec.key.suffix(4)))
-                HStack {
-                    Button(L("让出这台的名额")) {
-                        Task { await license.release() }
-                    }
-                    .disabled(license.busy)
-                    Spacer()
-                }
-                if rec.releasePending {
-                    Text(L("这台先记着要让出，连上系统后自动完成；在那之前仍算已购买。"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            if let note = license.note {
-                Text(note)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        } footer: {
-            Text(L("让出后这台变回免费版，名额空给别的 Mac。只让出这一台，不影响其他电脑。"))
-        }
-    }
-
-    @ViewBuilder
-    private func planCell(_ value: String) -> some View {
-        switch value {
-        case "✓":
-            Image(systemName: "checkmark")
-                .font(Theme.TypeScale.caption).fontWeight(.semibold)
-                .foregroundStyle(.primary)
-        case "—":
-            Image(systemName: "minus")
-                .font(Theme.TypeScale.caption).fontWeight(.semibold)
-                .foregroundStyle(.tertiary)
-        default:
-            Text(value)
+    private var pageHeader: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(tab.title)
+                .font(Theme.TypeScale.title)
+            Text(tab.blurb)
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
         }
     }
 
-    private static var providerRows: [(String, String, String)] {
-        [
-            (L("划词、剪贴板、截图"), L("2 家"), L("不限")),
-            (L("文件、实时字幕、媒体、语音"), L("1 家"), L("不限")),
-            (L("词典"), L("默认 1 家"), L("配好的多家一起查")),
-            (L("识别、朗读"), L("默认 1 家"), L("当次可加")),
-        ]
-    }
-
-    private static var amountRows: [(String, String, String)] {
-        [
-            (L("一份文件"), L("5000 字"), L("不限")),
-            (L("一份媒体"), L("15 分钟"), L("不限")),
-            (L("历史"), L("最近 50 条"), L("全部")),
-            (L("继续对话"), L("无"), L("有")),
-        ]
-    }
-
-    private func planTable(groups: [(String, [(String, String, String)])]) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
-            GridRow {
-                Text("")
-                Text(L("免费版")).font(Theme.TypeScale.caption).fontWeight(.semibold).foregroundStyle(.secondary)
-                Text("Pro").font(Theme.TypeScale.caption).fontWeight(.semibold).foregroundStyle(Color.accentColor)
-            }
-            ForEach(Array(groups.enumerated()), id: \.offset) { idx, group in
-                GridRow {
-                    Text(group.0)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .gridCellColumns(3)
-                        .padding(.top, idx == 0 ? 2 : 8)
-                }
-                ForEach(group.1, id: \.0) { item, free, paid in
-                    GridRow {
-                        Text(item)
-                        planCell(free)
-                        planCell(paid)
-                    }
-                }
-            }
+    @ViewBuilder
+    private var pageBody: some View {
+        switch tab {
+        case .common: commonPage
+        case .shortcuts: shortcutsPage
+        case .account: accountPage
+        case .providers: providersPage
+        case .recognition: recognitionPage
+        case .dictionary: dictionaryPage
+        case .plugins: pluginsPage
+        case .apps: appsPage
+        case .privacy: privacyPage
+        case .network: networkPage
+        case .voice: voicePage
+        case .about: accountPage
         }
     }
 
-    // MARK: - Tabs
+    // MARK: - 常用
 
-    private var generalTab: some View {
-        Form {
-            Section {
-                Picker(selection: $config.appLanguage) {
-                    ForEach(AppLanguage.allCases) { lang in
-                        Text(lang.title).tag(lang)
-                    }
-                } label: {
-                    Text(L("应用语言"))
+    /// 常用只留这 12 行。其余设置在高级里。
+    private var commonPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup(L("语言")) {
+                settingsRow(L("母语"), detail: L("用来读译文的语言")) {
+                    languageMenu(selection: $config.nativeLanguage)
                 }
-                LabeledContent(L("外观")) {
-                    PillSegmented(
-                        selection: $config.appearance,
-                        options: AppearanceMode.allCases.map { ($0, $0.title) }
-                    )
+                settingsRow(L("目标语言"), detail: L("原文是母语时译成这种")) {
+                    languageMenu(selection: $config.targetLanguage)
                 }
-                LabeledContent(L("浮层不透明度")) {
-                    HStack(spacing: 10) {
-                        Slider(value: $config.panelOpacity, in: 0.35...1)
-                        Text("\(Int((config.panelOpacity * 100).rounded()))%")
-                            .font(Theme.TypeScale.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .frame(width: 40, alignment: .trailing)
-                    }
-                    .frame(maxWidth: 220)
-                }
-            } header: {
-                Text(L("界面"))
             }
-
-            Section {
-                Toggle(isOn: loginAtLoginBinding) {
-                    Text(L("开机自启"))
-                    Text(L("登录时自动打开 Korgino"))
+            settingsGroup(L("翻译")) {
+                settingsRow(L("翻译服务")) {
+                    commonServiceMenu
                 }
-                .toggleStyle(SegmentedToggleStyle())
-            } header: {
-                Text(L("启动"))
-            }
-
-            Section {
-                Picker(selection: $config.nativeLanguage) {
-                    ForEach(TargetLanguage.specific) { lang in
-                        Text(lang.menuTitle).tag(lang)
-                    }
-                } label: {
-                    Text(L("母语"))
-                    Text(L("用来读译文"))
-                }
-                Picker(selection: $config.targetLanguage) {
-                    ForEach(TargetLanguage.specific) { lang in
-                        Text(lang.menuTitle).tag(lang)
-                    }
-                } label: {
-                    Text(L("目标语言"))
-                    Text(L("原文是母语就译成这种，原文是这种就译成母语，其它译成母语"))
-                }
-                Toggle(isOn: $config.polishSameLanguage) {
-                    Text(L("同语润色"))
-                    Text(L("原文已经是要译成的语言时，轻改措辞并保持结构"))
-                }
-                .toggleStyle(SegmentedToggleStyle())
-            } header: {
-                Text(L("语言"))
-            }
-
-            Section {
-                proxyFields
-            } header: {
-                Text(L("网络"))
-            } footer: {
-                Text(L("默认跟随系统代理。国内访问 Google 免费翻译通常需要已开启的系统代理。"))
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    private var featureRail: [RailItem] {
-        [
-            // 先是各项功能自己的页，再是横跨所有功能的：按应用改、快捷键一览。
-            RailItem(id: "translate", title: L("翻译"), symbol: "character.textbox"),
-            RailItem(id: "voice", title: L("语音与字幕"), symbol: "mic"),
-            RailItem(id: "plugins", title: L("划词插件"), symbol: "square.stack"),
-            RailItem(id: "apps", title: L("按应用设置"), symbol: "app.badge"),
-            RailItem(id: "shortcuts", title: L("快捷键"), symbol: "command"),
-        ]
-    }
-
-    private var featuresSplit: some View {
-        PaneSplit {
-            rail(featureRail, selection: featureSection)
-        } detail: {
-            detailForm {
-                Form {
-                    switch featureSection.wrappedValue {
-                    case "shortcuts":
-                        shortcutsFeature
-                    case "apps":
-                        QuickAppsSection()
-                    case "plugins":
-                        SelectionPluginSettingsSection()
-                    case "voice":
-                        dictateFeature
-                        captionsFeature
-                    default:
-                        translateFeature
-                        quickFeature
-                        fileFeature
-                        lookupFeature
+                if let note = commonServiceDivergence {
+                    divergenceNote(note) {
+                        tabs.tab = .providers
                     }
                 }
-                .formStyle(.grouped)
-            }
-        }
-    }
-
-    private var hotkeyHint: Text {
-        Text(L("勾选同时控制菜单项和快捷键，取消勾选后两者都停用。点右侧按钮后按下组合键即可修改，需包含 ⌃ / ⌥ / ⇧ / ⌘ 之一。Esc 取消。"))
-    }
-
-    private var shortcutsFeature: some View {
-        Group {
-            Section {
-                hotkeyRow(.openMain, spec: $config.hotkeyOpenMain)
-                hotkeyRow(.select, spec: $config.hotkeySelect)
-                hotkeyRow(.clipboard, spec: $config.hotkeyClipboard)
-                hotkeyRow(.ocr, spec: $config.hotkeyOCR)
-            } header: {
-                Text(L("翻译"))
-            }
-            Section {
-                hotkeyRow(.quickTranslate, spec: $config.hotkeyQuick)
-                hotkeyRow(.quickUndo, spec: $config.hotkeyQuickUndo)
-            } header: {
-                Text(L("快捷翻译"))
-            }
-            // 语音的开关只在「语音与字幕」页里，这里关着时整组变灰。
-            Section {
-                Group {
-                    voiceHotkeyRow(.voiceRecognize, spec: $config.hotkeyVoiceRecognize)
-                    voiceHotkeyRow(.voiceTranslate, spec: $config.hotkeyVoiceTranslate)
-                    voiceHotkeyRow(.voiceInterpret, spec: $config.hotkeyVoiceInterpret)
+                settingsRow(L("划词后显示插件条")) {
+                    Toggle("", isOn: Binding(
+                        get: { plugins.isOn },
+                        set: { plugins.isOn = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
                 }
-                .disabled(!config.dictateEnabled)
-            } header: {
-                Text(L("语音"))
-            } footer: {
-                if config.dictateEnabled {
-                    Text(L("快捷键只切换模式，胶囊会写出模式名。按住 Fn 走当前这一条，松开结束。"))
-                } else {
-                    Text(L("语音没开。到「语音与字幕」页打开后，这几个快捷键才生效。"))
+                settingsRow(
+                    L("连按空格快捷翻译"),
+                    detail: L("在输入框里连按三下空格，把刚打的字换成译文")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { config.isFeatureEnabled(.quickTranslate) },
+                        set: { config.setFeatureEnabled($0, for: .quickTranslate) }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
                 }
             }
-            Section {
-                hotkeyRow(.file, spec: $config.hotkeyFile)
-            } header: {
-                Text(L("文件翻译"))
-            }
-            Section {
-                hotkeyRow(.liveCaptions, spec: $config.hotkeyLiveCaptions)
-                hotkeyRow(.mediaCaptions, spec: $config.hotkeyMediaCaptions)
-            } header: {
-                Text(L("字幕"))
-            }
-            Section {
-                hotkeyRow(.dictionary, spec: $config.hotkeyDictionary)
-                hotkeyRow(.history, spec: $config.hotkeyHistory)
-            } header: {
-                Text(L("查词和记录"))
-            } footer: {
-                VStack(alignment: .leading, spacing: 6) {
-                    hotkeyHint
-                    HStack {
-                        Spacer(minLength: 0)
-                        Button(L("恢复默认快捷键")) {
-                            config.resetHotkeysToDefaults()
+            settingsGroup(L("实时与会议")) {
+                settingsRow(L("识别")) {
+                    Menu {
+                        ForEach(config.liveASRChoices()) { choice in
+                            Button(choice.name) { config.setDefaultAsr(choice.id, live: true) }
                         }
+                    } label: {
+                        let id = config.resolvedLiveAsr()
+                        menuLabel(config.liveASRChoices().first { $0.id == id }?.name ?? L("Apple 语音分析"))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("翻译")) {
+                    Menu {
+                        ForEach(config.catalogTargets()) { target in
+                            Button(target.displayName) {
+                                config.setTranslateIDs([target.id], .live)
+                            }
+                        }
+                    } label: {
+                        menuLabel(liveTranslateName)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+            }
+            settingsGroup(L("外观与启动")) {
+                settingsRow(L("外观")) {
+                    Menu {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Button(mode.title) { config.appearance = mode }
+                        }
+                    } label: {
+                        menuLabel(config.appearance.title)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("浮层透明度")) {
+                    Slider(value: $config.panelOpacity, in: 0.35...1)
+                        .frame(width: 180)
                         .controlSize(.small)
-                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    private var translateFeature: some View {
-        Section {
-            serviceRow(L("划词翻译"), .select)
-            serviceRow(L("翻译剪贴板"), .clipboard)
-            serviceRow(L("OCR 截图翻译"), .ocr)
-            Picker(L("截图识别"), selection: Binding(
-                get: { config.ocrProvider },
-                set: { config.setOCRDefault($0) }
-            )) {
-                ForEach(config.orderedOCRProviders()) { provider in
-                    Text(provider.displayName).tag(provider)
-                }
-            }
-        } header: {
-            Text(L("划词与截图"))
-        } footer: {
-            Text(L("点加号添加这一项要用的翻译服务，点叉去掉。识别在上面选默认的一家。"))
-        }
-    }
-
-    private var quickFeature: some View {
-        Section {
-            Picker(L("默认供应商"), selection: $config.quickProviderID) {
-                Text(L("自动（第一个可用）")).tag("")
-                ForEach(config.simultaneousTargets()) { target in
-                    Text(target.displayName).tag(target.id)
-                }
-                if !config.quickProviderID.isEmpty,
-                   !config.simultaneousTargets().contains(where: { $0.id == config.quickProviderID }) {
-                    Text(String(format: L("%@（已暂停，先用第一个可用的）"), pausedName(config.quickProviderID)))
-                        .tag(config.quickProviderID)
-                }
-            }
-        } header: {
-            Text(L("快捷翻译"))
-        } footer: {
-            Text(L("其他应用的输入框里，连按三下空格，把划选或整段换成这家的译文。输入法选词那一下也算一下。不打开翻译浮层。改成组合键后按一下即可。想按应用分开配，去「按应用设置」那一页。"))
-        }
-    }
-
-    private var dictateFeature: some View {
-        Section {
-            Toggle(L("开启"), isOn: $config.dictateEnabled)
-                .toggleStyle(SegmentedToggleStyle())
-            Toggle(L("在菜单栏显示当前模式"), isOn: $config.voiceModeInMenuBar)
-                .toggleStyle(SegmentedToggleStyle())
-            if config.dictateEnabled {
-                dictateInputPicker
-                Picker(L("模式"), selection: $config.voiceMode) {
-                    ForEach(VoiceMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                Picker(L("识别"), selection: $config.dictateEngineID) {
-                    Text(L("自动（第一个可用）")).tag("")
-                    ForEach(config.liveASRChoices()) { choice in
-                        Text(choice.name).tag(choice.id)
-                    }
-                }
-                Picker(L("识别语言"), selection: $config.dictateLocaleID) {
-                    ForEach(ASRLanguage.available(apple: config.isSystemASR(config.dictateEngineID.isEmpty ? (config.liveASRChoices().first?.id ?? "apple") : config.dictateEngineID))) { lang in
-                        Text(lang.title).tag(lang.id)
-                    }
-                }
-                Picker(L("翻译"), selection: Binding(
-                    get: { config.storedTranslateIDs(.dictate).first ?? "" },
-                    set: { config.setTranslateIDs($0.isEmpty ? [] : [$0], .dictate) }
-                )) {
-                    ForEach(config.catalogTargets()) { target in
-                        Text(target.displayName).tag(target.id)
-                    }
-                }
-                Picker(L("目标语言"), selection: $config.dictateTargetLanguage) {
-                    Text(L("跟随设置里的目标语言")).tag(TargetLanguage.auto)
-                    ForEach(TargetLanguage.specific) { lang in
-                        Text(lang.menuTitle).tag(lang)
-                    }
-                }
-                Toggle(L("润色"), isOn: $config.voicePolish)
-                    .toggleStyle(SegmentedToggleStyle())
-                if config.voicePolish {
-                    Picker(L("风格"), selection: $config.voicePolishStyle) {
-                        ForEach(VoicePolishStyle.allCases) { style in
-                            Text(style.title).tag(style)
+                settingsRow(L("界面语言")) {
+                    Menu {
+                        ForEach(AppLanguage.allCases) { lang in
+                            Button(lang.title) { config.appLanguage = lang }
                         }
+                    } label: {
+                        menuLabel(config.appLanguage.title)
                     }
-                    if config.voicePolishStyle == .custom {
-                        TextField(L("自己的要求"), text: $config.voicePolishNote)
-                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                 }
-            }
-        } header: {
-            Text(L("语音"))
-        } footer: {
-            Text(L("按住 Fn 走当前模式。语音识别写下听到的字。语音翻译边听边出译文，松开后写入。语音传译边听边把说完的句子读出来。润色在松开后进行，按住时的字和已经读出去的句子不重来。没有 AI 时不改字。写不进输入框时只记历史。按住时再按别的键就取消。"))
-        }
-    }
-
-    /// 按住 Fn 时听这只麦克风。拔掉的设备仍留在选项里，插回后下一轮继续用。
-    private var dictateInputPicker: some View {
-        let devices = MicInput.devices()
-        return Picker(L("输入源"), selection: $config.dictateInputUID) {
-            Text(L("系统默认")).tag("")
-            ForEach(devices) { device in
-                Text(device.name).tag(device.uid)
-            }
-            if !config.dictateInputUID.isEmpty, !devices.contains(where: { $0.uid == config.dictateInputUID }) {
-                Text(L("已断开")).tag(config.dictateInputUID)
-            }
-        }
-    }
-
-    private var fileFeature: some View {
-        Section {
-            serviceRow(L("翻译服务"), .file)
-            Picker(L("默认模型"), selection: Binding(
-                get: { config.aiProfiles.contains { $0.id == config.fileAIProfileID && $0.enabled } ? config.fileAIProfileID : "" },
-                set: { config.fileAIProfileID = $0 }
-            )) {
-                Text(L("自动（第一个可用）")).tag("")
-                ForEach(config.aiProfiles.filter { config.isAIOn($0) }) { p in
-                    Text(config.isPaused("ai:\(p.id)")
-                         ? String(format: L("%@（已暂停，先用第一个可用的）"), p.name)
-                         : p.name)
-                        .tag(p.id)
-                }
-            }
-            Toggle(isOn: $file.directVision) {
-                Text(L("整页直读"))
-                Text(L("扫描件和图片整页交给视觉模型，不先识别文字。数字版 PDF 仍抽文字。看不了图的模型会退回识别。"))
-            }
-            .toggleStyle(SegmentedToggleStyle())
-        } header: {
-            Text(L("文件翻译"))
-        } footer: {
-            if !Pro.unlocked {
-                HStack(spacing: 6) {
-                    Text(L("免费版单份原文 5000 字符以内，中文一个字算一个。"))
-                    ProBadge(help: L("超过 5000 字符的文件需要 Pro"))
-                }
-            }
-        }
-    }
-
-    private var captionsFeature: some View {
-        Section {
-            asrDefaultPicker(L("实时识别"), live: true)
-            singleTranslatePicker(L("实时翻译"), .live)
-            asrDefaultPicker(L("媒体识别"), live: false)
-            singleTranslatePicker(L("媒体翻译"), .media)
-            LabeledContent {
-                HStack(spacing: 8) {
-                    Text(String(media.concurrentLimit))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                    Stepper(L("媒体字幕同时份数"), value: $media.concurrentLimit, in: 1...10)
+                settingsRow(L("登录时打开")) {
+                    Toggle("", isOn: launchAtLoginBinding)
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
-                .fixedSize()
-            } label: {
-                Text(L("媒体字幕同时份数"))
-                Text(L("同时在识别或等翻译的音视频，还没开始和已经落盘的不算"))
+                settingsRow(L("关掉窗口后留在菜单栏"), detail: L("实时字幕在听时会继续听")) {
+                    Toggle("", isOn: keepInMenuBarBinding)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
             }
-        } header: {
-            Text(L("字幕"))
         }
     }
 
-    private var lookupFeature: some View {
-        Section {
-            Picker(L("词典"), selection: $config.dictProvider) {
-                ForEach(DictionaryProviderID.allCases.filter { config.isDictOn($0) }) { provider in
-                    Text(provider.displayName).tag(provider)
-                }
+    /// 常用那一行写进划词、剪贴板、截图、文件各自名单的第一家。
+    private var commonServiceMenu: some View {
+        Menu {
+            ForEach(config.catalogTargets()) { target in
+                Button(target.displayName) { setCommonService(target.id) }
             }
-            if !Pro.unlocked {
-                HStack(spacing: 6) {
-                    Text(L("免费版只用默认一家"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ProBadge(help: L("Pro 不限家数"))
-                }
-            }
-            Toggle(isOn: $config.dictAutoOpen) {
-                Text(L("翻译后展开释义"))
-                Text(L("短词翻完后，在翻译浮层里展开释义"))
-            }
-            .toggleStyle(SegmentedToggleStyle())
-        } header: {
-            Text(L("查词"))
+        } label: {
+            menuLabel(commonServiceName)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    private var commonServiceName: String {
+        let id = config.storedTranslateIDs(.select).first
+            ?? config.catalogTargets().first?.id
+        return config.catalogTargets().first { $0.id == id }?.displayName ?? L("Google (免费)")
+    }
+
+    private var liveTranslateName: String {
+        let id = config.storedTranslateIDs(.live).first ?? ""
+        if id.isEmpty { return config.catalogTargets().first?.displayName ?? L("Google (免费)") }
+        return config.catalogTargets().first { $0.id == id }?.displayName ?? pausedName(id)
+    }
+
+    private func setCommonService(_ id: String) {
+        for use: TranslateUse in [.select, .clipboard, .ocr, .file] {
+            var ids = config.storedTranslateIDs(use)
+            ids.removeAll { $0 == id }
+            ids.insert(id, at: 0)
+            config.setTranslateIDs(ids, use)
         }
     }
 
-    private var privacyTab: some View {
-        Form {
-            Section {
-                maskSwitch(L("密钥"), L("API key、私钥、JWT 和密码"), $config.maskPrefs.secrets)
-                maskSwitch(L("邮箱"), L("跳过 example.com 和 git 地址"), $config.maskPrefs.email)
-                maskSwitch(L("手机号"), L("大陆手机号"), $config.maskPrefs.phone)
-                maskSwitch(L("身份证"), L("校验过的号码"), $config.maskPrefs.idCard)
-                maskSwitch(L("银行卡"), L("校验过的卡号"), $config.maskPrefs.bankCard)
-                maskSwitch(L("社会安全号"), L("美国社会安全号"), $config.maskPrefs.ssn)
-                maskSwitch(L("护照号"), L("写在护照或 passport 后面的"), $config.maskPrefs.passport)
-                maskSwitch(L("IBAN"), L("校验过的国际账号"), $config.maskPrefs.iban)
-                maskSwitch(L("生日"), L("写在生日或 birthday 后面，且早于一年前"), $config.maskPrefs.birthday)
-            } header: {
-                Text(L("身份和账号"))
-            }
-
-            Section {
-                maskSwitch(L("MAC 地址"), L("网卡地址"), $config.maskPrefs.mac)
-                maskSwitch(L("序列号"), L("写在序列号或 S/N 后面的"), $config.maskPrefs.serial)
-                maskSwitch(L("主目录用户名"), L("/Users 或 /home 里的名字"), $config.maskPrefs.home)
-                maskSwitch(L("用户名和主机名"), L("命令行提示符、ssh，以及单独一行的用户名或主机名"), $config.maskPrefs.userHost)
-                maskSwitch(L("公网 IP"), L("不含内网、本机和公共 DNS"), $config.maskPrefs.ip)
-                maskSwitch(L("云存储桶"), L("s3、oss 这类地址"), $config.maskPrefs.bucket)
-            } header: {
-                Text(L("设备和网络"))
-            } footer: {
-                Text(L("命中后先显示将要发出的内容，确认后才发出。结果回来再填回原文。这台 Mac 上留下的仍是原文。"))
-            }
-
-            Section {
-                ForEach($config.maskPrefs.entries) { $entry in
-                    customEntry($entry)
-                }
-                Button(L("新增一条")) {
-                    config.maskPrefs.entries.append(MaskEntry())
-                }
-            } header: {
-                Text(L("自定义"))
-            } footer: {
-                Text(L("一条一条加。普通按字面找，英文词两边要断开。正则匹配写到的那一段。替换成留空时用占位符；填了就发出这段，结果回来再填回原文。两处不同的原文用了同一个替换词时，后一处加上数字。写错的正则跳过，不拦住发送。命中后同样先确认。"))
-            }
+    /// 划词、剪贴板、截图、文件的第一家跟常用那一行不一样时，点了跳到高级。
+    private var commonServiceDivergence: String? {
+        let primary = config.storedTranslateIDs(.select).first
+        let uses: [(use: TranslateUse, label: String)] = [
+            (.clipboard, L("剪贴板")),
+            (.ocr, L("截图")),
+            (.file, L("文件")),
+        ]
+        let drifted = uses.filter { item in
+            let first = config.storedTranslateIDs(item.use).first
+            return first != primary && !(first == nil && primary == nil)
         }
-        .formStyle(.grouped)
+        guard !drifted.isEmpty else { return nil }
+        return drifted.map { item in
+            let id = config.storedTranslateIDs(item.use).first ?? ""
+            let name = config.catalogTargets().first { $0.id == id }?.displayName ?? pausedName(id)
+            return "\(item.label) \(name)"
+        }.joined(separator: "、")
     }
 
-    private func customEntry(_ entry: Binding<MaskEntry>) -> some View {
-        let entryID = entry.wrappedValue.id
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                PillSegmented(
-                    selection: entry.kind,
-                    options: [(MaskEntry.Kind.literal, L("普通")), (.regex, L("正则"))]
-                )
-                Spacer(minLength: 0)
-                Toggle(isOn: entry.ignoreCase) {
-                    Text(L("不区分大小写"))
-                }
-                .toggleStyle(SegmentedToggleStyle())
-                IconButton(systemImage: "minus.circle", help: L("移出")) {
-                    config.maskPrefs.entries.removeAll { $0.id == entryID }
-                }
+    private func languageMenu(selection: Binding<TargetLanguage>) -> some View {
+        Menu {
+            ForEach(TargetLanguage.specific) { lang in
+                Button(lang.menuTitle) { selection.wrappedValue = lang }
             }
-            HStack(spacing: 8) {
-                TextField(entry.wrappedValue.kind == .literal ? L("要遮住的词") : L("正则"), text: entry.pattern)
-                    .textFieldStyle(.roundedBorder)
-                TextField(L("替换成"), text: entry.replacement, prompt: Text(L("留空则用占位符")))
-                    .textFieldStyle(.roundedBorder)
-            }
-            if let problem = entry.wrappedValue.problem {
-                ErrorLine(text: L(problem))
-            }
+        } label: {
+            menuLabel(selection.wrappedValue.menuTitle)
         }
-        .padding(.vertical, 2)
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 
-    /// Callers pass text already run through `L()`, so the keys stay visible to the
-    /// localization checker instead of hiding inside this helper.
-    private func maskSwitch(_ title: String, _ detail: String, _ isOn: Binding<Bool>) -> some View {
-        Toggle(isOn: isOn) {
-            Text(title)
-            Text(detail)
-        }
-        .toggleStyle(SegmentedToggleStyle())
-    }
-
-    private var loginAtLoginBinding: Binding<Bool> {
+    private var launchAtLoginBinding: Binding<Bool> {
         Binding(
-            get: { loginEnabled },
+            get: { launchAtLogin },
             set: { on in
-                do {
-                    if on { try SMAppService.mainApp.register() }
-                    else { try SMAppService.mainApp.unregister() }
-                    loginEnabled = SMAppService.mainApp.status == .enabled
-                } catch {
-                    loginEnabled = SMAppService.mainApp.status == .enabled
-                    let a = NSAlert()
-                    a.messageText = L("设置开机自启失败")
-                    a.informativeText = error.localizedDescription
-                    a.runModal()
-                }
+                launchAtLogin = on
+                UserDefaults.standard.set(on, forKey: ConfigKeys.launchAtLogin)
             }
         )
     }
 
-    private var aboutTab: some View {
-        Form {
-            Section {
-                HStack(spacing: 14) {
-                    if let nsimg = NSApp.applicationIconImage {
-                        Image(nsImage: nsimg)
-                            .resizable()
-                            .frame(width: 56, height: 56)
-                    }
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Korgino")
-                            .font(Theme.TypeScale.title)
-                        Text(String(format: L("版本 %@"), String(describing: AppInfo.fullVersion)))
+    private var keepInMenuBarBinding: Binding<Bool> {
+        Binding(
+            get: { keepInMenuBar },
+            set: { on in
+                keepInMenuBar = on
+                UserDefaults.standard.set(on, forKey: ConfigKeys.keepInMenuBar)
+            }
+        )
+    }
+
+    // MARK: - 快捷键
+
+    private var shortcutsPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup(L("主窗口")) {
+                hotkeyRow(.openMain, spec: $config.hotkeyOpenMain)
+            }
+            settingsGroup(L("翻译")) {
+                hotkeyRow(.select, spec: $config.hotkeySelect)
+                hotkeyRow(.clipboard, spec: $config.hotkeyClipboard)
+                hotkeyRow(.ocr, spec: $config.hotkeyOCR)
+                hotkeyRow(.file, spec: $config.hotkeyFile)
+            }
+            settingsGroup(L("快捷翻译")) {
+                settingsRow(L("触发")) {
+                    PillSegmented(
+                        selection: Binding(
+                            get: { config.hotkeyQuick.isBareSpace },
+                            set: { bare in
+                                if bare {
+                                    config.setHotkey(.quickTranslateDefault, for: .quickTranslate)
+                                } else if config.hotkeyQuick.isBareSpace {
+                                    config.setHotkey(
+                                        HotkeySpec(keyCode: HotkeySpec.Key.space, carbonModifiers: 2048),
+                                        for: .quickTranslate
+                                    )
+                                }
+                            }
+                        ),
+                        options: [(true, L("连按三下空格")), (false, L("组合键"))]
+                    )
+                }
+                if !config.hotkeyQuick.isBareSpace {
+                    hotkeyRow(.quickTranslate, spec: $config.hotkeyQuick)
+                }
+                hotkeyRow(.quickUndo, spec: $config.hotkeyQuickUndo)
+            }
+            settingsGroup(L("实时与会议")) {
+                hotkeyRow(.liveCaptions, spec: $config.hotkeyLiveCaptions)
+                hotkeyRow(.mediaCaptions, spec: $config.hotkeyMediaCaptions)
+            }
+            settingsGroup(L("查词和记录")) {
+                hotkeyRow(.dictionary, spec: $config.hotkeyDictionary)
+                hotkeyRow(.history, spec: $config.hotkeyHistory)
+            }
+            HStack {
+                Spacer(minLength: 0)
+                Button(L("恢复默认快捷键")) {
+                    config.resetHotkeysToDefaults()
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+
+    // MARK: - 账号与 Pro
+
+    private var accountPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            accountStatusCard
+            accountKeyBlock
+            settingsGroup(L("免费版和 Pro")) {
+                planCompareRow(L("划词翻译、快捷翻译、截图、剪贴板"), L("都能用"))
+                planCompareRow(L("同时开几家翻译"), L("免费 1 家 · Pro 不限"))
+                planCompareRow(L("文件翻译"), L("免费 5000 字以内 · Pro 不限"))
+                planCompareRow(L("继续对话、这次换模型"), "Pro")
+            }
+            #if KORGI_DEV
+            settingsGroup(L("开发")) {
+                settingsRow(L("按免费版运行"), detail: L("只在开发版里出现")) {
+                    Toggle("", isOn: Binding(get: { !pro.devUnlocked }, set: { pro.devUnlocked = !$0 }))
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+            }
+            #endif
+            settingsGroup(L("关于")) {
+                settingsRow(L("版本")) {
+                    HStack(spacing: 8) {
+                        Text(String(describing: AppInfo.fullVersion))
                             .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
-                    }
-                    Spacer(minLength: 8)
-                    Button(checkingUpdate ? L("检查中…") : L("检查更新…")) {
-                        checkingUpdate = true
-                        Task {
-                            let outcome = await UpdateChecker.check()
-                            checkingUpdate = false
-                            UpdateChecker.presentResult(outcome)
+                        Button(checkingUpdate ? L("检查中…") : L("检查更新…")) {
+                            checkingUpdate = true
+                            Task {
+                                let outcome = await UpdateChecker.check()
+                                checkingUpdate = false
+                                UpdateChecker.presentResult(outcome)
+                            }
                         }
+                        .controlSize(.small)
+                        .disabled(checkingUpdate)
                     }
-                    .disabled(checkingUpdate)
                 }
-                LabeledContent(L("联系")) {
+                settingsRow(L("联系")) {
                     HStack(spacing: 8) {
-                        Button {
-                            NSWorkspace.shared.open(AppInfo.xProfileURL)
-                        } label: {
-                            ContactIcon(kind: .x)
-                        }
-                        .help("X")
-                        .accessibilityLabel("X")
+                        Text(L("微信扫码添加企业微信"))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
                         Button {
                             showWeChatQR.toggle()
                         } label: {
                             ContactIcon(kind: .wechat)
                         }
+                        .buttonStyle(.plain)
                         .help(L("微信"))
-                        .accessibilityLabel(L("微信"))
+                        Button {
+                            NSWorkspace.shared.open(AppInfo.xProfileURL)
+                        } label: {
+                            ContactIcon(kind: .x)
+                        }
+                        .buttonStyle(.plain)
+                        .help("X")
                     }
                 }
                 if showWeChatQR, let image = AppInfo.weChatQR {
@@ -1373,295 +942,1262 @@ struct PreferencesPane: View {
                             .interpolation(.none)
                             .frame(width: 168, height: 168)
                         Text(L("扫码添加企业微信"))
-                            .font(.caption)
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
-            }
-            proSections
-            Section(L("致谢")) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L("声纹模型"))
-                        .font(Theme.TypeScale.labelMedium)
-                    Text(L("WeSpeaker ResNet34-LM，在 VoxCeleb 上训练，CC BY 4.0。由 wquguru/cicada 转成 Core ML 并重新量化（Apache-2.0）。"))
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 12) {
-                        Link("WeSpeaker", destination: URL(string: "https://github.com/wenet-e2e/wespeaker")!)
-                        Link("CC BY 4.0", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
-                        Link("wquguru/cicada", destination: URL(string: "https://github.com/wquguru/cicada")!)
-                        Link("Apache-2.0", destination: URL(string: "https://www.apache.org/licenses/LICENSE-2.0")!)
-                    }
-                    .font(Theme.TypeScale.caption)
-                    Text(L("开源组件"))
-                        .font(Theme.TypeScale.labelMedium)
-                        .padding(.top, 6)
-                    Text(L("界面、网络与音频处理只用系统自带的框架，不含第三方库。声纹部分用了 wquguru/cicada 的 Apache-2.0 代码（已改成 Swift 并接入本应用），许可全文和改动说明随应用附在 Resources/LICENSES 与 THIRD-PARTY-NOTICES.md。"))
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(L("各服务商的名称与标识归各自所有者，这里只用来标示正在连接的服务，与它们无从属或背书关系。"))
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    private var providerRail: [RailItem] {
-        [
-            RailItem(id: "builtin", title: L("内置翻译引擎"), symbol: "character.bubble"),
-            RailItem(id: "dict", title: L("词典"), symbol: "book.closed"),
-            RailItem(id: "ai", title: L("AI 提供商"), symbol: "brain.head.profile"),
-            RailItem(id: "test", title: L("测试"), symbol: "checkmark.circle"),
-        ]
-    }
-
-    private var providersSplit: some View {
-        PaneSplit {
-            rail(providerRail, selection: $providerSection)
-        } detail: {
-            detailForm {
-                Form {
-                    switch providerSection {
-                    case "dict":
-                        dictProviders
-                    case "ai":
-                        aiProviders
-                    case "test":
-                        providerTest
-                    default:
-                        builtinProviders
-                    }
-                }
-                .formStyle(.grouped)
-            }
-        }
-    }
-
-    private var builtinProviders: some View {
-        Section {
-            ForEach(ProviderID.allCases) { p in
-                providerRow(p)
-            }
-        } footer: {
-            Text(L("勾选表示已配置好并启用。每个功能用哪几家，在「功能」里选。"))
-        }
-    }
-
-    private var dictProviders: some View {
-        Section {
-            ForEach(DictionaryProviderID.allCases) { provider in
-                dictProviderRow(provider)
-            }
-        } footer: {
-            Text(L("勾选启用。默认的一家在「功能」里选。"))
-        }
-    }
-
-    private var aiProviders: some View {
-        Section {
-            if config.aiProfiles.isEmpty {
-                Text(L("还没有 AI 提供商。点「添加提供商…」选一个预设即可。"))
-                    .foregroundStyle(.secondary)
-            }
-            ForEach(Array(config.aiProfiles.enumerated()), id: \.element.id) { idx, profile in
-                aiProviderRow(idx: idx, profile: profile)
-            }
-            HStack {
                 Button {
-                    providerSheet = .ai
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
+                        showThanks.toggle()
+                    }
                 } label: {
-                    Label(L("添加提供商…"), systemImage: "plus")
+                    HStack {
+                        Text(L("致谢"))
+                            .font(Theme.TypeScale.body)
+                            .foregroundStyle(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(Theme.TypeScale.micro)
+                            .foregroundStyle(.tertiary)
+                            .rotationEffect(.degrees(showThanks ? 90 : 0))
+                        Spacer(minLength: 8)
+                        Text(L("声纹模型、开源组件、服务商标识"))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 38)
+                    .contentShape(Rectangle())
                 }
-                Spacer()
-                Button(L("导出…")) { exportAI() }
-                    .disabled(config.aiProfiles.isEmpty)
-                Button(L("导入…")) {
-                    importAI()
+                .buttonStyle(.plain)
+                if showThanks {
+                    thanksBlock
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 10)
                 }
             }
-        } footer: {
-            Text(L("导出不含 API Key。"))
         }
     }
 
-    private var providerTest: some View {
-        Section {
-            HStack {
-                Button(testing ? L("测试中…") : L("测试已启用的服务")) {
-                    runTest()
-                }
-                .disabled(testing)
-                if testing {
-                    ProgressView()
-                        .controlSize(.small)
-                        .padding(.leading, 4)
-                }
-                Spacer(minLength: 0)
-                if !testOutcomes.isEmpty && !testing {
-                    Button(L("清除")) {
-                        testOutcomes = []
-                        testDirection = ""
+    private var accountStatusCard: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "sparkle")
+                .font(Theme.TypeScale.title)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 36, height: 36)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.accent.opacity(0.12)))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(accountHeadline)
+                    .font(Theme.TypeScale.body)
+                    .fontWeight(.semibold)
+                Text(accountSubline)
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            if !pro.purchased && !Pro.testAccessOpen {
+                if Pro.channel == .store {
+                    Button(pro.products[Pro.productID].map { String(format: L("购买 Pro（%@）"), $0.displayPrice) } ?? L("购买 Pro")) {
+                        Task { await pro.purchase(Pro.productID) }
                     }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(pro.busy || pro.products[Pro.productID] == nil)
+                } else {
+                    Button(L("购买 Pro")) {
+                        if let url = LicenseEndpoint.purchaseURL { NSWorkspace.shared.open(url) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(LicenseEndpoint.purchaseURL == nil)
                 }
             }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(Theme.hairline, lineWidth: 0.5)
+        )
+    }
 
-            if !testDirection.isEmpty {
-                Text(testDirection)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    private var accountHeadline: String {
+        #if KORGI_DEV
+        if pro.devUnlocked { return L("开发版，当作已购买") }
+        #endif
+        if pro.purchased { return L("已购买") }
+        if Pro.testAccessOpen { return L("Pro 试用中") }
+        if let days = pro.trialDaysLeft { return String(format: L("试用中，剩余 %@ 天"), String(days)) }
+        return L("免费版")
+    }
+
+    private var accountSubline: String {
+        if Pro.testAccessOpen { return L("到 2026-12-31。之后回到免费版，免费版的功能照常能用。") }
+        if pro.purchased {
+            return Pro.channel == .direct
+                ? L("一把钥匙最多用在 3 台 Mac 上。")
+                : L("一次购买，之后一直可用。")
+        }
+        if Pro.channel == .direct {
+            switch license.record?.standing {
+            case .displaced: return L("这台已让出名额，现在是免费版")
+            case .revoked: return L("钥匙已失效，现在是免费版")
+            default: break
             }
+        }
+        if pro.trialEnd != nil { return L("试用已结束，现在是免费版") }
+        return Pro.channel == .store
+            ? L("一次购买，之后一直可用。先试用 14 天也行，试用结束不会自动扣费。")
+            : L("一次购买，之后一直可用。一把钥匙最多用在 3 台 Mac 上。")
+    }
 
-            if !testOutcomes.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(testOutcomes.enumerated()), id: \.element.id) { index, outcome in
-                        testResultCard(outcome)
-                        if index < testOutcomes.count - 1 {
-                            Divider()
+    @ViewBuilder
+    private var accountKeyBlock: some View {
+        if Pro.channel == .store && !pro.purchased && !Pro.testAccessOpen {
+            settingsGroup(L("购买")) {
+                settingsRow(L("试用")) {
+                    if pro.trialEnd == nil {
+                        Button(String(format: L("免费试用 %@ 天"), String(Pro.trialDays))) {
+                            Task { await pro.purchase(Pro.trialID) }
+                        }
+                        .controlSize(.small)
+                        .disabled(pro.busy || pro.products[Pro.trialID] == nil)
+                    } else {
+                        Text(L("试用已用过"))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                settingsRow(L("已经买过")) {
+                    Button(L("恢复购买")) {
+                        Task { await pro.restore() }
+                    }
+                    .controlSize(.small)
+                    .disabled(pro.busy)
+                }
+                if pro.products[Pro.productID] == nil {
+                    Text(L("这一份不是从 App Store 装的，现在买不了 Pro。上面免费版的功能都能用。"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 10)
+                }
+            }
+        } else if Pro.channel == .direct && !pro.purchased && !Pro.testAccessOpen {
+            settingsGroup(L("钥匙")) {
+                fieldRow(L("钥匙")) {
+                    HStack(spacing: 8) {
+                        TextField("", text: $keyInput, prompt: Text("KORG-XXXX-XXXX-XXXX"))
+                            .textFieldStyle(.roundedBorder)
+                        Button(L("填入")) {
+                            let k = keyInput
+                            Task {
+                                await license.enter(key: k)
+                                if license.isActive { keyInput = "" }
+                            }
+                        }
+                        .controlSize(.small)
+                        .disabled(license.busy || keyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .frame(width: SettingsMetrics.controlWidth)
+                }
+                Button(L("忘了钥匙？")) { showReissue.toggle() }
+                    .buttonStyle(.plain)
+                    .font(Theme.TypeScale.body)
+                    .foregroundStyle(Theme.accent)
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: 38)
+                if showReissue {
+                    fieldRow(L("付款时用的邮箱")) {
+                        HStack(spacing: 8) {
+                            TextField("", text: $emailInput, prompt: Text("name@example.com"))
+                                .textFieldStyle(.roundedBorder)
+                            Button(L("发回")) {
+                                let e = emailInput
+                                Task { await license.reissue(email: e) }
+                            }
+                            .controlSize(.small)
+                            .disabled(license.busy || emailInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                        .frame(width: SettingsMetrics.controlWidth)
+                    }
+                }
+                if let note = license.note {
+                    Text(note)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                }
+                if !license.isConfigured {
+                    Text(L("尚未接入支付系统，现在买不了 Pro。上面免费版的功能都能用。"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                }
+            }
+        } else if Pro.channel == .direct && pro.purchased {
+            settingsGroup(L("钥匙")) {
+                if let rec = license.record {
+                    settingsRow(L("钥匙")) {
+                        Text("…" + String(rec.key.suffix(4)))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Button(L("让出这台的名额")) {
+                            Task { await license.release() }
+                        }
+                        .controlSize(.small)
+                        .disabled(license.busy)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 38)
+                    if rec.releasePending {
+                        Text(L("这台先记着要让出，连上系统后自动完成；在那之前仍算已购买。"))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 8)
+                    }
+                }
+                if let note = license.note {
+                    Text(note)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                }
+                Text(L("让出后这台变回免费版，名额空给别的 Mac。只让出这一台，不影响其他电脑。"))
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+            }
+        }
+    }
+
+    private func planCompareRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+                .font(Theme.TypeScale.body)
+                .foregroundStyle(.primary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 38)
+    }
+
+    private var thanksBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(L("声纹模型"))
+                .font(Theme.TypeScale.labelMedium)
+            Text(L("WeSpeaker ResNet34-LM，在 VoxCeleb 上训练，CC BY 4.0。由 wquguru/cicada 转成 Core ML 并重新量化（Apache-2.0）。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 12) {
+                Link("WeSpeaker", destination: URL(string: "https://github.com/wenet-e2e/wespeaker")!)
+                Link("CC BY 4.0", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                Link("wquguru/cicada", destination: URL(string: "https://github.com/wquguru/cicada")!)
+                Link("Apache-2.0", destination: URL(string: "https://www.apache.org/licenses/LICENSE-2.0")!)
+            }
+            .font(Theme.TypeScale.caption)
+            Text(L("开源组件"))
+                .font(Theme.TypeScale.labelMedium)
+                .padding(.top, 6)
+            Text(L("界面、网络与音频处理只用系统自带的框架，不含第三方库。声纹部分用了 wquguru/cicada 的 Apache-2.0 代码（已改成 Swift 并接入本应用），许可全文和改动说明随应用附在 Resources/LICENSES 与 THIRD-PARTY-NOTICES.md。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L("各服务商的名称与标识归各自所有者，这里只用来标示正在连接的服务，与它们无从属或背书关系。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // MARK: - 脱敏
+
+    private var privacyPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup("") {
+                settingsRow(L("发出前先让我确认"), detail: L("命中脱敏规则时，先显示将要发出的内容")) {
+                    Toggle("", isOn: confirmBeforeSendBinding)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+            }
+            settingsGroup(L("身份和账号")) {
+                maskSwitch(L("密钥"), L("API key、私钥、JWT 和密码"), $config.maskPrefs.secrets)
+                maskSwitch(L("邮箱"), L("跳过 example.com 和 git 地址"), $config.maskPrefs.email)
+                maskSwitch(L("手机号"), L("大陆手机号"), $config.maskPrefs.phone)
+                maskSwitch(L("身份证"), L("校验过的号码"), $config.maskPrefs.idCard)
+                maskSwitch(L("银行卡"), L("校验过的卡号"), $config.maskPrefs.bankCard)
+                maskSwitch(L("护照号"), L("写在护照或 passport 后面的"), $config.maskPrefs.passport)
+                maskSwitch(L("生日"), L("写在生日或 birthday 后面，且早于一年前"), $config.maskPrefs.birthday)
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { showMoreIdentity.toggle() }
+                } label: {
+                    Text(showMoreIdentity ? L("收起") : L("显示更多：社会安全号、IBAN"))
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 38)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if showMoreIdentity {
+                    maskSwitch(L("社会安全号"), L("美国社会安全号"), $config.maskPrefs.ssn)
+                    maskSwitch(L("IBAN"), L("校验过的国际账号"), $config.maskPrefs.iban)
+                }
+            }
+            settingsGroup(L("设备和网络")) {
+                maskSwitch(L("用户名和主机名"), L("命令行提示符、ssh，以及单独一行的用户名或主机名"), $config.maskPrefs.userHost)
+                maskSwitch(L("主目录用户名"), L("/Users 或 /home 里的名字"), $config.maskPrefs.home)
+                maskSwitch(L("公网 IP"), L("不含内网、本机和公共 DNS"), $config.maskPrefs.ip)
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { showMoreDevice.toggle() }
+                } label: {
+                    Text(showMoreDevice ? L("收起") : L("显示更多：MAC 地址、序列号、云存储桶"))
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 38)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if showMoreDevice {
+                    maskSwitch(L("MAC 地址"), L("网卡地址"), $config.maskPrefs.mac)
+                    maskSwitch(L("序列号"), L("写在序列号或 S/N 后面的"), $config.maskPrefs.serial)
+                    maskSwitch(L("云存储桶"), L("s3、oss 这类地址"), $config.maskPrefs.bucket)
+                }
+            }
+            settingsGroup(L("自定义")) {
+                ForEach($config.maskPrefs.entries) { $entry in
+                    customEntry($entry)
+                }
+                Button {
+                    let entry = MaskEntry()
+                    config.maskPrefs.entries.append(entry)
+                    openMask.insert(entry.id)
+                } label: {
+                    Label(L("新增一条"), systemImage: "plus")
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 38)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            Text(L("按字面时英文词两边要断开。写错的正则跳过，不拦发送。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+        }
+    }
+
+    /// 发出前确认。没有旧字段，这一轮只存，发送流程还是原来的确认窗。
+    private var confirmBeforeSendBinding: Binding<Bool> {
+        Binding(
+            get: { UserDefaults.standard.object(forKey: ConfigKeys.maskConfirmBeforeSend) as? Bool ?? true },
+            set: { UserDefaults.standard.set($0, forKey: ConfigKeys.maskConfirmBeforeSend) }
+        )
+    }
+
+    private func customEntry(_ entry: Binding<MaskEntry>) -> some View {
+        let entryID = entry.wrappedValue.id
+        let open = openMask.contains(entryID)
+        let title = entry.wrappedValue.pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                if open { openMask.remove(entryID) } else { openMask.insert(entryID) }
+            } label: {
+                HStack(spacing: 8) {
+                    Text(title.isEmpty ? L("新规则") : title)
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(entry.wrappedValue.kind == .regex ? L("正则") : L("按字面"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(Theme.TypeScale.micro)
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(open ? 90 : 0))
+                    Toggle("", isOn: Binding(
+                        get: { !entry.wrappedValue.pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty },
+                        set: { _ in }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .disabled(true)
+                    .allowsHitTesting(false)
+                }
+                .padding(.horizontal, 14)
+                .frame(minHeight: 38)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if open {
+                fillBlock {
+                    fieldRow(L("找什么")) {
+                        TextField(
+                            "",
+                            text: entry.pattern,
+                            prompt: Text(entry.wrappedValue.kind == .literal ? L("要脱敏的词") : L("正则"))
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: SettingsMetrics.controlWidth)
+                    }
+                    fieldRow(L("方式")) {
+                        PillSegmented(
+                            selection: entry.kind,
+                            options: [(MaskEntry.Kind.literal, L("按字面")), (.regex, L("正则"))]
+                        )
+                    }
+                    fieldRow(L("替换成")) {
+                        TextField("", text: entry.replacement, prompt: Text(L("留空用占位符")))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: SettingsMetrics.controlWidth)
+                    }
+                    fieldRow(L("不区分大小写")) {
+                        Toggle("", isOn: entry.ignoreCase)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                    }
+                    fieldRow(L("试一下")) {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            TextField("", text: $maskProbe, prompt: Text(L("贴一段看看命中")))
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: SettingsMetrics.controlWidth)
+                            Text(maskProbeResult(entry.wrappedValue))
+                                .font(Theme.TypeScale.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(width: SettingsMetrics.controlWidth, alignment: .leading)
+                        }
+                    }
+                    if let problem = entry.wrappedValue.problem {
+                        ErrorLine(text: L(problem))
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 6)
+                    }
+                    HStack {
+                        Button(L("删除")) {
+                            config.maskPrefs.entries.removeAll { $0.id == entryID }
+                            openMask.remove(entryID)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.danger)
+                        Spacer(minLength: 8)
+                        Button(L("收起")) { openMask.remove(entryID) }
+                            .controlSize(.small)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    private func maskProbeResult(_ entry: MaskEntry) -> String {
+        let sample = maskProbe.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !sample.isEmpty else { return "" }
+        if let problem = entry.problem { return L(problem) }
+        if entry.kind == .literal {
+            guard let word = entry.literal else { return L("至少两个字") }
+            return sample.localizedCaseInsensitiveContains(word) || sample.contains(word)
+                ? L("这段里有")
+                : L("这段里没有")
+        }
+        guard let regex = entry.regex() else { return L("正则写错了") }
+        let range = NSRange(sample.startIndex..<sample.endIndex, in: sample)
+        let hit = regex.firstMatch(in: sample, options: [], range: range) != nil
+        return hit ? L("这段里有") : L("这段里没有")
+    }
+
+    /// 标题已经过 `L()`，好让本地化检查看得见这些词。
+    private func maskSwitch(_ title: String, _ detail: String, _ isOn: Binding<Bool>) -> some View {
+        settingsRow(title, detail: detail) {
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+    }
+
+    // MARK: - 网络与权限
+
+    private var networkPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup(L("网络代理")) {
+                fieldRow(L("代理")) {
+                    PillSegmented(
+                        selection: $config.proxyMode,
+                        options: [
+                            (ProxyMode.system, L("跟随系统")),
+                            (.off, L("不用")),
+                            (.custom, L("手动")),
+                        ]
+                    )
+                }
+                if config.proxyMode == .custom {
+                    fillBlock {
+                        fieldRow(L("类型")) {
+                            PillSegmented(
+                                selection: $config.proxyType,
+                                options: ProxyType.allCases.map { ($0, $0 == .http ? "HTTP" : "SOCKS5") }
+                            )
+                        }
+                        fieldRow(L("主机和端口")) {
+                            HStack(spacing: 8) {
+                                TextField("", text: $config.proxyHost, prompt: Text("127.0.0.1"))
+                                    .textFieldStyle(.roundedBorder)
+                                TextField("", value: $config.proxyPort, format: .number.grouping(.never))
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 72)
+                            }
+                            .frame(width: SettingsMetrics.controlWidth)
+                        }
+                        fieldRow(L("用户名")) {
+                            TextField("", text: $config.proxyUsername, prompt: Text(L("可选")))
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: SettingsMetrics.controlWidth)
+                        }
+                        fieldRow(L("密码")) {
+                            SecureField("", text: $config.proxyPassword, prompt: Text(L("可选")))
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: SettingsMetrics.controlWidth)
                         }
                     }
                 }
             }
-        } footer: {
-            Text(L("对已启用的服务发送「hello world」，结果按服务分条显示。"))
-        }
-    }
+            Text(L("国内访问 Google 免费翻译通常需要代理。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
 
-    @ViewBuilder
-    private var proxyFields: some View {
-        Picker(L("模式"), selection: $config.proxyMode) {
-            ForEach(ProxyMode.allCases) { m in
-                Text(m.label).tag(m)
-            }
-        }
-        if config.proxyMode == .custom {
-            Picker(L("类型"), selection: $config.proxyType) {
-                ForEach(ProxyType.allCases) { t in
-                    Text(t.label).tag(t)
+            settingsGroup(L("权限")) {
+                permissionRow(
+                    title: L("辅助功能"),
+                    feature: L("划词翻译读取并写回到别的应用里选中的文字"),
+                    trusted: axTrusted
+                ) {
+                    if AXIsProcessTrusted() {
+                        PermissionGrantController.shared.openSettings(.accessibility)
+                    } else {
+                        PermissionGrantController.shared.prompt(.accessibility)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            TextField(L("主机"), text: $config.proxyHost, prompt: Text("127.0.0.1"))
-                .textFieldStyle(.roundedBorder)
-            TextField(L("端口"), value: $config.proxyPort, format: .number.grouping(.never))
-                .textFieldStyle(.roundedBorder)
-            TextField(L("用户名（可选）"), text: $config.proxyUsername)
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("密码（可选）"), text: $config.proxyPassword)
-                .textFieldStyle(.roundedBorder)
-        }
-    }
-
-    private var recognitionRail: [RailItem] {
-        [
-            RailItem(id: "ocr", title: L("OCR 引擎"), symbol: "text.viewfinder"),
-            RailItem(id: "asr", title: L("语音识别"), symbol: "waveform"),
-            RailItem(id: "tts", title: L("朗读"), symbol: "speaker.wave.2"),
-            RailItem(id: "terms", title: L("识别词表"), symbol: "list.bullet"),
-        ]
-    }
-
-    private var recognitionSplit: some View {
-        PaneSplit {
-            rail(recognitionRail, selection: $recognitionSection)
-        } detail: {
-            detailForm {
-                Form {
-                    switch recognitionSection {
-                    case "asr":
-                        asrSettings
-                    case "terms":
-                        asrTerms
-                    case "tts":
-                        ttsSettings
+                permissionRow(
+                    title: L("屏幕录制"),
+                    feature: L("截图翻译框选屏幕；实时字幕听系统声音"),
+                    trusted: screenTrusted
+                ) {
+                    if CGPreflightScreenCaptureAccess() {
+                        PermissionGrantController.shared.openSettings(.screenCapture)
+                    } else {
+                        PermissionGrantController.shared.prompt(.screenCapture)
+                    }
+                }
+                permissionRow(
+                    title: L("输入监视"),
+                    feature: L("连按空格快捷翻译、按住 Fn 说话"),
+                    trusted: listenTrusted
+                ) {
+                    if CGPreflightListenEventAccess() {
+                        PermissionGrantController.shared.openSettings(.inputMonitoring)
+                    } else {
+                        PermissionGrantController.shared.prompt(.inputMonitoring)
+                    }
+                }
+                permissionRow(
+                    title: L("麦克风"),
+                    feature: L("实时字幕的麦克风、语音"),
+                    trusted: micTrusted
+                ) {
+                    switch AVCaptureDevice.authorizationStatus(for: .audio) {
+                    case .notDetermined:
+                        AVCaptureDevice.requestAccess(for: .audio) { granted in
+                            Task { @MainActor in micTrusted = granted }
+                        }
                     default:
-                        ocrSettings
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                            NSWorkspace.shared.open(url)
+                        }
                     }
                 }
-                .formStyle(.grouped)
+                permissionRow(
+                    title: L("语音识别"),
+                    feature: L("Apple 语音识别"),
+                    trusted: speechTrusted
+                ) {
+                    switch SFSpeechRecognizer.authorizationStatus() {
+                    case .notDetermined:
+                        SFSpeechRecognizer.requestAuthorization { status in
+                            Task { @MainActor in speechTrusted = status == .authorized }
+                        }
+                    default:
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            }
+            HStack {
+                Spacer(minLength: 0)
+                Button(L("刷新状态")) { refreshPermissions() }
+                    .buttonStyle(.plain)
+                    .font(Theme.TypeScale.body)
+                    .foregroundStyle(Theme.accent)
             }
         }
     }
 
-    private var ocrSettings: some View {
-        Section {
-            ForEach(OCRProviderID.allCases) { p in
-                ocrProviderRow(p)
+    // MARK: - 翻译服务与 AI
+
+    private var providersPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup(L("各功能用哪几家")) {
+                useLine(L("划词翻译"), .select)
+                useLine(L("翻译剪贴板"), .clipboard)
+                useLine(L("截图翻译"), .ocr)
+                useLine(L("文件翻译"), .file)
             }
-        } footer: {
-            Text(L("勾选启用，默认的那一家用来识别。在截图选区里涂抹，再识别。云识别失败时，用涂过的图回退 Apple Vision。"))
+            Text(L("第一家是默认。免费版每个功能 1 家。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+
+            settingsGroup(L("翻译服务")) {
+                ForEach(featuredProviders) { p in
+                    providerRow(p)
+                }
+                if !moreProviders.isEmpty {
+                    Button {
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
+                            showMoreBuiltin.toggle()
+                        }
+                    } label: {
+                        Text(showMoreBuiltin
+                             ? L("收起")
+                             : String(format: L("显示更多：%@"), moreProviders.map(\.displayName).joined(separator: "、")))
+                            .font(Theme.TypeScale.body)
+                            .foregroundStyle(Theme.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 38)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    if showMoreBuiltin {
+                        ForEach(moreProviders) { p in
+                            providerRow(p)
+                        }
+                    }
+                }
+            }
+
+            settingsGroup(L("AI")) {
+                HStack {
+                    Spacer(minLength: 0)
+                    Button(L("导入…")) { importAI() }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                    Button(L("导出…")) { exportAI() }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .disabled(config.aiProfiles.isEmpty)
+                }
+                .padding(.horizontal, 14)
+                .frame(minHeight: 32)
+                if config.aiProfiles.isEmpty {
+                    Text(L("还没有 AI 提供商。点「添加提供商…」选一个预设即可。"))
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 6)
+                }
+                ForEach(Array(config.aiProfiles.enumerated()), id: \.element.id) { idx, profile in
+                    aiProviderRow(idx: idx, profile: profile)
+                }
+                Button {
+                    providerSheet = .ai
+                } label: {
+                    Label(L("添加提供商…"), systemImage: "plus")
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 38)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            Text(L("导出不含 API Key。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+
+            settingsGroup(L("翻译的细节")) {
+                settingsRow(L("同语润色"), detail: L("原文已经是要译成的语言时，轻改措辞并保持结构")) {
+                    Toggle("", isOn: $config.polishSameLanguage)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+                settingsRow(L("文件翻译用的模型")) {
+                    Menu {
+                        Button(L("自动（第一个可用）")) { config.fileAIProfileID = "" }
+                        ForEach(config.aiProfiles.filter { config.isAIOn($0) }) { p in
+                            Button(config.isPaused("ai:\(p.id)")
+                                   ? String(format: L("%@（已暂停，先用第一个可用的）"), p.name)
+                                   : p.name) {
+                                config.fileAIProfileID = p.id
+                            }
+                        }
+                    } label: {
+                        let current = config.aiProfiles.first { $0.id == config.fileAIProfileID && config.isAIOn($0) }
+                        menuLabel(current?.name ?? L("自动（第一个可用）"))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("扫描件整页交给视觉模型"), detail: L("数字版 PDF 仍抽文字。看不了图的模型会退回识别。")) {
+                    Toggle("", isOn: $file.directVision)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+            }
+            if !Pro.unlocked {
+                HStack(spacing: 6) {
+                    Text(L("免费版单份原文 5000 字符以内，中文一个字算一个。"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                    ProBadge(help: L("超过 5000 字符的文件需要 Pro"))
+                }
+            }
+
+            settingsGroup(L("测试")) {
+                HStack {
+                    Text(L("给已开的服务发一句 hello world"))
+                        .font(Theme.TypeScale.body)
+                    Spacer(minLength: 8)
+                    if testing {
+                        ProgressView().controlSize(.small)
+                    }
+                    Button(testing ? L("测试中…") : L("测试")) {
+                        runTest()
+                    }
+                    .controlSize(.small)
+                    .disabled(testing)
+                }
+                .padding(.horizontal, 14)
+                .frame(minHeight: 38)
+                if !testDirection.isEmpty {
+                    Text(testDirection)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                }
+                ForEach(Array(testOutcomes.enumerated()), id: \.element.id) { _, outcome in
+                    testResultCard(outcome)
+                        .padding(.horizontal, 14)
+                }
+                if !testOutcomes.isEmpty && !testing {
+                    HStack {
+                        Spacer(minLength: 0)
+                        Button(L("清除")) {
+                            testOutcomes = []
+                            testDirection = ""
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+                }
+            }
         }
     }
 
-    private var asrSettings: some View {
-        Group {
-            if config.asrAppleEnabled {
-                Section {
-                    Toggle(L("优先本机识别"), isOn: $config.asrAppleOnDevice)
-                        .toggleStyle(SegmentedToggleStyle())
-                } header: {
-                    Text(L("Apple 语音"))
-                } footer: {
-                    Text(L("强制用本机模型识别。本机没识别出字时，再走一次网络。"))
+    /// 常用的几家摊开。其余折在「显示更多」里。
+    private var featuredProviders: [ProviderID] {
+        [.googleFree, .deepl, .microsoft, .baidu, .youdao, .apple]
+    }
+
+    private var moreProviders: [ProviderID] {
+        ProviderID.allCases.filter { !featuredProviders.contains($0) }
+    }
+
+    private func useLine(_ title: String, _ use: TranslateUse) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 12) {
+                Text(title)
+                    .font(Theme.TypeScale.body)
+                Spacer(minLength: 8)
+                providerTags(use)
+            }
+            if providerAtCap(use) {
+                HStack(spacing: 6) {
+                    Spacer(minLength: 0)
+                    Text(config.translateCap(use) == 1 ? L("免费版只用默认一家") : L("免费版最多同时两家"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(Theme.attention)
+                    ProBadge(help: L("Pro 不限家数"))
                 }
             }
-            Section {
-                Toggle(isOn: Binding(
-                    get: { config.asrAnalyzerEnabled },
-                    set: { config.setASRAnalyzer($0) }
-                )) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "apple.logo")
-                            .font(Theme.TypeScale.body)
-                            .frame(width: 16)
-                        Text(L("Apple 语音分析"))
-                        Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - 识别、朗读与 OCR
+
+    private var recognitionPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup(L("语音识别")) {
+                asrBuiltInRow(
+                    title: L("Apple 语音分析"),
+                    detail: L("系统语音模型，实时和媒体都能用"),
+                    on: Binding(get: { config.asrAnalyzerEnabled }, set: { config.setASRAnalyzer($0) }),
+                    isDefault: config.resolvedLiveAsr() == "analyzer"
+                )
+                asrBuiltInRow(
+                    title: L("Apple 语音"),
+                    detail: L("旧引擎"),
+                    on: Binding(get: { config.asrAppleEnabled }, set: { config.setASRApple($0) }),
+                    isDefault: config.resolvedLiveAsr() == "apple"
+                )
+                if config.asrAppleEnabled {
+                    settingsRow(L("优先本机识别"), detail: L("本机没识别出字时再走网络")) {
+                        Toggle("", isOn: $config.asrAppleOnDevice)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
                     }
                 }
-                .toggleStyle(CheckToggleStyle())
-                Toggle(isOn: Binding(
-                    get: { config.asrAppleEnabled },
-                    set: { config.setASRApple($0) }
-                )) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "apple.logo")
-                            .font(Theme.TypeScale.body)
-                            .frame(width: 16)
-                        Text(L("Apple 语音"))
-                        Spacer(minLength: 0)
-                    }
-                }
-                .toggleStyle(CheckToggleStyle())
                 ForEach(Array(config.asrProfiles.enumerated()), id: \.element.id) { idx, profile in
                     asrProfileRow(idx: idx, profile: profile)
                 }
                 Button {
                     providerSheet = .asr
                 } label: {
-                    Label(L("添加识别提供商…"), systemImage: "plus")
+                    Label(L("添加识别服务…"), systemImage: "plus")
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 38)
+                        .contentShape(Rectangle())
                 }
-            } footer: {
-                Text(L("勾选启用并填好密钥。实时字幕和媒体字幕的识别下拉只列出这些。Apple 语音分析用系统语音模型，Apple 语音是原来的引擎。同传服务边听边出译文和译音，只用在实时字幕和语音里。"))
+                .buttonStyle(.plain)
+            }
+            Text(L("实时字幕和媒体字幕的识别下拉只列出打开的这些。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+
+            settingsGroup(L("媒体字幕")) {
+                settingsRow(L("默认识别")) {
+                    Menu {
+                        ForEach(config.mediaASRChoices()) { choice in
+                            Button(choice.name) { config.setDefaultAsr(choice.id, live: false) }
+                        }
+                    } label: {
+                        let id = config.resolvedMediaAsr()
+                        menuLabel(config.mediaASRChoices().first { $0.id == id }?.name ?? L("Apple 语音分析"))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("默认翻译")) {
+                    Menu {
+                        ForEach(config.catalogTargets()) { target in
+                            Button(target.displayName) { config.setTranslateIDs([target.id], .media) }
+                        }
+                    } label: {
+                        let id = config.storedTranslateIDs(.media).first ?? ""
+                        menuLabel(config.catalogTargets().first { $0.id == id }?.displayName
+                                  ?? config.catalogTargets().first?.displayName
+                                  ?? L("Google (免费)"))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("同时处理几份"), detail: L("同时在识别或等翻译的音视频，还没开始和已经落盘的不算")) {
+                    HStack(spacing: 8) {
+                        Text(String(media.concurrentLimit))
+                            .font(Theme.TypeScale.body)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                        Stepper(L("同时处理几份"), value: $media.concurrentLimit, in: 1...10)
+                            .labelsHidden()
+                    }
+                }
+            }
+
+            settingsGroup(L("朗读")) {
+                if config.enabledTTSChoices().count > 1 {
+                    settingsRow(L("用来朗读")) {
+                        Menu {
+                            ForEach(config.enabledTTSChoices()) { choice in
+                                Button(choice.name) { config.ttsSelection = choice.id }
+                            }
+                        } label: {
+                            menuLabel(config.enabledTTSChoices().first { $0.id == config.ttsSelection }?.name
+                                      ?? L("Apple 系统声音"))
+                        }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
+                    }
+                }
+                settingsRow(L("Apple 系统声音")) {
+                    Toggle("", isOn: Binding(
+                        get: { config.ttsAppleEnabled },
+                        set: { config.setTTSApple($0) }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                }
+                ForEach(Array(config.ttsProfiles.enumerated()), id: \.element.id) { idx, profile in
+                    ttsProfileRow(idx: idx, profile: profile)
+                }
+                Button {
+                    providerSheet = .tts
+                } label: {
+                    Label(L("添加朗读服务…"), systemImage: "plus")
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 38)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            Text(L("浮层、词典、文件、字幕、沉浸字幕都用这一家。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+
+            settingsGroup(L("截图识别")) {
+                ForEach(OCRProviderID.allCases) { p in
+                    ocrProviderRow(p)
+                }
+            }
+            Text(L("在截图选区里涂抹再识别的地方，再识别。云识别失败时用涂过的图退回 Apple Vision。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+
+            settingsGroup(L("识别词表")) {
+                asrTermsBody
             }
         }
     }
 
-    private var asrTerms: some View {
-        Section {
-            ForEach(ASRPreset.allCases) { pack in
-                Toggle(pack.title, isOn: Binding(
-                    get: { config.asrPresets.contains(pack.rawValue) },
-                    set: { config.setASRPreset(pack, on: $0) }
-                ))
-                .toggleStyle(CheckToggleStyle())
+    private func asrBuiltInRow(title: String, detail: String, on: Binding<Bool>, isDefault: Bool) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "apple.logo")
+                .font(Theme.TypeScale.body)
+                .frame(width: 16)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(Theme.TypeScale.body)
+                Text(detail)
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
             }
+            Spacer(minLength: 8)
+            if isDefault {
+                Text(L("默认"))
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Toggle("", isOn: on)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 44)
+    }
+
+    // MARK: - 词典
+
+    private var dictionaryPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsGroup(L("来源")) {
+                ForEach(DictionaryProviderID.allCases) { provider in
+                    dictProviderRow(provider)
+                }
+            }
+            if !Pro.unlocked {
+                HStack(spacing: 6) {
+                    Text(L("免费版只用默认一家"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                    ProBadge(help: L("Pro 不限家数，按这个顺序排。"))
+                }
+            } else {
+                Text(L("Pro 不限家数，按这个顺序排。"))
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, -10)
+            }
+            settingsGroup(L("显示")) {
+                settingsRow(L("翻译短词后展开释义"), detail: L("在翻译浮层里接着显示词典")) {
+                    Toggle("", isOn: $config.dictAutoOpen)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+            }
+        }
+    }
+
+    // MARK: - 划词插件、按应用、语音
+
+    private var pluginsPage: some View {
+        SelectionPluginSettingsSection()
+    }
+
+    private var appsPage: some View {
+        QuickAppsSection()
+    }
+
+    private var voicePage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Spacer(minLength: 0)
+                Toggle("", isOn: $config.dictateEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .accessibilityLabel(L("语音"))
+            }
+            .padding(.top, -28)
+
+            voiceModeCards
+
+            settingsGroup(L("听")) {
+                settingsRow(L("识别")) {
+                    Menu {
+                        Button(L("自动（第一个可用）")) { config.dictateEngineID = "" }
+                        ForEach(config.liveASRChoices()) { choice in
+                            Button(choice.name) { config.dictateEngineID = choice.id }
+                        }
+                    } label: {
+                        let name = config.dictateEngineID.isEmpty
+                            ? L("自动（第一个可用）")
+                            : (config.liveASRChoices().first { $0.id == config.dictateEngineID }?.name ?? L("自动（第一个可用）"))
+                        menuLabel(name)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("识别语言")) {
+                    Menu {
+                        ForEach(ASRLanguage.available(apple: config.isSystemASR(dictateEngine))) { lang in
+                            Button(lang.title) { config.dictateLocaleID = lang.id }
+                        }
+                    } label: {
+                        let title = ASRLanguage.available(apple: config.isSystemASR(dictateEngine))
+                            .first { $0.id == config.dictateLocaleID }?.title ?? L("跟随系统")
+                        menuLabel(title)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("麦克风")) {
+                    dictateInputMenu
+                }
+            }
+            settingsGroup(L("译")) {
+                settingsRow(L("译成")) {
+                    Menu {
+                        Button(L("跟随设置里的目标语言")) { config.dictateTargetLanguage = .auto }
+                        ForEach(TargetLanguage.specific) { lang in
+                            Button(lang.menuTitle) { config.dictateTargetLanguage = lang }
+                        }
+                    } label: {
+                        menuLabel(config.dictateTargetLanguage == .auto
+                                  ? L("跟随设置里的目标语言")
+                                  : config.dictateTargetLanguage.menuTitle)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+                settingsRow(L("翻译服务")) {
+                    Menu {
+                        ForEach(config.catalogTargets()) { target in
+                            Button(target.displayName) {
+                                config.setTranslateIDs([target.id], .dictate)
+                            }
+                        }
+                    } label: {
+                        let id = config.storedTranslateIDs(.dictate).first ?? ""
+                        menuLabel(config.catalogTargets().first { $0.id == id }?.displayName
+                                  ?? config.catalogTargets().first?.displayName
+                                  ?? L("Google (免费)"))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+            }
+            settingsGroup(L("润色")) {
+                settingsRow(L("松开后润色"), detail: L("去掉口头禅，把停顿收成句子。没有 AI 时不改字")) {
+                    Toggle("", isOn: $config.voicePolish)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+                if config.voicePolish {
+                    settingsRow(L("风格")) {
+                        PillSegmented(
+                            selection: $config.voicePolishStyle,
+                            options: [
+                            (VoicePolishStyle.clean, L("收干净")),
+                            (.formal, L("书面")),
+                            (.brief, L("简洁")),
+                            (.custom, L("自己写")),
+                        ]
+                        )
+                    }
+                    if config.voicePolishStyle == .custom {
+                        fieldRow(L("自己的要求")) {
+                            TextField("", text: $config.voicePolishNote)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: SettingsMetrics.controlWidth)
+                        }
+                    }
+                }
+            }
+            settingsGroup(L("切换快捷键")) {
+                voiceHotkeyRow(.voiceRecognize, spec: $config.hotkeyVoiceRecognize)
+                voiceHotkeyRow(.voiceTranslate, spec: $config.hotkeyVoiceTranslate)
+                voiceHotkeyRow(.voiceInterpret, spec: $config.hotkeyVoiceInterpret)
+            }
+            Text(L("快捷键只切换模式，不开始听。按住 Fn 走当前这一条。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -10)
+        }
+        .disabled(false)
+    }
+
+    private var dictateEngine: String {
+        config.dictateEngineID.isEmpty ? (config.liveASRChoices().first?.id ?? "apple") : config.dictateEngineID
+    }
+
+    private var voiceModeCards: some View {
+        HStack(alignment: .top, spacing: 10) {
+            ForEach(VoiceMode.allCases) { mode in
+                let on = config.voiceMode == mode
+                Button {
+                    config.voiceMode = mode
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(mode.title)
+                                .font(Theme.TypeScale.body)
+                                .fontWeight(on ? .semibold : .regular)
+                            Spacer(minLength: 4)
+                            Text(voiceModeKeys(mode))
+                                .font(Theme.TypeScale.micro)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Theme.wellFill))
+                        }
+                        Text(voiceModeDetail(mode))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                            .fill(Theme.cardFill)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                            .strokeBorder(on ? Theme.accent : Theme.hairline, lineWidth: on ? 1.5 : 0.5)
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func voiceModeKeys(_ mode: VoiceMode) -> String {
+        switch mode {
+        case .recognize: return config.hotkeyVoiceRecognize.display
+        case .translate: return config.hotkeyVoiceTranslate.display
+        case .interpret: return config.hotkeyVoiceInterpret.display
+        }
+    }
+
+    private func voiceModeDetail(_ mode: VoiceMode) -> String {
+        switch mode {
+        case .recognize: return L("写下听到的字")
+        case .translate: return L("边听边出译文，松开写入")
+        case .interpret: return L("说完一句就读出译文")
+        }
+    }
+
+    private var dictateInputMenu: some View {
+        let devices = MicInput.devices()
+        return Menu {
+            Button(L("系统默认")) { config.dictateInputUID = "" }
+            ForEach(devices) { device in
+                Button(device.name) { config.dictateInputUID = device.uid }
+            }
+            if !config.dictateInputUID.isEmpty, !devices.contains(where: { $0.uid == config.dictateInputUID }) {
+                Button(L("已断开")) {}
+                    .disabled(true)
+            }
+        } label: {
+            let name = devices.first { $0.uid == config.dictateInputUID }?.name
+                ?? (config.dictateInputUID.isEmpty ? L("系统默认") : L("已断开"))
+            menuLabel(name)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    private var asrTermsBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
             if !config.asrTerms.isEmpty {
                 FlowTags(spacing: 6) {
                     ForEach(config.asrTerms, id: \.self) { term in
@@ -1684,52 +2220,47 @@ struct PreferencesPane: View {
                         .padding(.vertical, 4)
                         .background(Capsule().fill(Theme.wellFill))
                     }
+                    TextField(L("加一个词，回车"), text: $asrTermDraft)
+                        .textFieldStyle(.plain)
+                        .font(Theme.TypeScale.label)
+                        .frame(minWidth: 120)
+                        .onSubmit { addASRTerms() }
                 }
-            }
-            HStack {
-                TextField(L("专有名词"), text: $asrTermDraft)
+            } else {
+                TextField(L("加一个词，回车"), text: $asrTermDraft)
+                    .textFieldStyle(.roundedBorder)
+                    .font(Theme.TypeScale.body)
                     .onSubmit { addASRTerms() }
-                Button(L("添加")) { addASRTerms() }
-                    .disabled(asrTermDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || config.asrTerms.count >= 100)
             }
-        } footer: {
-            Text(L("预设来自清华大学开放中文词库，按词频取至少三个字的词。勾上就并进识别，取消勾选不影响自己加的词。自己加的词优先，一共不超过 100 个。实时字幕、媒体字幕和语音共用。"))
-        }
-    }
-
-    private var ttsSettings: some View {
-        Section {
-            if config.enabledTTSChoices().count > 1 {
-                Picker(L("用来朗读"), selection: $config.ttsSelection) {
-                    ForEach(config.enabledTTSChoices()) { choice in
-                        Text(choice.name).tag(choice.id)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L("预设词库"))
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                FlowTags(spacing: 6) {
+                    ForEach(ASRPreset.allCases) { pack in
+                        let on = config.asrPresets.contains(pack.rawValue)
+                        Button {
+                            config.setASRPreset(pack, on: !on)
+                        } label: {
+                            Text(pack.title)
+                                .font(Theme.TypeScale.caption)
+                                .foregroundStyle(on ? Theme.accent : Color.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule().fill(on ? Theme.accent.opacity(0.12) : Theme.wellFill)
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
-            Toggle(isOn: Binding(
-                get: { config.ttsAppleEnabled },
-                set: { config.setTTSApple($0) }
-            )) {
-                HStack(spacing: 6) {
-                    Image(systemName: "apple.logo")
-                        .font(Theme.TypeScale.body)
-                        .frame(width: 16)
-                    Text(L("Apple 语音"))
-                    Spacer(minLength: 0)
-                }
-            }
-            .toggleStyle(CheckToggleStyle())
-            ForEach(Array(config.ttsProfiles.enumerated()), id: \.element.id) { idx, profile in
-                ttsProfileRow(idx: idx, profile: profile)
-            }
-            Button {
-                providerSheet = .tts
-            } label: {
-                Label(L("添加朗读提供商…"), systemImage: "plus")
-            }
-        } footer: {
-            Text(L("勾选放进目录。用来朗读的那一家在上面选。翻译浮层、词典、文件、实时字幕、媒体字幕和沉浸字幕都用它。"))
+            Text(L("实时字幕、媒体字幕和语音共用，最多 100 个。自己加的优先。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 
     private func addASRTerms() {
@@ -1775,72 +2306,124 @@ struct PreferencesPane: View {
         }
     }
 
-    private func serviceRow(_ title: String, _ use: TranslateUse) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    // MARK: - 填写块
+
+    /// 一节一张圆角列表。节名空着就不画标题。
+    private func settingsGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !title.isEmpty {
+                Text(title)
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 12)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .background(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .fill(Theme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Theme.hairline, lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        }
+    }
+
+    /// 一行：标签左对齐，控件贴右。说明在标签下面。
+    private func settingsRow<Control: View>(
+        _ title: String,
+        detail: String? = nil,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(Theme.TypeScale.body)
+                    .foregroundStyle(.primary)
+                if let detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 12)
+            control()
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 38)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.leading, 14)
+        }
+    }
+
+    /// 填写块里的一行。控件宽 300，说明写在控件下面。
+    private func fieldRow<Control: View>(
+        _ title: String,
+        note: String? = nil,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
             Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            providerTags(use)
-            if providerAtCap(use) {
-                HStack(spacing: 6) {
-                    Text(config.translateCap(use) == 1 ? L("免费版只用默认一家") : L("免费版最多同时两家"))
-                        .font(.caption)
-                        .foregroundStyle(Theme.attention)
-                    ProBadge(help: L("Pro 不限家数"))
+                .font(Theme.TypeScale.body)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .trailing, spacing: 3) {
+                control()
+                if let note, !note.isEmpty {
+                    Text(note)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: SettingsMetrics.controlWidth, alignment: .leading)
                 }
             }
         }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 38)
     }
 
-    private var permissionsTab: some View {
-        Form {
-            Section {
-                permissionRow(
-                    title: L("辅助功能"),
-                    feature: L("划词翻译读取其他 App 中选中的文字"),
-                    trusted: axTrusted
-                ) {
-                    if AXIsProcessTrusted() {
-                        PermissionGrantController.shared.openSettings(.accessibility)
-                    } else {
-                        PermissionGrantController.shared.prompt(.accessibility)
-                    }
-                }
-                permissionRow(
-                    title: L("屏幕录制"),
-                    feature: L("OCR 截图翻译框选屏幕区域识别文字"),
-                    trusted: screenTrusted
-                ) {
-                    if CGPreflightScreenCaptureAccess() {
-                        PermissionGrantController.shared.openSettings(.screenCapture)
-                    } else {
-                        PermissionGrantController.shared.prompt(.screenCapture)
-                    }
-                }
-                permissionRow(
-                    title: L("输入监视"),
-                    feature: L("快捷翻译连按三下空格，按住 Fn 说话"),
-                    trusted: listenTrusted
-                ) {
-                    if CGPreflightListenEventAccess() {
-                        PermissionGrantController.shared.openSettings(.inputMonitoring)
-                    } else {
-                        PermissionGrantController.shared.prompt(.inputMonitoring)
-                    }
-                }
-            } footer: {
-                HStack {
-                    Spacer()
-                    Button(L("刷新权限状态")) {
-                        refreshPermissions()
-                    }
-                }
-            }
+    /// 点开一行之后，填写块就在这一行下面，浅一档底色。里面的输入框收到 300 宽、贴右。
+    private func fillBlock<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            content()
         }
-        .formStyle(.grouped)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.wellFill)
+        .environment(\.settingsFieldWidth, SettingsMetrics.controlWidth)
     }
 
-    // MARK: - Rows
+    private func fieldNote(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.TypeScale.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func menuLabel(_ title: String) -> some View {
+        Text(title)
+            .font(Theme.TypeScale.body)
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+    }
+
+    /// 高级里某功能另选了服务。点了跳到那一页。
+    private func divergenceNote(_ names: String, jump: @escaping () -> Void) -> some View {
+        Button(action: jump) {
+            Text(String(format: L("%@在高级里另选了"), names))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(Theme.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 
     private func permissionRow(
         title: String,
@@ -1848,32 +2431,14 @@ struct PreferencesPane: View {
         trusted: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        LabeledContent {
-            HStack(spacing: 10) {
-                permissionStatus(trusted)
-                if trusted {
-                    Button(L("打开系统设置")) { action() }
-                } else {
-                    Button(L("去授权")) { action() }
-                        .buttonStyle(.borderedProminent)
+        settingsRow(title, detail: feature) {
+            HStack(spacing: 8) {
+                StatusDot(trusted ? .ok : .attention, trusted ? L("已授权") : L("未授权"))
+                if !trusted {
+                    Button(L("去授权"), action: action)
+                        .controlSize(.small)
                 }
             }
-        } label: {
-            Text(title)
-            Text(feature)
-        }
-    }
-
-    private func permissionStatus(_ trusted: Bool?) -> some View {
-        let title = trusted == true ? L("已授权") : (trusted == false ? L("未授权") : L("未检测"))
-        let color: Color = trusted == true ? .green : (trusted == false ? .orange : .secondary)
-        return HStack(spacing: 6) {
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -1881,7 +2446,8 @@ struct PreferencesPane: View {
         axTrusted = AXIsProcessTrusted()
         screenTrusted = CGPreflightScreenCaptureAccess()
         listenTrusted = CGPreflightListenEventAccess()
-        loginEnabled = SMAppService.mainApp.status == .enabled
+        micTrusted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        speechTrusted = SFSpeechRecognizer.authorizationStatus() == .authorized
     }
 
     private func refreshApplePackStatus() {
@@ -1939,8 +2505,9 @@ struct PreferencesPane: View {
             }
             .rowTapToggle { toggleBuiltinOpen(p) }
             if open {
-                providerFields(p)
-                    .padding(.leading, 23)
+                fillBlock {
+                    providerFields(p)
+                }
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
@@ -2066,98 +2633,95 @@ struct PreferencesPane: View {
         }
     }
 
-    private func singleTranslatePicker(_ title: String, _ use: TranslateUse) -> some View {
-        Picker(title, selection: Binding(
-            get: { config.storedTranslateIDs(use).first ?? "" },
-            set: { config.setTranslateIDs($0.isEmpty ? [] : [$0], use) }
-        )) {
-            ForEach(config.catalogTargets()) { target in
-                Text(target.displayName).tag(target.id)
-            }
-        }
-    }
-
-    private func asrDefaultPicker(_ title: String, live: Bool) -> some View {
-        Picker(title, selection: Binding(
-            get: { live ? config.resolvedLiveAsr() : config.resolvedMediaAsr() },
-            set: { config.setDefaultAsr($0, live: live) }
-        )) {
-            ForEach(live ? config.liveASRChoices() : config.mediaASRChoices()) { choice in
-                Text(choice.name).tag(choice.id)
-            }
-        }
-    }
-
     @ViewBuilder
     private func providerFields(_ p: ProviderID) -> some View {
         switch p {
         case .googleFree:
-            Text(L("无需 API Key，使用 Google 公开接口"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            fieldNote(L("无需密钥，用 Google 公开接口"))
         case .googleCloud:
-            SecureField("Google Cloud API Key", text: $config.googleCloudKey)
-                .textFieldStyle(.roundedBorder)
-        case .deepl:
-            SecureField("DeepL API Key", text: $config.deeplKey)
-                .textFieldStyle(.roundedBorder)
-            Toggle(L("使用 Free API (api-free.deepl.com)"), isOn: $config.deeplUseFreeAPI)
-                .toggleStyle(.checkbox)
-                .controlSize(.small)
-        case .apple:
-            HStack {
-                Text(applePackStatus)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                Spacer(minLength: 8)
-                Button(L("下载语言包…")) {
-                    AppleLangPack.presentDownloadPrompt(force: true)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        refreshApplePackStatus()
-                    }
-                }
-                .controlSize(.small)
+            SettingsField {
+                SecureField("API Key", text: $config.googleCloudKey, prompt: Text(L("粘贴密钥")))
+                    .textFieldStyle(.roundedBorder)
             }
+        case .deepl:
+            SettingsField {
+                SecureField("API Key", text: $config.deeplKey, prompt: Text(L("粘贴密钥")))
+                    .textFieldStyle(.roundedBorder)
+            }
+            fieldRow(L("用 Free API (api-free.deepl.com)")) {
+                Toggle("", isOn: $config.deeplUseFreeAPI)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+            }
+        case .apple:
+            SettingsField {
+                HStack {
+                    Text(applePackStatus)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    Spacer(minLength: 8)
+                    Button(L("下载语言包…")) {
+                        AppleLangPack.presentDownloadPrompt(force: true)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            refreshApplePackStatus()
+                        }
+                    }
+                    .controlSize(.small)
+                }
+            }
+            fieldNote(L("本机翻译，首次用某种语言对下载语言包"))
         case .microsoft:
-            SecureField("Azure Translator Key", text: $config.microsoftKey)
-                .textFieldStyle(.roundedBorder)
-            TextField(L("区域（如 eastasia / global）"), text: $config.microsoftRegion)
-                .textFieldStyle(.roundedBorder)
-            Text(L("Microsoft Translator / Bing 官方 API"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            SettingsField {
+                SecureField("API Key", text: $config.microsoftKey, prompt: Text(L("粘贴密钥")))
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                TextField(L("区域"), text: $config.microsoftRegion, prompt: Text("eastasia 或 global"))
+                    .textFieldStyle(.roundedBorder)
+            }
         case .baidu:
-            TextField(L("百度 App ID"), text: $config.baiduAppID)
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("百度密钥"), text: $config.baiduSecret)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField(L("百度 App ID"), text: $config.baiduAppID)
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField(L("百度密钥"), text: $config.baiduSecret)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .youdao:
-            TextField(L("有道应用 ID"), text: $config.youdaoAppKey)
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("有道应用密钥"), text: $config.youdaoSecret)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField(L("有道应用 ID"), text: $config.youdaoAppKey)
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField(L("有道应用密钥"), text: $config.youdaoSecret)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .caiyun:
-            SecureField(L("彩云 Token"), text: $config.caiyunToken)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                SecureField(L("彩云 Token"), text: $config.caiyunToken)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .mymemory:
-            Text(L("无需 Key；有额度限制的公开接口"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            fieldNote(L("无需密钥；有额度限制的公开接口"))
         case .libreTranslate:
-            TextField(L("实例 URL"), text: $config.libreTranslateURL)
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("API Key（可选）"), text: $config.libreTranslateKey)
-                .textFieldStyle(.roundedBorder)
-            Text(L("可填自建或公共 LibreTranslate 实例"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            SettingsField {
+                TextField(L("实例 URL"), text: $config.libreTranslateURL)
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField(L("API Key（可选）"), text: $config.libreTranslateKey)
+                    .textFieldStyle(.roundedBorder)
+            }
+            fieldNote(L("可填自建或公共 LibreTranslate 实例"))
         case .lingva:
-            TextField(L("实例 URL"), text: $config.lingvaURL)
-                .textFieldStyle(.roundedBorder)
-            Text(L("Google 前端镜像，无需 Key；实例不可用时可换地址"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            SettingsField {
+                TextField(L("实例 URL"), text: $config.lingvaURL)
+                    .textFieldStyle(.roundedBorder)
+            }
+            fieldNote(L("Google 前端镜像，无需密钥；实例不可用时可换地址"))
         }
     }
 
@@ -2248,8 +2812,9 @@ struct PreferencesPane: View {
                 else if hoveredOCR == p.rawValue { hoveredOCR = nil }
             }
             if open && expandable {
-                ocrProviderFields(p)
-                    .padding(.leading, 23)
+                fillBlock {
+                    ocrProviderFields(p)
+                }
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
@@ -2274,42 +2839,66 @@ struct PreferencesPane: View {
             EmptyView()
         case .baidu, .baiduAccurate:
             syncKeysToggle($config.ocrBaiduSync)
-            TextField(L("百度 App ID"), text: config.ocrBaiduSync ? $config.baiduAppID : $config.ocrBaiduAppID)
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("百度密钥"), text: config.ocrBaiduSync ? $config.baiduSecret : $config.ocrBaiduSecret)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField(L("百度 App ID"), text: config.ocrBaiduSync ? $config.baiduAppID : $config.ocrBaiduAppID)
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField(L("百度密钥"), text: config.ocrBaiduSync ? $config.baiduSecret : $config.ocrBaiduSecret)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .youdao:
             syncKeysToggle($config.ocrYoudaoSync)
-            TextField(L("有道应用 ID"), text: config.ocrYoudaoSync ? $config.youdaoAppKey : $config.ocrYoudaoAppKey)
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("有道应用密钥"), text: config.ocrYoudaoSync ? $config.youdaoSecret : $config.ocrYoudaoSecret)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField(L("有道应用 ID"), text: config.ocrYoudaoSync ? $config.youdaoAppKey : $config.ocrYoudaoAppKey)
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField(L("有道应用密钥"), text: config.ocrYoudaoSync ? $config.youdaoSecret : $config.ocrYoudaoSecret)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .tencent:
-            TextField("SecretId", text: $config.tencentSecretID)
-                .textFieldStyle(.roundedBorder)
-            SecureField("SecretKey", text: $config.tencentSecretKey)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField("SecretId", text: $config.tencentSecretID)
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField("SecretKey", text: $config.tencentSecretKey)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .googleVision:
             syncKeysToggle($config.ocrGoogleSync)
-            SecureField("Google Cloud API Key", text: config.ocrGoogleSync ? $config.googleCloudKey : $config.ocrGoogleKey)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                SecureField("API Key", text: config.ocrGoogleSync ? $config.googleCloudKey : $config.ocrGoogleKey, prompt: Text(L("粘贴密钥")))
+                    .textFieldStyle(.roundedBorder)
+            }
         case .azure:
-            TextField(L("终结点"), text: $config.azureVisionEndpoint, prompt: Text("https://{resource}.cognitiveservices.azure.com"))
-                .textFieldStyle(.roundedBorder)
-            SecureField(L("密钥"), text: $config.azureVisionKey)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField(L("终结点"), text: $config.azureVisionEndpoint, prompt: Text("https://{resource}.cognitiveservices.azure.com"))
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField(L("密钥"), text: $config.azureVisionKey)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .ocrSpace:
-            SecureField("OCR.space API Key", text: $config.ocrSpaceKey)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                SecureField("OCR.space API Key", text: $config.ocrSpaceKey)
+                    .textFieldStyle(.roundedBorder)
+            }
         case .aiVision:
-            Picker(L("模型"), selection: Binding(
-                get: { config.aiProfiles.contains { $0.id == config.ocrAIProfileID && $0.enabled } ? config.ocrAIProfileID : "" },
-                set: { config.ocrAIProfileID = $0 }
-            )) {
-                Text(L("自动（第一个）")).tag("")
-                ForEach(config.aiProfiles.filter { config.isAIOn($0) }) { ai in
-                    Text(ai.name).tag(ai.id)
+            fieldRow(L("模型")) {
+                Menu {
+                    Button(L("自动（第一个）")) { config.ocrAIProfileID = "" }
+                    ForEach(config.aiProfiles.filter { config.isAIOn($0) }) { ai in
+                        Button(ai.name) { config.ocrAIProfileID = ai.id }
+                    }
+                } label: {
+                    let name = config.aiProfiles.first { $0.id == config.ocrAIProfileID }?.name ?? L("自动（第一个）")
+                    menuLabel(name)
                 }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
         }
     }
@@ -2364,8 +2953,9 @@ struct PreferencesPane: View {
             }
             .rowTapToggle { toggleASRExpanded(profile.id) }
             if expanded {
-                asrProfileFields(idx)
-                    .padding(.leading, 23)
+                fillBlock {
+                    asrProfileFields(idx)
+                }
             }
         }
     }
@@ -2394,14 +2984,20 @@ struct PreferencesPane: View {
             syncKeysToggle(asrSyncBinding(idx))
             if profile.syncAI { syncKeyNotice(aiPreset: preset?.aiPreset ?? "") }
         }
-        TextField(L("连接地址"), text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "wss://"))
-            .textFieldStyle(.roundedBorder)
-        if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
-            SecureField("API Key", text: asrKeyBinding(idx))
+        SettingsField {
+            TextField(L("连接地址"), text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "wss://"))
                 .textFieldStyle(.roundedBorder)
         }
-        ModelComboBox(text: asrBinding(idx, \.model), items: preset?.models ?? [], placeholder: preset?.model ?? "")
-            .frame(height: 24)
+        if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
+            SettingsField {
+                SecureField("API Key", text: asrKeyBinding(idx), prompt: Text(L("粘贴密钥")))
+                    .textFieldStyle(.roundedBorder)
+            }
+        }
+        SettingsField {
+            ModelComboBox(text: asrBinding(idx, \.model), items: preset?.models ?? [], placeholder: preset?.model ?? "")
+                .frame(height: 24)
+        }
         if preset?.interpWire == .qwen {
             Menu {
                 Button(L("默认")) {
@@ -2443,13 +3039,19 @@ struct PreferencesPane: View {
             if profile.syncAI { syncKeyNotice(aiPreset: preset?.aiPreset ?? "") }
         }
         if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
-            TextField("Base URL", text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "https://api.example.com/v1"))
-                .textFieldStyle(.roundedBorder)
-            SecureField((preset?.noKey ?? false) ? L("API Key（可选）") : "API Key", text: asrKeyBinding(idx))
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField("Base URL", text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "https://api.example.com/v1"))
+                    .textFieldStyle(.roundedBorder)
+            }
+            SettingsField {
+                SecureField((preset?.noKey ?? false) ? L("API Key（可选）") : "API Key", text: asrKeyBinding(idx))
+                    .textFieldStyle(.roundedBorder)
+            }
         }
-        ASRModelPicker(idx: idx)
-            .environmentObject(config)
+        SettingsField {
+            ASRModelPicker(idx: idx)
+                .environmentObject(config)
+        }
     }
 
     private func asrBinding(_ idx: Int, _ keyPath: WritableKeyPath<ASRProfile, String>) -> Binding<String> {
@@ -2527,8 +3129,9 @@ struct PreferencesPane: View {
             }
             .rowTapToggle { toggleTTSExpanded(profile.id) }
             if expanded {
-                ttsProfileFields(idx)
-                    .padding(.leading, 23)
+                fillBlock {
+                    ttsProfileFields(idx)
+                }
             }
         }
     }
@@ -2549,52 +3152,62 @@ struct PreferencesPane: View {
             if profile.syncAI { syncKeyNotice(aiPreset: preset?.aiPreset ?? "") }
         }
         if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
-            if wire == .azure {
-                ModelComboBox(
-                    text: ttsBinding(idx, \.baseURL),
-                    items: ["eastasia", "southeastasia", "eastus", "eastus2", "westus2", "japaneast", "koreacentral", "westeurope", "northeurope"],
-                    placeholder: L("区域，如 eastasia")
-                )
-                .frame(height: 24)
-            } else {
-                TextField("Base URL", text: ttsBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "https://api.example.com/v1"))
+            SettingsField {
+                if wire == .azure {
+                    ModelComboBox(
+                        text: ttsBinding(idx, \.baseURL),
+                        items: ["eastasia", "southeastasia", "eastus", "eastus2", "westus2", "japaneast", "koreacentral", "westeurope", "northeurope"],
+                        placeholder: L("区域，如 eastasia")
+                    )
+                    .frame(height: 24)
+                } else {
+                    TextField("Base URL", text: ttsBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "https://api.example.com/v1"))
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            SettingsField {
+                SecureField((preset?.noKey ?? false) ? L("API Key（可选）") : "API Key", text: ttsKeyBinding(idx))
                     .textFieldStyle(.roundedBorder)
             }
-            SecureField((preset?.noKey ?? false) ? L("API Key（可选）") : "API Key", text: ttsKeyBinding(idx))
-                .textFieldStyle(.roundedBorder)
         }
         if wire != .azure {
-            ModelComboBox(
-                text: ttsBinding(idx, \.model),
-                items: preset?.models ?? [],
-                placeholder: wire == .deepgram ? L("音色") : (preset?.model ?? L("模型"))
-            )
-            .frame(height: 24)
+            SettingsField {
+                ModelComboBox(
+                    text: ttsBinding(idx, \.model),
+                    items: preset?.models ?? [],
+                    placeholder: wire == .deepgram ? L("音色") : (preset?.model ?? L("模型"))
+                )
+                .frame(height: 24)
+            }
         }
         if wire != .deepgram {
             if preset?.namedVoices == true {
-                HStack(spacing: 8) {
-                    TextField(L("音色"), text: ttsBinding(idx, \.voice))
-                        .textFieldStyle(.roundedBorder)
-                    Menu(L("预设")) {
-                        ForEach(preset?.voices ?? []) { voice in
-                            Button(voice.name) {
-                                guard config.ttsProfiles.indices.contains(idx) else { return }
-                                var p = config.ttsProfiles[idx]
-                                p.voice = voice.id
-                                config.ttsProfiles[idx] = p
+                SettingsField {
+                    HStack(spacing: 8) {
+                        TextField(L("音色"), text: ttsBinding(idx, \.voice))
+                            .textFieldStyle(.roundedBorder)
+                        Menu(L("预设")) {
+                            ForEach(preset?.voices ?? []) { voice in
+                                Button(voice.name) {
+                                    guard config.ttsProfiles.indices.contains(idx) else { return }
+                                    var p = config.ttsProfiles[idx]
+                                    p.voice = voice.id
+                                    config.ttsProfiles[idx] = p
+                                }
                             }
                         }
+                        .fixedSize()
                     }
-                    .fixedSize()
                 }
             } else if !(preset?.voices ?? []).isEmpty || !profile.voice.isEmpty {
-                ModelComboBox(
-                    text: ttsBinding(idx, \.voice),
-                    items: preset?.voices.map(\.id) ?? [],
-                    placeholder: preset?.voice ?? L("音色")
-                )
-                .frame(height: 24)
+                SettingsField {
+                    ModelComboBox(
+                        text: ttsBinding(idx, \.voice),
+                        items: preset?.voices.map(\.id) ?? [],
+                        placeholder: preset?.voice ?? L("音色")
+                    )
+                    .frame(height: 24)
+                }
             }
         }
         if let note = preset?.note, !note.isEmpty {
@@ -2729,8 +3342,21 @@ struct PreferencesPane: View {
             .rowTapToggle { toggleAIExpanded(profile.id) }
 
             if expanded {
-                aiEditor(idx: idx)
-                    .padding(.leading, 23)
+                fillBlock {
+                    aiEditor(idx: idx)
+                    HStack {
+                        Button(L("移除这家")) {
+                            expandedAIIds.remove(profile.id)
+                            config.removeAI(at: idx)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.danger)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
             }
         }
     }
@@ -2744,31 +3370,43 @@ struct PreferencesPane: View {
         let profile = config.aiProfiles.indices.contains(idx) ? config.aiProfiles[idx] : AIProfile.makeDefault(name: "")
         let preset = AIPresetDef.find(profile.preset)
         return VStack(alignment: .leading, spacing: 8) {
-            TextField(L("名称"), text: binding(idx, \.name))
-                .textFieldStyle(.roundedBorder)
-            TextField("Base URL", text: binding(idx, \.baseURL), prompt: Text("https://api.example.com/v1"))
-                .textFieldStyle(.roundedBorder)
-            if !(preset?.noKey ?? false) {
-                SecureField("API Key", text: aiKeyBinding(idx))
-                    .textFieldStyle(.roundedBorder)
-            } else {
-                Text(L("本地服务通常无需 Key；若设了鉴权可填写。"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                SecureField(L("API Key（可选）"), text: aiKeyBinding(idx))
+            SettingsField {
+                TextField(L("名称"), text: binding(idx, \.name))
                     .textFieldStyle(.roundedBorder)
             }
-            AIModelPicker(idx: idx)
-                .environmentObject(config)
-            TextField(L("系统提示（可空）"), text: binding(idx, \.systemPrompt), axis: .vertical)
-                .lineLimit(2...4)
-                .textFieldStyle(.roundedBorder)
+            SettingsField {
+                TextField("Base URL", text: binding(idx, \.baseURL), prompt: Text("https://api.example.com/v1"))
+                    .textFieldStyle(.roundedBorder)
+            }
+            if !(preset?.noKey ?? false) {
+                SettingsField {
+                    SecureField("API Key", text: aiKeyBinding(idx), prompt: Text(L("粘贴密钥")))
+                        .textFieldStyle(.roundedBorder)
+                }
+            } else {
+                fieldNote(L("本地服务通常无需密钥；设了鉴权再填。"))
+                SettingsField {
+                    SecureField(L("API Key（可选）"), text: aiKeyBinding(idx))
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            SettingsField {
+                AIModelPicker(idx: idx)
+                    .environmentObject(config)
+            }
+            SettingsField {
+                TextField(L("系统提示"), text: binding(idx, \.systemPrompt), axis: .vertical)
+                    .lineLimit(2...4)
+                    .textFieldStyle(.roundedBorder)
+            }
             if let urlStr = preset?.keysURL, !urlStr.isEmpty, let url = URL(string: urlStr) {
-                Button(L("获取 API Key…")) { NSWorkspace.shared.open(url) }
-                    .controlSize(.small)
+                HStack {
+                    Spacer(minLength: 0)
+                    Button(L("获取 API Key…")) { NSWorkspace.shared.open(url) }
+                        .controlSize(.small)
+                }
             }
         }
-        .padding(.leading, 4)
     }
 
     private func binding(_ idx: Int, _ keyPath: WritableKeyPath<AIProfile, String>) -> Binding<String> {
