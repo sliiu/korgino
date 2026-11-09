@@ -120,7 +120,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             _ = AXIsProcessTrustedWithOptions(opts)
         }
         // 常规应用：从启动台、Finder 打开时要看得到窗口。
-        MainWindowController.shared.show()
+        // 没看过引导就先出引导；看过了但授权还没齐、也没勾「不再提醒」，只再出授权那一步。
+        if Onboarding.shouldPresent {
+            OnboardingWindow.shared.show()
+        } else {
+            MainWindowController.shared.show()
+        }
     }
 
     private func item(
