@@ -234,18 +234,8 @@ struct SystemAudioTranslateView: View {
             }
         }
         .background(Theme.windowFill)
-        .frame(
-            minWidth: SystemAudioTranslateController.minPanelWidth(
-                wide: model.captureSystem && model.captureMicrophone
-            ),
-            idealWidth: SystemAudioTranslateController.idealPanelWidth(
-                wide: model.captureSystem && model.captureMicrophone
-            ),
-            maxWidth: SystemAudioTranslateController.maxPanelWidth(
-                wide: model.captureSystem && model.captureMicrophone
-            ),
-            minHeight: 280
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(minHeight: 280)
         .onChange(of: model.captureSystem) { _, _ in scheduleRelayout() }
         .onChange(of: model.captureMicrophone) { _, _ in scheduleRelayout() }
         .onChange(of: model.isActive) { _, _ in scheduleRelayout() }

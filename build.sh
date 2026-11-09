@@ -2,11 +2,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# dev：Info.plist 不写 LSUIElement，系统 ≥ 26 时再切 accessory，编译带 KORGI_DEV。
-# --macos26：同上，但最低系统 26.0，Pro 用 KORGI_TEST_PRO 开到 2026-12-31。
-# --macos15：写入 LSUIElement，启动时不切策略，Pro 同样开到 2026-12-31。产出 dist/Korgino-macos15.app，不覆盖 ~/Applications。
+# dev：常规应用，编译带 KORGI_DEV。Dock 和 ⌘Tab 里都有 Korgino。
+# --macos26：最低系统 26.0，Pro 用 KORGI_TEST_PRO 开到 2026-12-31。
+# --macos15：最低系统仍是 15.0，Pro 同样开到 2026-12-31。产出 dist/Korgino-macos15.app，不覆盖 ~/Applications。
 # --no-install：只产出 build/ 或 dist/ 里的 .app，不签本机证书，不覆盖 ~/Applications，不启动。给 CI 用。
-# 见 docs/adr/0069-menubar-on-macos-15.md、docs/adr/0070-test-pro-until-year-end.md。
+# 见 docs/adr/0070-test-pro-until-year-end.md。主窗口之后不再写 LSUIElement。
 TARGET_OS=dev
 NO_INSTALL=0
 for arg in "$@"; do
@@ -97,9 +97,6 @@ echo "Architectures: $(lipo -info "$APP/Contents/MacOS/Korgino")"
 # Local symbols are only for crash logs and the debugger. Drop them before signing.
 strip -x "$APP/Contents/MacOS/Korgino"
 cp Info.plist "$APP/Contents/Info.plist"
-if [[ "$TARGET_OS" == "15" ]]; then
-  /usr/libexec/PlistBuddy -c 'Add :LSUIElement bool true' "$APP/Contents/Info.plist"
-fi
 if [[ "$TARGET_OS" == "26" ]]; then
   /usr/libexec/PlistBuddy -c 'Set :LSMinimumSystemVersion 26.0' "$APP/Contents/Info.plist"
 fi
@@ -141,7 +138,7 @@ if [[ "$NO_INSTALL" -eq 1 ]]; then
     rm -rf dist/Korgino-macos26.app
     cp -R "$APP" dist/Korgino-macos26.app
     echo "BUILD OK -> $PWD/dist/Korgino-macos26.app"
-    echo "macOS 26 package: LSMinimumSystemVersion 26.0, accessory policy at launch, Pro until 2026-12-31."
+    echo "macOS 26 package: LSMinimumSystemVersion 26.0, regular app, Pro until 2026-12-31."
   else
     echo "BUILD OK -> $PWD/$APP"
   fi
@@ -191,7 +188,7 @@ if [[ "$TARGET_OS" == "15" ]]; then
   rm -rf dist/Korgino-macos15.app
   cp -R "$APP" dist/Korgino-macos15.app
   echo "BUILD OK -> $PWD/dist/Korgino-macos15.app"
-  echo "macOS 15 package: LSUIElement, no runtime policy switch. Do not install it on macOS 26 (open fails with -600)."
+  echo "macOS 15 package: regular app, Pro until 2026-12-31. Do not install a package that still has LSUIElement on macOS 26 (open fails with -600)."
   exit 0
 fi
 
@@ -214,6 +211,6 @@ $LSREG -f -R -trusted "$HOME/Applications/Korgino.app" 2>/dev/null || true
 
 echo "BUILD OK -> $HOME/Applications/Korgino.app"
 if [[ "$TARGET_OS" == "26" ]]; then
-  echo "macOS 26 package: LSMinimumSystemVersion 26.0, accessory policy at launch, Pro until 2026-12-31."
+  echo "macOS 26 package: LSMinimumSystemVersion 26.0, regular app, Pro until 2026-12-31."
 fi
 open "$HOME/Applications/Korgino.app"

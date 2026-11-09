@@ -103,54 +103,12 @@ extension SystemAudioTranslateController {
 
     // MARK: Window
 
+    /// 实时字幕嵌在主窗口里。原来的浮动面板不再单独打开。
     func showWindow() {
-        if window == nil {
-            let root = AnyView(
-                SystemAudioTranslateView(model: self)
-                    .environmentObject(AppConfig.shared)
-            )
-            let h = LiveCaptionHost(rootView: root)
-            h.sizingOptions = []
-            h.safeAreaRegions = []
-            let w = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 500, height: 440),
-                styleMask: [.titled, .closable, .resizable, .utilityWindow, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-            w.title = L("实时字幕")
-            w.isFloatingPanel = true
-            w.level = .floating
-            w.hidesOnDeactivate = false
-            w.contentView = h
-            w.isReleasedWhenClosed = false
-            w.minSize = NSSize(
-                width: Self.minPanelWidth(wide: captureSystem && captureMicrophone),
-                height: 300
-            )
-            w.center()
-            window = w
-            hosting = h
-            NotificationCenter.default.addObserver(
-                forName: NSWindow.didResizeNotification,
-                object: w,
-                queue: .main
-            ) { [weak w] _ in
-                MainActor.assumeIsolated {
-                    CaptionBudget.note("live", w?.frame.width ?? 0)
-                }
-            }
-        }
-        window?.title = L("实时字幕")
-        relayoutWindow()
-        CaptionBudget.note("live", window?.frame.width ?? 0)
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        MainWindowController.shared.show(page: .live)
     }
 
-    func relocalize() {
-        window?.title = L("实时字幕")
-    }
+    func relocalize() {}
 
     /// The narrowest the panel may be squeezed. The toolbar, the columns and the window's own `minSize`
     /// all read it here, so they can never disagree: a window allowed narrower than the toolbar needs
@@ -160,33 +118,6 @@ extension SystemAudioTranslateController {
     static func idealPanelWidth(wide: Bool) -> CGFloat { wide ? 980 : 700 }
     static func maxPanelWidth(wide: Bool) -> CGFloat { wide ? 1240 : 820 }
 
-    /// Grow/shrink panel when toggles show/hide lane boxes — prevents checkbox-driven overflow clip.
-    func relayoutWindow() {
-        guard let w = window, let h = hosting else { return }
-        h.rootView = AnyView(
-            SystemAudioTranslateView(model: self)
-                .environmentObject(AppConfig.shared)
-        )
-        h.layoutSubtreeIfNeeded()
-        var size = h.fittingSize
-        let wide = captureSystem && captureMicrophone
-        size.width = max(size.width, Self.minPanelWidth(wide: wide))
-        size.width = min(size.width, Self.maxPanelWidth(wide: wide))
-        let room = (w.screen ?? NSScreen.main)?.visibleFrame.height ?? 800
-        size.height = min(max(size.height + 16, w.frame.height, 600), min(room - 32, 900))
-        w.minSize = NSSize(width: Self.minPanelWidth(wide: wide), height: 320)
-        var frame = w.frame
-        let oldMaxY = frame.maxY
-        frame.size = size
-        // Keep top edge stable when height changes.
-        frame.origin.y = oldMaxY - size.height
-        if let screen = w.screen ?? NSScreen.main {
-            let vf = screen.visibleFrame
-            if frame.minX < vf.minX { frame.origin.x = vf.minX + 8 }
-            if frame.maxX > vf.maxX { frame.origin.x = vf.maxX - frame.width - 8 }
-            if frame.minY < vf.minY { frame.origin.y = vf.minY + 8 }
-            if frame.maxY > vf.maxY { frame.origin.y = vf.maxY - frame.height - 8 }
-        }
-        w.setFrame(frame, display: true, animate: false)
-    }
+    /// 主窗口自己记住大小，不再按内容把窗口撑开或缩回去。
+    func relayoutWindow() {}
 }

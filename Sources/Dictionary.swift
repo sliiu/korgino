@@ -12,7 +12,6 @@ final class DictionaryController: ObservableObject {
     @Published var errorText: String?
     @Published var statusLine = L("输入单词或短语后查询")
 
-    private var window: NSWindow?
     private var task: Task<Void, Never>?
 
     func show(seed: String? = nil) {
@@ -22,7 +21,7 @@ final class DictionaryController: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines), DictionaryLookup.isLookupCandidate(clip) {
             query = clip
         }
-        showWindow()
+        MainWindowController.shared.show(page: .dictionary)
         if !query.isEmpty { lookup() }
     }
 
@@ -53,30 +52,7 @@ final class DictionaryController: ObservableObject {
         }
     }
 
-    private func showWindow() {
-        if window == nil {
-            let root = DictionaryView(model: self)
-                .environmentObject(AppConfig.shared)
-            let h = NSHostingView(rootView: root)
-            let w = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 440, height: 480),
-                styleMask: [.titled, .closable, .resizable, .miniaturizable],
-                backing: .buffered, defer: false
-            )
-            w.title = L("词典")
-            w.contentView = h
-            w.isReleasedWhenClosed = false
-            w.minSize = NSSize(width: 360, height: 320)
-            w.center()
-            window = w
-        }
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    func relocalize() {
-        window?.title = L("词典")
-    }
+    func relocalize() {}
 }
 
 struct DictionaryView: View {

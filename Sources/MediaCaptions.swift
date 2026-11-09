@@ -816,8 +816,6 @@ final class MediaCaptionsController: ObservableObject {
 
     private static let concurrentKey = "media.concurrentLimit"
 
-    private var window: NSWindow?
-    private var hosting: NSHostingView<AnyView>?
     private var work: [UUID: Task<Void, Never>] = [:]
     private var noteTasks: [UUID: Task<Void, Never>] = [:]
     private var laneWork: [UUID: [Task<Void, Never>]] = [:]
@@ -832,43 +830,10 @@ final class MediaCaptionsController: ObservableObject {
     }
 
     func show() {
-        if window == nil {
-            let root = AnyView(MediaCaptionsView(model: self).environmentObject(AppConfig.shared))
-            let host = NSHostingView(rootView: root)
-            let w = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 800, height: 760),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-            w.title = L("媒体字幕")
-            w.contentView = host
-            w.isReleasedWhenClosed = false
-            w.minSize = NSSize(width: 680, height: 560)
-            w.center()
-            window = w
-            hosting = host
-            NotificationCenter.default.addObserver(
-                forName: NSWindow.didResizeNotification,
-                object: w,
-                queue: .main
-            ) { [weak w] _ in
-                MainActor.assumeIsolated {
-                    CaptionBudget.note("media", w?.frame.width ?? 0)
-                }
-            }
-        }
-        CaptionBudget.note("media", window?.frame.width ?? 0)
-        window?.title = L("媒体字幕")
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        MainWindowController.shared.show(page: .media)
     }
 
-    func relocalize() {
-        window?.title = L("媒体字幕")
-        guard let hosting else { return }
-        hosting.rootView = AnyView(MediaCaptionsView(model: self).environmentObject(AppConfig.shared))
-    }
+    func relocalize() {}
 
     func add(_ url: URL) {
         show()

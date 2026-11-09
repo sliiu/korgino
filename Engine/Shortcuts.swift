@@ -30,6 +30,8 @@ struct HotkeySpec: Equatable, Codable, Hashable {
     static let voiceRecognizeDefault = HotkeySpec(keyCode: Key.r, carbonModifiers: option | shift)
     static let voiceTranslateDefault = HotkeySpec(keyCode: Key.t, carbonModifiers: option | shift)
     static let voiceInterpretDefault = HotkeySpec(keyCode: Key.s, carbonModifiers: option | shift)
+    /// 打开主窗口。默认 ⌥⌘K。
+    static let openMainDefault = HotkeySpec(keyCode: Key.k, carbonModifiers: option | command)
 
     /// Carbon 虚拟键码。
     enum Key {
@@ -258,6 +260,7 @@ struct HotkeySpec: Equatable, Codable, Hashable {
 enum HotkeyAction: String, CaseIterable, Identifiable {
     case select, clipboard, ocr, file, liveCaptions, mediaCaptions, dictionary, history, quickTranslate, quickUndo
     case voiceRecognize, voiceTranslate, voiceInterpret
+    case openMain
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -274,6 +277,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
         case .voiceRecognize: return L("语音识别")
         case .voiceTranslate: return L("语音翻译")
         case .voiceInterpret: return L("语音传译")
+        case .openMain: return L("打开 Korgino")
         }
     }
     var defaultsKey: String { "hotkey.\(rawValue)" }
@@ -293,6 +297,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
         case .voiceRecognize: return 11
         case .voiceTranslate: return 12
         case .voiceInterpret: return 13
+        case .openMain: return 14
         }
     }
     var `default`: HotkeySpec {
@@ -310,6 +315,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
         case .voiceRecognize: return .voiceRecognizeDefault
         case .voiceTranslate: return .voiceTranslateDefault
         case .voiceInterpret: return .voiceInterpretDefault
+        case .openMain: return .openMainDefault
         }
     }
 }

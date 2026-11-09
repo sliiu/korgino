@@ -44,6 +44,8 @@ enum PreferencesTab: String, CaseIterable, Identifiable, Hashable {
 final class PreferencesTabs: ObservableObject {
     @Published var tab: PreferencesTab = .general
     @Published var epoch = 0
+    /// 功能页里的哪一节。语音页的「打开语音设置」直接落到「语音与字幕」。
+    @Published var featureSection = "translate"
 }
 
 @MainActor
@@ -69,6 +71,12 @@ final class PreferencesController: NSObject, NSToolbarDelegate {
     func show(tab: PreferencesTab) {
         selectedTab = tab
         show()
+    }
+
+    /// 打开偏好设置，并停在功能页的「语音与字幕」。
+    func showVoice() {
+        tabs.featureSection = "voice"
+        show(tab: .features)
     }
 
     private func buildWindow() {
@@ -479,7 +487,12 @@ struct PreferencesPane: View {
     @State private var showReissue = false
     @State private var showWeChatQR = false
     @State private var asrTermDraft = ""
-    @State private var featureSection = "translate"
+    private var featureSection: Binding<String> {
+        Binding(
+            get: { tabs.featureSection },
+            set: { tabs.featureSection = $0 }
+        )
+    }
     @State private var providerSection = "builtin"
     @State private var recognitionSection = "ocr"
     @State private var openBuiltin: Set<String> = []
@@ -915,11 +928,11 @@ struct PreferencesPane: View {
 
     private var featuresSplit: some View {
         PaneSplit {
-            rail(featureRail, selection: $featureSection)
+            rail(featureRail, selection: featureSection)
         } detail: {
             detailForm {
                 Form {
-                    switch featureSection {
+                    switch featureSection.wrappedValue {
                     case "shortcuts":
                         shortcutsFeature
                     case "apps":
@@ -948,6 +961,7 @@ struct PreferencesPane: View {
     private var shortcutsFeature: some View {
         Group {
             Section {
+                hotkeyRow(.openMain, spec: $config.hotkeyOpenMain)
                 hotkeyRow(.select, spec: $config.hotkeySelect)
                 hotkeyRow(.clipboard, spec: $config.hotkeyClipboard)
                 hotkeyRow(.ocr, spec: $config.hotkeyOCR)

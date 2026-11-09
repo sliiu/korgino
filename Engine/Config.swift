@@ -911,6 +911,9 @@ final class AppConfig: ObservableObject {
     @Published var hotkeyVoiceInterpret: HotkeySpec {
         didSet { persistHotkey(.voiceInterpret, hotkeyVoiceInterpret) }
     }
+    @Published var hotkeyOpenMain: HotkeySpec {
+        didSet { persistHotkey(.openMain, hotkeyOpenMain) }
+    }
     @Published var asrTerms: [String] = [] {
         didSet { UserDefaults.standard.set(asrTerms, forKey: ConfigKeys.asrTerms) }
     }
@@ -1176,6 +1179,7 @@ final class AppConfig: ObservableObject {
         hotkeyVoiceRecognize = Self.loadHotkey(.voiceRecognize, defaults: d)
         hotkeyVoiceTranslate = Self.loadHotkey(.voiceTranslate, defaults: d)
         hotkeyVoiceInterpret = Self.loadHotkey(.voiceInterpret, defaults: d)
+        hotkeyOpenMain = Self.loadHotkey(.openMain, defaults: d)
         asrTerms = d.stringArray(forKey: ConfigKeys.asrTerms) ?? []
         asrPresets = d.stringArray(forKey: ConfigKeys.asrPresets) ?? []
         voicePolish = d.object(forKey: ConfigKeys.voicePolish) as? Bool ?? false

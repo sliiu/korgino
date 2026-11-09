@@ -6,6 +6,8 @@ extension AppConfig {
         switch action {
         case .voiceRecognize, .voiceTranslate, .voiceInterpret:
             return dictateEnabled
+        case .openMain:
+            return true
         default:
             return featureEnabled[action.rawValue] ?? true
         }
@@ -35,6 +37,7 @@ extension AppConfig {
         case .voiceRecognize: return hotkeyVoiceRecognize
         case .voiceTranslate: return hotkeyVoiceTranslate
         case .voiceInterpret: return hotkeyVoiceInterpret
+        case .openMain: return hotkeyOpenMain
         }
     }
 
@@ -53,6 +56,7 @@ extension AppConfig {
         case .voiceRecognize: hotkeyVoiceRecognize = spec
         case .voiceTranslate: hotkeyVoiceTranslate = spec
         case .voiceInterpret: hotkeyVoiceInterpret = spec
+        case .openMain: hotkeyOpenMain = spec
         }
     }
 
@@ -70,6 +74,7 @@ extension AppConfig {
         hotkeyVoiceRecognize = .voiceRecognizeDefault
         hotkeyVoiceTranslate = .voiceTranslateDefault
         hotkeyVoiceInterpret = .voiceInterpretDefault
+        hotkeyOpenMain = .openMainDefault
     }
 
     /// Conflict among our hotkeys only (no Carbon status).
