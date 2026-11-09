@@ -60,10 +60,20 @@ final class FnDictate {
         releaseField(session: session)
     }
 
+    /// 引导里「去试试」用的开始。走当前模式，不看前台是哪个应用，也不改 Fn 手势。
+    /// 用户接着说，松开仍走原来的写入。
+    func beginForOnboarding() {
+        begin(pid: 0, ignoreAppGate: true)
+    }
+
     func begin(pid: pid_t) {
+        begin(pid: pid, ignoreAppGate: false)
+    }
+
+    private func begin(pid: pid_t, ignoreAppGate: Bool) {
         let app = pid == 0 ? nil : NSRunningApplication(processIdentifier: pid)
-        // 这个来源应用关了语音，按住 Fn 也不开始听。
-        guard AppConfig.shared.isAppOn(.voice, bundleID: app?.bundleIdentifier) else {
+        // 这个来源应用关了语音，按住 Fn 也不开始听。引导没有来源应用，不走这一关。
+        guard ignoreAppGate || AppConfig.shared.isAppOn(.voice, bundleID: app?.bundleIdentifier) else {
             NSSound.beep()
             return
         }

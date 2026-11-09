@@ -77,6 +77,7 @@ final class MainWindowController {
         if let page {
             model.page = page
         }
+        model.showingSettings = false
         if window == nil {
             let root = MainWindowView(model: model)
                 .environmentObject(AppConfig.shared)
@@ -101,6 +102,21 @@ final class MainWindowController {
         model.epoch += 1
     }
 
+    /// ⌘, 和侧栏底部的「设置」进到这里，不再开独立窗口。
+    func showSettings(tab: PreferencesTab = .common) {
+        show()
+        model.openSettings(tab)
+    }
+
+    /// 引导把示例句填进翻译页的原文框并翻译。走现有的剪贴板填充，不新写一条翻译。
+    func showTranslate(text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        model.pendingSource = trimmed
+        show(page: .translate)
+        model.translateRequest += 1
+    }
+
     /// 截图前让开。框选盖住全屏，主窗口留在画面里会被一起截进去。
     func yieldForCapture() {
         window?.orderOut(nil)
@@ -114,8 +130,20 @@ final class MainWindowModel: ObservableObject {
     }
     /// 界面语言变了就加一，好让已经算出的文案重画。
     @Published var epoch = 0
+    /// 侧栏换成设置目录。返回时回到之前的页。
+    @Published var showingSettings = false
+    @Published var settingsTab: PreferencesTab = .common
+    /// 引导交了一句要翻的例句。翻译页听这个数，出现后填进去。
+    @Published var translateRequest = 0
+    var pendingSource: String?
 
     private static let pageKey = "mainWindow.page"
+
+    func openSettings(_ tab: PreferencesTab) {
+        let resolved: PreferencesTab = tab == .about ? .account : tab
+        settingsTab = resolved == .voice ? .common : resolved
+        showingSettings = true
+    }
 
     init() {
         if let raw = UserDefaults.standard.string(forKey: Self.pageKey),
@@ -143,7 +171,7 @@ struct MainWindowView: View {
         NavigationSplitView {
             sidebar
         } detail: {
-            page(model.page)
+            detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 180, max: 180)
@@ -152,7 +180,27 @@ struct MainWindowView: View {
         .onChange(of: config.dictateEnabled) { _, _ in keepPageVisible() }
     }
 
+    @ViewBuilder
+    private var detail: some View {
+        if model.showingSettings {
+            PreferencesDetail(tab: model.settingsTab)
+        } else {
+            page(model.page)
+        }
+    }
+
+    @ViewBuilder
     private var sidebar: some View {
+        if model.showingSettings {
+            SettingsSidebar(tab: $model.settingsTab) {
+                model.showingSettings = false
+            }
+        } else {
+            pagesSidebar
+        }
+    }
+
+    private var pagesSidebar: some View {
         VStack(spacing: 0) {
             List(selection: $model.page) {
                 ForEach(primary) { page in
@@ -169,7 +217,7 @@ struct MainWindowView: View {
             .listStyle(.sidebar)
             Divider()
             Button {
-                PreferencesController.shared.show()
+                model.openSettings(.common)
             } label: {
                 Label(L("设置"), systemImage: "gearshape")
                     .font(.body)
@@ -233,7 +281,7 @@ struct MainWindowView: View {
                     }
                 }
         case .voice:
-            VoicePage()
+            VoiceSettingsPage()
         }
     }
 
@@ -290,10 +338,23 @@ private struct TranslatePage: View {
             Spacer(minLength: 0)
         }
         .padding(20)
-        .onAppear { model.refreshPermissions() }
+        .onAppear {
+            model.refreshPermissions()
+            consumePending()
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refreshPermissions()
         }
+        .onChange(of: MainWindowController.shared.model.translateRequest) { _, _ in
+            consumePending()
+        }
+    }
+
+    /// 引导交来的例句。和剪贴板按钮一样，填进原文框再翻译。
+    private func consumePending() {
+        guard let text = MainWindowController.shared.model.pendingSource else { return }
+        MainWindowController.shared.model.pendingSource = nil
+        model.fillSource(text)
     }
 
     private var toolbar: some View {
@@ -756,7 +817,14 @@ private final class TranslatePageModel: ObservableObject {
             NSSound.beep()
             return
         }
-        source = text
+        fillSource(text)
+    }
+
+    /// 把一句放进原文框并翻译。剪贴板按钮和引导的「去试试」都走这里。
+    func fillSource(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        source = trimmed
         translateNow()
     }
 
@@ -2038,26 +2106,3 @@ private struct MeetingRecordSheet: View {
     }
 }
 
-/// 语音还没有自己的页。这里只说明三种模式，并打开设置里现有的语音部分。
-private struct VoicePage: View {
-    @EnvironmentObject private var config: AppConfig
-
-    var body: some View {
-        let _ = config.appLanguage
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L("语音"))
-                .font(.title2)
-            Text(L("按住 Fn 走当前这一条：语音识别、语音翻译或语音传译。快捷键只切换模式，不开始听。"))
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button(L("打开语音设置")) {
-                PreferencesController.shared.showVoice()
-            }
-            .buttonStyle(.bordered)
-            Spacer(minLength: 0)
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
