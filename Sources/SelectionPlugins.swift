@@ -362,7 +362,7 @@ final class SelectionPluginBar {
 
     /// 名字胶囊的宽度：字宽加左右各 8。太长的截断，和视图里的 `labelMaxWidth` 一致。
     static func labelWidth(_ title: String) -> CGFloat {
-        let font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        let font = Theme.TypeScale.nsCaptionMedium
         let text = ceil((title as NSString).size(withAttributes: [.font: font]).width)
         return min(text + 16, labelMaxWidth)
     }
@@ -533,7 +533,7 @@ struct SelectionPluginBarView: View {
 
     private func label(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 11, weight: .medium))
+            .font(Theme.TypeScale.caption).fontWeight(.medium)
             .lineLimit(1)
             .truncationMode(.tail)
             .padding(.horizontal, 8)
@@ -561,7 +561,7 @@ struct SelectionPluginBarView: View {
                     model.onPick(plugin, source)
                 } label: {
                     Image(systemName: plugin.symbol)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Theme.TypeScale.reading)
                         .frame(width: 28, height: 28)
                         .contentShape(Rectangle())
                         .background(
@@ -583,7 +583,7 @@ struct SelectionPluginBarView: View {
                 model.onDismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Theme.TypeScale.caption).fontWeight(.semibold)
                     .frame(width: 26, height: 28)
                     .contentShape(Rectangle())
                     .background(
@@ -990,7 +990,7 @@ struct SelectionPluginSettingsSection: View {
                     if store.aiProfile == nil {
                         Text(L("还没有可用的 AI。到「翻译 › 服务」里加一家，填好密钥、地址和模型。"))
                             .font(.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.attention)
                     }
                 } header: {
                     Text(L("插件用的 AI"))
@@ -1056,7 +1056,7 @@ struct SelectionPluginSettingsSection: View {
             .disabled(plugin.isTranslate)
 
             Image(systemName: plugin.symbol)
-                .font(.system(size: 13))
+                .font(Theme.TypeScale.body)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 1) {
                 Text(plugin.title)
@@ -1123,10 +1123,10 @@ private struct SelectionPluginSheet: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: symbol)
-                            .font(.system(size: 15))
+                            .font(Theme.TypeScale.reading)
                             .frame(width: 20, height: 20)
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 8, weight: .semibold))
+                            .font(Theme.TypeScale.micro)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 8)
@@ -1156,7 +1156,7 @@ private struct SelectionPluginSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L("提示词")).font(.caption).foregroundStyle(.secondary)
                     TextEditor(text: $prompt)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .scrollContentBackground(.hidden)
                         .frame(height: 92)
                         .overlay(
@@ -1193,7 +1193,7 @@ private struct SelectionPluginSheet: View {
                             .labelsHidden()
                         } label: {
                             Label(generateProfileName, systemImage: "sparkles")
-                                .font(.system(size: 11))
+                                .font(Theme.TypeScale.caption)
                         }
                         .menuStyle(.borderlessButton)
                         .fixedSize()
@@ -1223,7 +1223,7 @@ private struct SelectionPluginSheet: View {
                     if let generateError {
                         Text(generateError)
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.danger)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Text(L("划选的字就是变量 text。返回什么就显示什么，也可以写 output = …. 不联网、不花钱，本机跑。别写死循环——界面不卡，但这条线程会一直占着。"))
@@ -1444,7 +1444,7 @@ private struct SymbolPicker: View {
                 ForEach(groups, id: \.0) { group in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(group.0)
-                            .font(.system(size: 10.5, weight: .medium))
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                         LazyVGrid(columns: columns, spacing: 4) {
                             ForEach(group.1, id: \.self) { name in
@@ -1470,7 +1470,7 @@ private struct SymbolPicker: View {
             done()
         } label: {
             Image(systemName: name)
-                .font(.system(size: 14))
+                .font(Theme.TypeScale.reading)
                 .frame(width: 30, height: 30)
                 .background(
                     RoundedRectangle(cornerRadius: 6)

@@ -435,7 +435,7 @@ final class ToolbarButton: NSButton {
         attributedTitle = NSAttributedString(
             string: title,
             attributes: [
-                .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                .font: Theme.TypeScale.nsLabel,
                 .foregroundColor: ink,
                 .paragraphStyle: para,
             ]

@@ -1193,7 +1193,7 @@ if let i = args.firstIndex(of: "--test-ocr") {
                 NSColor.white.setFill()
                 NSRect(origin: .zero, size: size).fill()
                 let str = NSAttributedString(string: "Hello OCR", attributes: [
-                    .font: NSFont.systemFont(ofSize: 28),
+                    .font: Theme.TypeScale.nsDisplay,
                     .foregroundColor: NSColor.black,
                 ])
                 str.draw(at: NSPoint(x: 20, y: 18))

@@ -87,11 +87,11 @@ struct DetectedLinksBar: View {
                 ForEach(links) { link in
                     HStack(spacing: 8) {
                         Image(systemName: link.kind == .qr ? "qrcode" : "link")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Theme.TypeScale.caption).fontWeight(.medium)
                             .foregroundStyle(Color.accentColor)
                             .frame(width: 16)
                         Text(link.label)
-                            .font(.system(size: 12))
+                            .font(Theme.TypeScale.label)
                             .lineLimit(2)
                             .truncationMode(.middle)
                             .textSelection(.enabled)

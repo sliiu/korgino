@@ -454,8 +454,8 @@ final class GrantBannerView: NSView {
         icon.setAccessibilityLabel(L("应用图标，拖进列表"))
         addSubview(icon)
 
-        configure(titleField, size: 13, weight: .semibold, alpha: 1)
-        configure(subtitleField, size: 11, weight: .regular, alpha: 0.62)
+        configure(titleField, font: Theme.TypeScale.nsBody, alpha: 1)
+        configure(subtitleField, font: Theme.TypeScale.nsCaption, alpha: 0.62)
         addSubview(titleField)
         addSubview(subtitleField)
 
@@ -497,8 +497,8 @@ final class GrantBannerView: NSView {
         titleField.frame = NSRect(x: textX, y: textY + subtitleHeight + 2, width: textWidth, height: titleHeight)
     }
 
-    private func configure(_ field: NSTextField, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat) {
-        field.font = .systemFont(ofSize: size, weight: weight)
+    private func configure(_ field: NSTextField, font: NSFont, alpha: CGFloat) {
+        field.font = font
         field.textColor = NSColor.white.withAlphaComponent(alpha)
         field.lineBreakMode = .byWordWrapping
         field.maximumNumberOfLines = 2

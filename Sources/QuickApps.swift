@@ -63,7 +63,7 @@ struct QuickAppsSection: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(Theme.TypeScale.micro)
                             .foregroundStyle(.secondary)
                             .rotationEffect(.degrees(open ? 90 : 0))
                             .frame(width: 10)
@@ -81,7 +81,7 @@ struct QuickAppsSection: View {
                                 .lineLimit(1)
                             if let note = statusNote(app) {
                                 Text(note)
-                                    .font(.system(size: 10))
+                                    .font(Theme.TypeScale.micro)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             }
@@ -133,7 +133,7 @@ struct QuickAppsSection: View {
                     .padding(.bottom, 2)
             }
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(Theme.TypeScale.caption).fontWeight(.semibold)
                 .foregroundStyle(.secondary)
         }
     }
@@ -291,9 +291,9 @@ struct QuickAppsSection: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: plugin.symbol)
-                            .font(.system(size: 10))
+                            .font(Theme.TypeScale.micro)
                         Text(plugin.title)
-                            .font(.system(size: 11))
+                            .font(Theme.TypeScale.caption)
                     }
                     .foregroundStyle(on ? Color.white : Color.secondary)
                     .padding(.horizontal, 8)

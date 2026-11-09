@@ -1949,12 +1949,12 @@ struct MediaCaptionsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text(job.name)
-                            .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                            .font(Theme.TypeScale.body).fontWeight(selected ? .semibold : .regular)
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer(minLength: 8)
                         Text(progressLine(job))
-                            .font(.system(size: 11).monospacedDigit())
+                            .font(Theme.TypeScale.caption).monospacedDigit()
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                     }
@@ -2005,7 +2005,7 @@ struct MediaCaptionsView: View {
                 }
             case .waitingForTranslation:
                 Image(systemName: "hourglass")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Theme.TypeScale.caption).fontWeight(.medium)
                     .foregroundStyle(.secondary)
                     .frame(width: 24, height: 22)
                     .help(L("正在等翻译"))
@@ -2040,10 +2040,10 @@ struct MediaCaptionsView: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "film")
-                        .font(.system(size: 28, weight: .light))
+                        .font(Theme.TypeScale.display)
                         .foregroundStyle(.tertiary)
                     Text(model.jobs.isEmpty ? L("拖入音视频") : L("选一份查看字幕"))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Theme.TypeScale.body).fontWeight(.medium)
                     if model.jobs.isEmpty {
                         Text(String(format: L("可以放进多份，同时识别 %@ 份"), String(model.concurrentLimit)))
                             .font(.caption)
@@ -2072,7 +2072,7 @@ struct MediaCaptionsView: View {
         switch phase {
         case .waiting: return Color.secondary.opacity(0.35)
         case .running: return Color.accentColor
-        case .waitingForTranslation: return Color.orange
+        case .waitingForTranslation: return Theme.attention
         case .finished: return Color.secondary.opacity(0.7)
         }
     }
@@ -2137,7 +2137,7 @@ private struct MediaStage: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(job.name)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Theme.TypeScale.label).fontWeight(.semibold)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 8)
@@ -2231,7 +2231,7 @@ private struct MediaStage: View {
                     HStack(spacing: 8) {
                         TextField("0:00:00", text: startBinding)
                             .textFieldStyle(.plain)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(Theme.TypeScale.label.monospaced())
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -2261,7 +2261,7 @@ private struct MediaStage: View {
                 if overFreeDuration {
                     Text(L("免费版一份不超过 15 分钟"))
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.attention)
                         .lineLimit(1)
                     ProBadge(help: L("超过 15 分钟的媒体字幕需要 Pro"))
                 }
@@ -2302,7 +2302,7 @@ private struct MediaStage: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(engineTitle(lane))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Theme.TypeScale.labelMedium)
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if !segs.isEmpty {
@@ -2607,7 +2607,7 @@ private struct MediaCueRow: View, Equatable {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text(SRTDocument.stamp(seg.start))
-                .font(.system(size: 10.5, design: .monospaced))
+                .font(Theme.TypeScale.caption.monospaced())
                 .foregroundStyle(active ? Color.accentColor : Color.secondary.opacity(0.6))
                 .frame(width: 78, alignment: .trailing)
                 .padding(.top, 2)
@@ -2628,7 +2628,7 @@ private struct MediaCueRow: View, Equatable {
                         .padding(.top, 1)
                     }
                     highlightedSource(seg.source, ranges: seg.maskRanges)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if !seg.source.isEmpty {
@@ -2644,7 +2644,7 @@ private struct MediaCueRow: View, Equatable {
                     }
                     if seg.loadingIDs.contains(id), seg.translations[id] == nil, seg.errors[id] == nil {
                         Text(L("翻译中…"))
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Theme.TypeScale.reading)
                             .foregroundStyle(.tertiary)
                     } else if let error = seg.errors[id] {
                         ErrorLine(text: error, lineLimit: 2)
@@ -2652,7 +2652,7 @@ private struct MediaCueRow: View, Equatable {
                     } else if let translation = seg.translations[id], !translation.isEmpty {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(translation)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(Theme.TypeScale.reading)
                                 .foregroundStyle(.primary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .textSelection(.enabled)

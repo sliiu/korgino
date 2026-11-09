@@ -212,7 +212,7 @@ struct HistoryFavoritesView: View {
                 if model.hiddenCount > 0 {
                     HStack(spacing: 6) {
                         Text(String(format: L("还有 %@ 条较早的记录"), String(model.hiddenCount)))
-                            .font(.system(size: 11))
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                         ProBadge(help: L("Pro 能看全部历史"))
                         Spacer(minLength: 0)
@@ -281,30 +281,30 @@ struct HistoryFavoritesView: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(source)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     HStack(alignment: .center, spacing: 4) {
                         Image(systemName: kindSymbol(kind))
-                            .font(.system(size: 10, weight: .medium))
+                            .font(Theme.TypeScale.micro)
                             .foregroundStyle(.tertiary)
                             .frame(width: 14, height: 12)
                             .help(kindLabel(kind))
                         Text(fmt.string(from: date))
-                            .font(.system(size: 11).monospacedDigit())
+                            .font(Theme.TypeScale.caption).monospacedDigit()
                             .foregroundStyle(.tertiary)
                     }
                 }
                 if let place, !place.isEmpty {
                     Text(place)
-                        .font(.system(size: 11))
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
                 if let translation {
                     Text(translation)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Theme.TypeScale.reading)
                         .lineLimit(2)
                 }
             }
@@ -324,7 +324,7 @@ struct HistoryFavoritesView: View {
                 .help(kindLabel(kind))
         } else {
             Image(systemName: kindSymbol(kind))
-                .font(.system(size: 12, weight: .medium))
+                .font(Theme.TypeScale.labelMedium)
                 .foregroundStyle(.secondary)
                 .frame(width: 26, height: 26)
                 .well(radius: 7)

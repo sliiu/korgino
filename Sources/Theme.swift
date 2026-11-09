@@ -9,6 +9,49 @@ enum Theme {
     static let wellFill = Color.primary.opacity(0.045)
     static let windowFill = Color(nsColor: dynamic(light: 0xF4F4F6, dark: 0x1C1C20))
 
+    /// 七档字号。全应用用 `.font(Theme.TypeScale.reading)` 这种写法，不再直接写 `.system(size:)`。
+    /// 名字是 TypeScale 而不是 Type：Type 是 Swift 关键字，写出来的 .system(size: 会被构建检查拦住。
+    enum TypeScale {
+        static let display = Font.system(size: 28, weight: .semibold)
+        static let title = Font.system(size: 17, weight: .semibold)
+        static let reading = Font.system(size: 15, weight: .medium)
+        static let body = Font.system(size: 13, weight: .regular)
+        static let label = Font.system(size: 12, weight: .regular)
+        static let labelMedium = Font.system(size: 12, weight: .medium)
+        static let caption = Font.system(size: 11, weight: .regular)
+        static let micro = Font.system(size: 10, weight: .medium)
+        /// 沉浸字幕原文。15 磅不在七档里，只给这一处。
+        static let displaySource = Font.system(size: 15, weight: .medium)
+
+        /// AppKit 量字用。对应上面同名的 SwiftUI 字体。
+        static let nsDisplay = NSFont.systemFont(ofSize: 28, weight: .semibold)
+        static let nsTitle = NSFont.systemFont(ofSize: 17, weight: .semibold)
+        static let nsReading = NSFont.systemFont(ofSize: 15, weight: .medium)
+        static let nsBody = NSFont.systemFont(ofSize: 13, weight: .regular)
+        static let nsBodyMedium = NSFont.systemFont(ofSize: 13, weight: .medium)
+        static let nsLabel = NSFont.systemFont(ofSize: 12, weight: .regular)
+        static let nsLabelMono = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        static let nsLabelMedium = NSFont.systemFont(ofSize: 12, weight: .medium)
+        static let nsCaption = NSFont.systemFont(ofSize: 11, weight: .regular)
+        static let nsCaptionMedium = NSFont.systemFont(ofSize: 11, weight: .medium)
+        static let nsMicro = NSFont.systemFont(ofSize: 10, weight: .medium)
+        static let nsMicroSemibold = NSFont.systemFont(ofSize: 10, weight: .semibold)
+    }
+
+    /// 语义色。失败用 danger，缺东西用 attention，成功用 ok，正在听或录只给点用 live。
+    static let accent = Color.accentColor
+    static let danger = Color.red
+    static let attention = Color.orange
+    static let ok = Color.green
+    static let live = Color.red
+
+    /// 深色底上的白字，只三档：100%、70%、45%。
+    enum onDark {
+        static let primary = Color.white
+        static let secondary = Color.white.opacity(0.7)
+        static let tertiary = Color.white.opacity(0.45)
+    }
+
     private static func dynamic(light: UInt32, dark: UInt32) -> NSColor {
         NSColor(name: nil) { appearance in
             let hex = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
@@ -41,7 +84,8 @@ struct SectionHeader: View {
     init(_ title: String) { self.title = title }
     var body: some View {
         Text(title)
-            .font(.system(size: 11, weight: .semibold))
+            .font(Theme.TypeScale.caption)
+            .fontWeight(.semibold)
             .foregroundStyle(.secondary)
     }
 }
@@ -55,11 +99,11 @@ struct SearchField: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: fontSize - 1))
+                .font(fontSize >= 14 ? Theme.TypeScale.label : Theme.TypeScale.micro)
                 .foregroundStyle(.secondary)
             TextField(prompt, text: $text)
                 .textFieldStyle(.plain)
-                .font(.system(size: fontSize))
+                .font(fontSize >= 14 ? Theme.TypeScale.reading : (fontSize >= 13 ? Theme.TypeScale.body : Theme.TypeScale.label))
                 .onSubmit(onSubmit)
             if !text.isEmpty {
                 Button {
@@ -87,7 +131,7 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: size, weight: .medium))
+                .font(size >= 13 ? Theme.TypeScale.body : (size >= 12 ? Theme.TypeScale.labelMedium : Theme.TypeScale.caption))
                 .foregroundStyle(tint ?? Color.secondary)
                 .frame(width: 24, height: 22)
                 .contentShape(Rectangle())
@@ -153,7 +197,8 @@ struct PillSegmented<Value: Hashable>: View {
                     selection = value
                 } label: {
                     Text(title)
-                        .font(.system(size: fontSize, weight: selected ? .semibold : .regular))
+                        .font(fontSize >= 12 ? Theme.TypeScale.label : Theme.TypeScale.caption)
+                        .fontWeight(selected ? .semibold : .regular)
                         .foregroundStyle(selected ? Color.primary : Color.secondary)
                         .padding(.horizontal, fontSize + 1)
                         .padding(.vertical, fontSize * 0.3)
@@ -194,7 +239,7 @@ struct CheckToggleStyle: ToggleStyle {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 15))
+                        .font(Theme.TypeScale.reading)
                         .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary.opacity(0.5))
                         .contentTransition(.symbolEffect(.replace))
                     configuration.label
@@ -236,7 +281,8 @@ struct ToolbarProminentButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12, weight: .semibold))
+            .font(Theme.TypeScale.label)
+            .fontWeight(.semibold)
             .foregroundStyle(Color.white.opacity(isEnabled ? 1 : 0.7))
             .padding(.horizontal, 12)
             .frame(height: 26)
@@ -252,7 +298,8 @@ struct ChipButtonStyle: ButtonStyle {
     var selected: Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 11, weight: selected ? .semibold : .regular))
+            .font(Theme.TypeScale.caption)
+            .fontWeight(selected ? .semibold : .regular)
             .foregroundStyle(selected ? Color.accentColor : Color.primary.opacity(0.75))
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
@@ -264,36 +311,108 @@ struct ChipButtonStyle: ButtonStyle {
     }
 }
 
-/// 错误：12 磅红字，前面一个三角标。
+/// 状态点：6 磅圆点加次要色文字。只给点上色，字不上色。
+enum StatusKind {
+    case live, attention, ok, idle
+
+    var color: Color {
+        switch self {
+        case .live: return Theme.live
+        case .attention: return Theme.attention
+        case .ok: return Theme.ok
+        case .idle: return Color.secondary
+        }
+    }
+
+    var pulses: Bool { self == .live }
+}
+
+struct StatusDot: View {
+    var kind: StatusKind
+    var text: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var dim = false
+
+    init(_ kind: StatusKind, _ text: String) {
+        self.kind = kind
+        self.text = text
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(kind.color)
+                .frame(width: 6, height: 6)
+                .opacity(kind.pulses && dim && !reduceMotion ? 0.35 : 1)
+                .onAppear { dim = kind.pulses }
+                .animation(
+                    kind.pulses && !reduceMotion ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : nil,
+                    value: dim
+                )
+            Text(text)
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// 行内错误：三角标加 12 磅 danger 字。后面可带一个「重试」。
 struct ErrorLine: View {
     var text: String
     var lineLimit: Int? = nil
+    var onDark = false
+    var retry: (() -> Void)? = nil
 
     var body: some View {
-        Label {
-            Text(text)
-                .textSelection(.enabled)
-        } icon: {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             Image(systemName: "exclamationmark.triangle.fill")
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(Theme.danger)
+            Text(text)
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(onDark ? Theme.onDark.secondary : Theme.danger)
+                .textSelection(.enabled)
+                .lineLimit(lineLimit)
+            if let retry {
+                Button(L("重试"), action: retry)
+                    .buttonStyle(.plain)
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(onDark ? Theme.onDark.primary : Theme.accent)
+            }
         }
-        .font(.system(size: 12))
-        .foregroundStyle(.red)
-        .lineLimit(lineLimit)
         .fixedSize(horizontal: false, vertical: lineLimit == nil)
+    }
+}
+
+/// 整块失败：居中图标用 danger，说明用 13 磅主要色，不用红字。
+struct ErrorBlock: View {
+    var text: String
+    var retry: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(Theme.TypeScale.title)
+                .foregroundStyle(Theme.danger)
+            Text(text)
+                .font(Theme.TypeScale.body)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+                .textSelection(.enabled)
+            if let retry {
+                Button(L("重试"), action: retry)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
 /// 「未填密钥」：次要色文字，前面一个小橙点。
 struct MissingKeyLabel: View {
     var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(Color.orange)
-                .frame(width: 6, height: 6)
-            Text(L("未填密钥"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
+        StatusDot(.attention, L("未填密钥"))
     }
 }
 

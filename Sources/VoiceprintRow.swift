@@ -18,7 +18,7 @@ struct VoiceprintSettingRow: View {
                     Image(systemName: "waveform.badge.person.crop")
                         .foregroundStyle(Color.accentColor)
                     Text(L("按声纹分，在本机运行"))
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                     Spacer(minLength: 4)
                     Menu {
                         Button(L("删除声纹模型"), role: .destructive) { model.remove() }
@@ -33,7 +33,7 @@ struct VoiceprintSettingRow: View {
                 .help(L("每段说完后按声音认是谁，认错了可以在说话人上改名或并入另一位"))
                 Toggle(L("同传也按声纹再分"), isOn: reseparateInterp)
                     .toggleStyle(.checkbox)
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .help(L("关着时用同传服务标出的说话人。打开后，这一路说完再按本机声纹分一次。"))
             case .downloading(let progress):
                 HStack(spacing: 8) {
@@ -61,7 +61,7 @@ struct VoiceprintSettingRow: View {
                     if case .failed(let message) = model.state {
                         Text(message)
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.danger)
                             .lineLimit(2)
                     }
                 }

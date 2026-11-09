@@ -241,11 +241,11 @@ enum CaptionExport {
     static func choose(lanes: [Lane], suggestedName: String = "", start: URL? = nil) -> Choice? {
         let picked = RulePicks(lanes: lanes)
         let ruleTitle = NSTextField(labelWithString: L("怎么分文件"))
-        ruleTitle.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+        ruleTitle.font = Theme.TypeScale.nsBodyMedium
         let sourceTitle = NSTextField(labelWithString: L("带原文"))
-        sourceTitle.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+        sourceTitle.font = Theme.TypeScale.nsBodyMedium
         let sourceHint = NSTextField(wrappingLabelWithString: L("勾上的一路，导出时保留识别出的原文；取消就只出译文。"))
-        sourceHint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        sourceHint.font = Theme.TypeScale.nsCaption
         sourceHint.textColor = .secondaryLabelColor
         sourceHint.preferredMaxLayoutWidth = 330
         let dropped = droppedSource
@@ -342,7 +342,7 @@ enum CaptionExport {
             choice.selected = CaptionExportRule.remembered == .byLane ? 0 : 1
             choice.onChange = { [weak self] _ in self?.refresh() }
             for hint in [laneHint, bindingHint, preview] {
-                hint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+                hint.font = Theme.TypeScale.nsCaption
                 hint.textColor = .secondaryLabelColor
                 hint.preferredMaxLayoutWidth = 340
             }
@@ -527,7 +527,7 @@ struct CaptionBatchSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Text(L("批量删除"))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Theme.TypeScale.body).fontWeight(.semibold)
                 Spacer(minLength: 8)
                 Toggle(isOn: Binding(
                     get: { allVisibleSelected },
@@ -537,7 +537,7 @@ struct CaptionBatchSheet: View {
                     }
                 )) {
                     Text(L("全选"))
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                 }
                 .toggleStyle(.checkbox)
                 .disabled(visible.isEmpty)
@@ -563,7 +563,7 @@ struct CaptionBatchSheet: View {
                     .foregroundStyle(.secondary)
                 TextField("0:00:00", text: $from)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(Theme.TypeScale.label.monospaced())
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -574,7 +574,7 @@ struct CaptionBatchSheet: View {
                     .foregroundStyle(.tertiary)
                 TextField(L("到末尾"), text: $to)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(Theme.TypeScale.label.monospaced())
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -647,21 +647,21 @@ struct CaptionBatchSheet: View {
         } label: {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: on ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .foregroundStyle(on ? Color.accentColor : Color.secondary)
                     .padding(.top, 1)
                 Text(SRTDocument.stamp(cue.start))
-                    .font(.system(size: 10.5, design: .monospaced))
+                    .font(Theme.TypeScale.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .padding(.top, 1)
                 VStack(alignment: .leading, spacing: 2) {
                     if !cue.mark.isEmpty {
                         Text(cue.mark)
-                            .font(.system(size: 10.5, weight: .semibold))
+                            .font(Theme.TypeScale.caption).fontWeight(.semibold)
                             .foregroundStyle(.tertiary)
                     }
                     Text(cue.source)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -719,9 +719,9 @@ struct SpeakerMarkList: View {
 @MainActor
 final class PillChoice: NSView {
     private let titles: [String]
-    private static let fontSize: CGFloat = 11
-    private static let padX: CGFloat = fontSize + 1
-    private static let padY: CGFloat = fontSize * 0.3
+    private static let font = Theme.TypeScale.nsCaption
+    private static let padX: CGFloat = 12
+    private static let padY: CGFloat = 3.3
     private static let trackPad: CGFloat = 2
 
     /// 选中第几项。改它不会回调 `onChange`。
@@ -739,7 +739,7 @@ final class PillChoice: NSView {
         self.titles = titles
         super.init(frame: .zero)
         widths = titles.map { title in
-            let font = NSFont.systemFont(ofSize: Self.fontSize, weight: .semibold)
+            let font = Self.font
             let w = (title as NSString).size(withAttributes: [.font: font]).width
             return ceil(w) + Self.padX * 2
         }
@@ -755,7 +755,7 @@ final class PillChoice: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     private var textHeight: CGFloat {
-        let font = NSFont.systemFont(ofSize: Self.fontSize, weight: .semibold)
+        let font = Self.font
         return ceil(((titles.first ?? "") as NSString).size(withAttributes: [.font: font]).height)
     }
 
@@ -805,9 +805,7 @@ final class PillChoice: NSView {
         NSGraphicsContext.restoreGraphicsState()
 
         for (i, title) in titles.enumerated() {
-            let font = NSFont.systemFont(
-                ofSize: Self.fontSize, weight: i == selected ? .semibold : .regular
-            )
+            let font = Self.font
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: i == selected ? NSColor.labelColor : NSColor.secondaryLabelColor,

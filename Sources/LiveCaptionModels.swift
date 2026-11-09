@@ -68,14 +68,14 @@ enum CaptionBudget {
     }
 
     static func textWidth(_ text: String) -> CGFloat {
-        let font = NSFont.systemFont(ofSize: 15, weight: .medium)
+        let font = Theme.TypeScale.nsReading
         return ceil((text as NSString).size(withAttributes: [.font: font]).width)
     }
 
     /// 一句话里每个位置能排到多宽，一次量完。以前对每个字符前缀重新排版，
     /// 长句在老机器上是看得见的卡顿；现在按字增量累加，每句只排一遍。
     static func textWidths(_ text: String) -> [CGFloat] {
-        let font = NSFont.systemFont(ofSize: 15, weight: .medium)
+        let font = Theme.TypeScale.nsReading
         var widths: [CGFloat] = [0]
         widths.reserveCapacity(text.count + 1)
         var total: CGFloat = 0

@@ -245,7 +245,7 @@ struct ProviderIconView: View {
                     .foregroundStyle(.primary)
             } else {
                 Image(systemName: systemName)
-                    .font(.system(size: size, weight: .semibold))
+                    .font(size >= 15 ? Theme.TypeScale.reading : (size >= 13 ? Theme.TypeScale.body : (size >= 12 ? Theme.TypeScale.label : (size >= 11 ? Theme.TypeScale.caption : Theme.TypeScale.micro)))).fontWeight(.semibold)
                     .foregroundStyle(.secondary)
             }
         }

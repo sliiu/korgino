@@ -16,7 +16,7 @@ struct ModelComboBox: NSViewRepresentable {
         box.completes = true
         box.hasVerticalScroller = true
         box.numberOfVisibleItems = 12
-        box.font = .systemFont(ofSize: 13)
+        box.font = Theme.TypeScale.nsBody
         box.placeholderString = placeholder
         box.delegate = context.coordinator
         box.target = context.coordinator

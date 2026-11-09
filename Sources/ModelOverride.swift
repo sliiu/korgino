@@ -135,7 +135,7 @@ struct ModelOverrideMenu: View {
                 ModelOverrideItems(profile: profile, override: $override)
             } label: {
                 Text(ModelChoices.short(current))
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(override == nil ? Color.secondary : Color.accentColor)
             }
             .menuStyle(.borderlessButton)
@@ -148,7 +148,7 @@ struct ModelOverrideMenu: View {
         } else {
             HStack(spacing: 4) {
                 Text(ModelChoices.short(current))
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 if freeBadge {

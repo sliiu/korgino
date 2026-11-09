@@ -289,7 +289,7 @@ struct PopupView: View {
             }
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 11, weight: .semibold))
+                .font(Theme.TypeScale.caption).fontWeight(.semibold)
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
@@ -348,7 +348,7 @@ struct PopupView: View {
             .labelsHidden()
         } label: {
             Text(sourceLabel)
-                .font(.system(size: 11, weight: .medium))
+                .font(Theme.TypeScale.caption).fontWeight(.medium)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.visible)
@@ -378,7 +378,7 @@ struct PopupView: View {
             .labelsHidden()
         } label: {
             Text("→ \(targetLabel)")
-                .font(.system(size: 11, weight: .medium))
+                .font(Theme.TypeScale.caption).fontWeight(.medium)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.visible)
@@ -415,7 +415,7 @@ struct PopupView: View {
                             onCloseTab(tab.id)
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .medium))
+                                .font(Theme.TypeScale.micro)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22, height: 22)
                                 .contentShape(Rectangle())
@@ -424,7 +424,7 @@ struct PopupView: View {
                         .help(L("关闭标签"))
                         .padding(.trailing, 2)
                     }
-                    .font(.system(size: 11, weight: active ? .semibold : .regular))
+                    .font(Theme.TypeScale.caption).fontWeight(active ? .semibold : .regular)
                     .foregroundStyle(active ? Color.accentColor : Color.primary.opacity(0.75))
                     .background(
                         Capsule(style: .continuous)
@@ -743,7 +743,7 @@ struct PopupView: View {
     private func loadingRow(_ title: String = L("翻译中…")) -> some View {
         HStack(spacing: 6) {
             ProgressView().controlSize(.small)
-            Text(title).font(.system(size: 12)).foregroundStyle(.secondary)
+            Text(title).font(Theme.TypeScale.label).foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
     }
@@ -764,7 +764,7 @@ struct PopupView: View {
                 HStack(spacing: 4) {
                     ProviderIconView(outcomeID: o.id, name: o.name, size: 11)
                     Text(o.name)
-                        .font(.system(size: 11)).foregroundStyle(.tertiary)
+                        .font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
                     modelMenu(o)
                 }
             }
@@ -780,7 +780,7 @@ struct PopupView: View {
                     if let o = model.outcomes.first {
                         ProviderIconView(outcomeID: o.id, name: o.name, size: 11)
                         Text(o.name)
-                            .font(.system(size: 11)).foregroundStyle(.tertiary)
+                            .font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .layoutPriority(1)
@@ -814,10 +814,10 @@ struct PopupView: View {
             }) { group in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(group.name)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(Theme.TypeScale.caption).fontWeight(.semibold)
                         .foregroundStyle(.secondary)
                     Text(group.source)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                     ForEach(group.outcomes) { outcome in
@@ -847,7 +847,7 @@ struct PopupView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 ProviderIconView(outcomeID: o.id, name: o.name, size: 12)
-                                Text(o.name).font(.system(size: 11, weight: .semibold))
+                                Text(o.name).font(Theme.TypeScale.caption).fontWeight(.semibold)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.tail)
@@ -919,7 +919,7 @@ struct PopupView: View {
     private func providerChevron(open: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
             Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
+                .font(Theme.TypeScale.micro)
                 .foregroundStyle(.tertiary)
                 .rotationEffect(.degrees(open ? 90 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
@@ -932,7 +932,7 @@ struct PopupView: View {
 
     @ViewBuilder
     private func resultText(_ t: String) -> some View {
-        InlineMarkdownText(text: t, fontSize: 15, weight: .medium)
+        InlineMarkdownText(text: t, font: Theme.TypeScale.reading)
             .lineSpacing(3)
     }
 
@@ -973,7 +973,7 @@ struct PopupView: View {
     private func writeBackShortcutLabel(index: Int) -> some View {
         if model.writeBackOffered, model.writeBackBlocked == nil, model.writeBackShortcutsVisible, index < 9 {
             Text("⌘\(index + 1)")
-                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .font(Theme.TypeScale.micro)
                 .foregroundStyle(.tertiary)
         }
     }
@@ -1052,7 +1052,7 @@ private struct OCRShotPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay(alignment: .topLeading) {
             Text("\(Int((zoom * 100).rounded()))%")
-                .font(.system(size: 9, weight: .medium).monospacedDigit())
+                .font(Theme.TypeScale.micro).monospacedDigit()
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
@@ -1215,7 +1215,7 @@ private struct SourceEditor: NSViewRepresentable {
         textView.drawsBackground = false
         textView.backgroundColor = .clear
         textView.focusRingType = .none
-        textView.font = .systemFont(ofSize: 13)
+        textView.font = Theme.TypeScale.nsBody
         textView.textColor = .secondaryLabelColor
         textView.insertionPointColor = .labelColor
         textView.textContainerInset = NSSize(width: 0, height: 2)
@@ -1266,7 +1266,7 @@ private struct SourceEditor: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude)
         guard let manager = textView.layoutManager, let container = textView.textContainer else { return 22 }
         manager.ensureLayout(for: container)
-        let line = manager.defaultLineHeight(for: textView.font ?? .systemFont(ofSize: 13))
+        let line = manager.defaultLineHeight(for: textView.font ?? Theme.TypeScale.nsBody)
         let inset = textView.textContainerInset.height * 2
         let full = max(ceil(manager.usedRect(for: container).height), ceil(line)) + inset
         if abs(textView.frame.width - contentWidth) > 0.5 || abs(textView.frame.height - full) > 0.5 {
