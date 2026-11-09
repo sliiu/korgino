@@ -223,6 +223,43 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 .iconpick span.on{box-shadow:0 0 0 2px var(--accent);color:var(--accent)}.iconpick svg{width:14px;height:14px}
 .sheet{width:460px;background:var(--window);border-radius:12px;padding:18px;box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 20px 50px rgba(0,0,0,.3)}
 .mi.hl{background:var(--accent);color:#fff}
+
+.ctog{font-size:11px;font-weight:500;height:22px;padding:0 8px;border-radius:6px;display:grid;place-items:center;color:rgba(255,255,255,.45);background:rgba(255,255,255,.06)}
+.ctog.on{color:rgba(255,255,255,.95);background:rgba(255,255,255,.18)}
+.mini{background:var(--window);border-radius:10px;box-shadow:0 0 0 .5px rgba(0,0,0,.15);padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:200px;align-content:start}
+.mcard{background:var(--card);border-radius:7px;box-shadow:0 0 0 .5px var(--hair);padding:7px 8px;font-size:11px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.mcard b{font-weight:600}.mlink{margin-left:auto;color:var(--accent);font-size:10px}
+.mbtn{font-size:10px;padding:1px 6px;border-radius:4px;box-shadow:0 0 0 .5px rgba(0,0,0,.2)}.mbtn.p{background:var(--accent);color:#fff;box-shadow:none}
+.mrow{flex-basis:100%;display:flex;gap:4px}.mrow i{width:40px;height:8px;border-radius:3px;background:rgba(0,0,0,.08)}
+.mgrow{flex-basis:100%;border-radius:4px;background:repeating-linear-gradient(0deg,rgba(0,0,0,.06) 0 8px,transparent 8px 14px)}
+.mlist{grid-column:1/3;display:flex;flex-direction:column;gap:4px;margin-top:4px}.mlist i{height:12px;border-radius:4px;background:var(--card);box-shadow:0 0 0 .5px var(--hair)}
+
+.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:26px 22px}
+.owin{background:var(--window);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 18px 44px rgba(0,0,0,.18);height:620px;display:flex;flex-direction:column;overflow:hidden}
+.ostep{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 20px 0;font-size:11px;color:var(--fg3)}
+.ostep span{display:flex;align-items:center;gap:5px}.ostep i{font-style:normal;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.ostep span.on{color:var(--fg);font-weight:500}.ostep span.on i{background:var(--accent);color:#fff;box-shadow:none}
+.ostep span.done i{background:rgba(52,199,89,.18);color:var(--ok);box-shadow:none}
+.ostep em{width:18px;height:1px;background:rgba(0,0,0,.12)}
+.obody{flex:1;padding:16px 26px 0;overflow:hidden}
+.otitle{font-size:18px;font-weight:600}.osub{font-size:12px;color:var(--fg2);margin-top:3px}
+.ofoot{display:flex;align-items:center;padding:12px 20px;border-top:.5px solid var(--hair)}
+.ocards{display:flex;flex-direction:column;gap:6px}
+.ocard{display:flex;gap:10px;align-items:flex-start;background:var(--card);border-radius:9px;padding:9px 12px;box-shadow:0 0 0 .5px var(--hair);font-size:13px}
+.ocard.on{box-shadow:0 0 0 1.5px var(--accent)}
+.radio{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);margin-top:2px;flex:none}
+.radio.on{box-shadow:inset 0 0 0 4px var(--accent)}
+.tagc{font-size:10px;font-weight:500;color:var(--accent);background:rgba(10,132,255,.12);padding:1px 6px;border-radius:8px;margin-left:6px}
+.dl{margin-top:8px;background:rgba(10,132,255,.06);border-radius:9px;padding:9px 12px;display:flex;flex-direction:column;gap:6px}
+.bar2{height:4px;border-radius:2px;background:rgba(0,0,0,.1)}.bar2 i{display:block;height:100%;border-radius:2px;background:var(--accent)}
+.otabs{display:flex;gap:4px;margin:10px 0 12px;flex-wrap:wrap}
+.otabs span{display:flex;align-items:center;gap:5px;font-size:12px;padding:4px 10px 4px 5px;border-radius:14px;background:var(--well);color:var(--fg2)}
+.otabs span b{width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.08);display:grid;place-items:center;font-size:10px;font-weight:500}
+.otabs span.on{background:var(--accent);color:#fff}.otabs span.on b{background:rgba(255,255,255,.25)}
+.otabs b.okc{background:rgba(52,199,89,.2)!important;color:var(--ok)}
+.oplay{background:linear-gradient(160deg,#dfe5ee,#ece7e0);border-radius:10px;padding:26px 16px 16px;position:relative;min-height:250px}
+.sign{background:#0B3D2E;color:#fff;border-radius:6px;padding:14px 18px;width:300px;margin:10px auto;transform:rotate(-1.5deg);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.shotframe{position:absolute;left:50%;top:22px;width:340px;height:104px;margin-left:-170px;border:1.5px dashed var(--accent);border-radius:4px;background:rgba(10,132,255,.06)}
 </style>
 </head>
 <body>
@@ -306,7 +343,7 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 
 <!-- ============ 2 实时与会议 ============ -->
 <h2>② 主窗口 · 实时与会议页</h2>
-<p class="note">没在听时：两张开始卡加会议记录。卡下面一行写会用哪家识别和翻译，改在设置或开始之后。开始后这一页换成现有的实时字幕视图（多路识别、<code>0059</code> 面板不动）。侧栏这一项在听时右边出一个红点。</p>
+<p class="note">没在听时：两张开始卡加会议记录。卡片收起时只有：听什么、译成什么、开始，底下一行小字写会用哪家识别和翻译。点「设置 ⌄」原地展开成 ②b。开始后这一页换成现有的实时字幕视图（多路识别、<code>0059</code> 面板不动）。侧栏这一项在听时右边出一个红点。</p>
 <div class="win" style="height:520px">
  <div class="side">
   <div class="lights"><i></i><i></i><i></i></div>
@@ -322,22 +359,15 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
  </div>
  <div class="main">
   <div class="content">
-   <div class="cards">
-    <div class="srcCard">
-     <div class="ico"><svg><use href="#i-spk"/></svg></div>
-     <b>系统声音</b>
-     <div class="desc">视频、网课、会议里对方的声音</div>
-     <span class="btn primary">开始</span>
-     <div class="uses">Apple 本地识别 · 译成简体中文（Google）</div>
-    </div>
-    <div class="srcCard">
-     <div class="ico"><svg><use href="#i-mic"/></svg></div>
-     <b>麦克风</b>
-     <div class="desc">自己和身边的人说的话</div>
-     <span class="btn">开始</span>
-     <div class="uses">Apple 本地识别 · 译成 English（Google）</div>
-    </div>
-   </div>
+   <div class="cards"><div class="srcCard" style="padding:14px 16px">
+ <div class="row"><div class="ico" style="margin:0;width:26px;height:26px"><svg><use href="#i-spk"/></svg></div><b>系统声音</b><div class="spacer"></div><span class="cap" style="color:var(--accent)">设置 ⌄</span><span class="btn primary">开始</span></div>
+ <div class="row" style="margin-top:12px;gap:10px"><span class="cap">听</span><span class="pop">English</span><span class="cap" style="margin-left:6px">译成</span><span class="pop">简体中文</span></div>
+ <div class="uses" style="margin-top:10px">Apple 语音分析 · Google 免费</div>
+</div><div class="srcCard" style="padding:14px 16px">
+ <div class="row"><div class="ico" style="margin:0;width:26px;height:26px"><svg><use href="#i-mic"/></svg></div><b>麦克风</b><div class="spacer"></div><span class="cap" style="color:var(--accent)">设置 ⌄</span><span class="btn">开始</span></div>
+ <div class="row" style="margin-top:12px;gap:10px"><span class="cap">听</span><span class="pop">简体中文</span><span class="cap" style="margin-left:6px">译成</span><span class="pop">English</span></div>
+ <div class="uses" style="margin-top:10px">Apple 语音分析 · Google 免费</div>
+</div></div>
    <div class="row" style="margin-top:8px;align-items:baseline"><span class="secH">会议记录</span><div class="spacer"></div><span class="cap">共 12 场</span></div>
    <div class="list">
     <div class="li"><div><div class="t">产品周会</div><div class="s">11月8日 14:02 · 42 分钟 · 系统声音 + 麦克风</div></div><div class="spacer"></div><span class="chev"></span></div>
@@ -348,9 +378,26 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
  </div>
 </div>
 
+<h3 style="font-size:13px;font-weight:600;margin:26px 0 4px">② → ②b 怎么过渡</h3>
+<p class="note">同一页，不跳页。点卡右上「设置 ⌄」：这张卡原地向下长高（200 ms，ease-out），里面的内容淡入；另一张卡保持收起，从并排变成排在它下面；会议记录跟着往下推。同一时间只展开一张，展开另一张时这张自动收起。点「收起设置 ⌃」或「开始」都会收回去，开始后进入 ②c。<code>reduceMotion</code> 下不做长高，直接换。</p>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start">
+ <div><div class="cap" style="margin-bottom:6px">1 · 收起（②）</div><div class="mini">
+   <div class="mcard"><b>系统声音</b><span class="mlink">设置 ⌄</span><span class="mbtn p">开始</span><div class="mrow"><i></i><i></i></div></div>
+   <div class="mcard"><b>麦克风</b><span class="mlink">设置 ⌄</span><span class="mbtn">开始</span><div class="mrow"><i></i><i></i></div></div>
+   <div class="mlist"><i></i><i></i><i></i></div></div></div>
+ <div><div class="cap" style="margin-bottom:6px">2 · 点「设置」：卡片长高，另一张让到下面</div><div class="mini">
+   <div class="mcard" style="grid-column:1/3;outline:2px solid rgba(10,132,255,.35)"><b>系统声音</b><span class="mlink">收起设置 ⌃</span><span class="mbtn p">开始</span><div class="mrow"><i></i><i></i></div><div class="mgrow" style="height:34px;opacity:.5"></div></div>
+   <div class="mcard" style="grid-column:1/3"><b>麦克风</b><span class="mlink">设置 ⌄</span><span class="mbtn">开始</span></div>
+   <div class="mlist" style="opacity:.6"><i></i><i></i></div></div></div>
+ <div><div class="cap" style="margin-bottom:6px">3 · 展开完成（②b）</div><div class="mini">
+   <div class="mcard" style="grid-column:1/3"><b>系统声音</b><span class="mlink">收起设置 ⌃</span><span class="mbtn p">开始</span><div class="mrow"><i></i><i></i></div><div class="mgrow" style="height:70px"></div></div>
+   <div class="mcard" style="grid-column:1/3"><b>麦克风</b><span class="mlink">设置 ⌄</span><span class="mbtn">开始</span></div>
+   <div class="mlist"><i></i></div></div></div>
+</div>
+
 <!-- ============ 2b 实时 · 开始前展开设置 ============ -->
 <h2>②b 实时与会议 · 开始前的设置</h2>
-<p class="note">卡片默认只露三件事：听什么语言、译成什么、开始。点「设置」展开这一条采集的全部选项，按「常用 → 更多」分两段。多路识别、每路多家翻译、沉浸字幕都在展开后的「识别与翻译」里，一行一家，结构照 <code>0059</code>/<code>0060</code>。开始后自动收起。</p>
+<p class="note">由 ② 点「设置 ⌄」原地展开而来，卡片收起时和 ② 一样。展开后是这一条采集的全部选项，按「常用 → 更多」分两段。多路识别、每路多家翻译、沉浸字幕都在展开后的「识别与翻译」里，一行一家，结构照 <code>0059</code>/<code>0060</code>。开始后自动收起。</p>
 <div class="win" style="height:760px">
  <div class="side">
   <div class="lights"><i></i><i></i><i></i></div>
@@ -758,14 +805,14 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 
 <!-- ============ 8 沉浸字幕 ============ -->
 <h2>⑧ 沉浸字幕</h2>
-<p class="note">字号不变：译文 28 半粗白，原文 15 磅 70% 白。底 72% 黑加 12 磅圆角。悬停控制条在字幕框上方外侧，不压字，按钮 24×24，最左红点表示在听。正在出的字 70%，定下来 100%。失败不再整行变红。</p>
+<p class="note">字号不变：译文 28 半粗白，原文 15 磅 70% 白。底 72% 黑加 12 磅圆角。悬停控制条在字幕框上方外侧，不压字，按钮 24×24，最左红点表示在听。「原文」「译文」两枚开关可以各自关掉（现有功能，每家译文各记各的）；只留一行时那一行用 28 磅。正在出的字 70%，定下来 100%。失败不再整行变红。</p>
 <div style="display:flex;flex-direction:column;gap:20px">
  <div class="stage video">
   <div class="imm">
    <div class="immBar">
     <span class="lbl"><span class="livedot"></span>系统声音 · Google</span>
-    <span class="b"><svg><use href="#i-pause"/></svg></span>
-    <span class="b"><svg><use href="#i-text"/></svg></span>
+    <span class="ctog on">原文</span><span class="ctog on">译文</span>
+    <span class="b"><svg><use href="#i-spk"/></svg></span>
     <span class="b"><svg><use href="#i-x"/></svg></span>
    </div>
    <div class="s">So the first thing we did was rebuild the onboarding flow from scratch.</div>
@@ -780,6 +827,14 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
  </div>
 </div>
 
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
+ <div class="stage video" style="height:200px"><div class="imm">
+   <div class="immBar"><span class="lbl"><span class="livedot"></span>只看译文</span><span class="ctog">原文</span><span class="ctog on">译文</span><span class="b"><svg><use href="#i-x"/></svg></span></div>
+   <div class="t">所以我们做的第一件事，是从头重做新手引导。</div></div></div>
+ <div class="stage video" style="height:200px"><div class="imm">
+   <div class="immBar"><span class="lbl"><span class="livedot"></span>只看原文</span><span class="ctog on">原文</span><span class="ctog">译文</span><span class="b"><svg><use href="#i-x"/></svg></span></div>
+   <div class="t">So the first thing we did was rebuild the onboarding flow.</div></div></div>
+</div>
 <!-- ============ 9 基础 ============ -->
 <h2>⑨ 基础：字号、颜色、状态、错误</h2>
 <p class="note">全应用只用这七档字号，构建检查拦住 <code>.system(size:)</code>。颜色只用语义名。状态一个组件，错误两种。</p>
@@ -825,6 +880,10 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
  </div>
 </div>
 
+<!-- ============ 10 初始引导 ============ -->
+<h2>⑩ 初始引导</h2><p class="note">第一次打开时弹出，640×520 的独立窗口，五步：语言 → 授权 → 翻译与识别 → 体验 → 完成。每一步都能「上一步」，授权和体验能跳过。走完或关掉都进主窗口。设置 › 常用 页底有「重新看引导」。下面每一张是一步。</p>
+<div class="ogrid"><div><div class="cap" style="margin-bottom:6px">1 · 语言</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="on"><i>1</i>语言</span><em></em><span class=""><i>2</i>授权</span><em></em><span class=""><i>3</i>翻译与识别</span><em></em><span class=""><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle">你读什么，写什么？</div><div class="osub">母语用来读译文；目标语言是你常要写、要听的那一种。</div><div class="group" style="margin-top:14px"><div class="sr"><div class="l">母语</div><span class="pop">简体中文</span></div><div class="sr"><div class="l">目标语言</div><span class="pop">English</span></div></div><div class="setsec" style="margin:14px 0 6px 4px">之后会这样翻</div><div class="group"><div class="sr"><div class="l"><span class="cap">读到外文</span><div style="font-size:12px;color:var(--fg2)">The meeting has been moved to Thursday.</div><div class="reading" style="font-size:14px">会议改到周四了。</div></div></div><div class="sr"><div class="l"><span class="cap">写成外文</span><div style="font-size:12px;color:var(--fg2)">麻烦把报价单再发我一份。</div><div class="reading" style="font-size:14px">Could you send me the quote again?</div></div></div></div></div><div class="ofoot"><span class="spacer"></span><span class="btn primary">下一步</span></div></div></div><div><div class="cap" style="margin-bottom:6px">2 · 授权（可跳过）</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="on"><i>2</i>授权</span><em></em><span class=""><i>3</i>翻译与识别</span><em></em><span class=""><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle">给 Korgino 几项权限</div><div class="osub">每一项只给写明的功能用。不给也能先用，用到时再提醒你。</div><div class="group" style="margin-top:12px"><div class="sr"><div class="l">辅助功能<small>划词翻译：读取并写回选中的字</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div><div class="sr"><div class="l">屏幕录制<small>截图翻译；实时字幕听系统声音</small></div><span class="btn">去授权</span></div><div class="sr"><div class="l">输入监视<small>连按空格快捷翻译、按住 Fn 说话</small></div><span class="btn">去授权</span></div><div class="sr"><div class="l">麦克风<small>语音、会议字幕里的麦克风</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div><div class="sr"><div class="l">语音识别<small>Apple 语音识别</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div></div><div class="row" style="margin-top:12px"><span class="ckb"></span><span style="font-size:12px">下次启动不再提醒</span><span class="cap" style="margin-left:8px">全部授权后自动勾上</span></div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="cap" style="color:var(--accent);margin-right:12px">跳过</span><span class="btn primary">下一步</span></div></div></div><div><div class="cap" style="margin-bottom:6px">2 · 全部授权后</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="on"><i>2</i>授权</span><em></em><span class=""><i>3</i>翻译与识别</span><em></em><span class=""><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle">都准备好了</div><div class="osub">五项权限都已打开，以后不会再弹出这一步。</div><div class="group" style="margin-top:12px"><div class="sr"><div class="l">辅助功能<small>划词翻译</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div><div class="sr"><div class="l">屏幕录制<small>截图翻译、系统声音</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div><div class="sr"><div class="l">输入监视<small>快捷翻译、语音</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div><div class="sr"><div class="l">麦克风<small>语音、会议字幕</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div><div class="sr"><div class="l">语音识别<small>Apple 语音识别</small></div><span class="status"><i style="background:var(--ok)"></i>已授权</span></div></div><div class="row" style="margin-top:12px"><span class="ckb on" style="opacity:.5"></span><span style="font-size:12px;color:var(--fg2)">下次启动不再提醒</span></div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="btn primary">下一步</span></div></div></div><div><div class="cap" style="margin-bottom:6px">3 · 翻译与识别（选了 Apple，引导下载）</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="on"><i>3</i>翻译与识别</span><em></em><span class=""><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle">默认用哪家</div><div class="osub">之后在设置里随时换，也能同时开几家。</div><div class="setsec" style="margin:12px 0 6px 4px">翻译</div><div class="ocards"><div class="ocard"><span class="radio"></span><div style="flex:1"><b>Google 免费</b><span class=tagc>推荐</span><div class="cap" style="margin-top:2px">无需密钥，需要能连上 Google</div></div></div><div class="ocard on"><span class="radio on"></span><div style="flex:1"><b>Apple 本地</b><div class="cap" style="margin-top:2px">在本机翻译，离线可用</div></div></div><div class="dl"><div class="row"><b style="font-size:12px">下载 简体中文 ↔ English 语言包</b><span class="spacer"></span><span class="cap">约 180 MB</span></div><div class="bar2"><i style="width:42%"></i></div><div class="row"><span class="cap">已下载 42% · 可以先去下一步，后台继续</span><span class="spacer"></span><span class="cap" style="color:var(--accent)">暂停</span></div></div><div class="ocard"><span class="radio"></span><div style="flex:1"><b>DeepL / AI</b><div class="cap" style="margin-top:2px">需要密钥，稍后在设置里填</div></div></div></div><div class="setsec" style="margin:12px 0 6px 4px">识别（语音、会议字幕）</div><div class="ocards"><div class="ocard on"><span class="radio on"></span><div style="flex:1"><b>Apple 语音分析</b><span class=tagc>推荐</span><div class="cap" style="margin-top:2px">本机识别，首次使用自动下载语音模型</div></div></div><div class="ocard"><span class="radio"></span><div style="flex:1"><b>云服务</b><div class="cap" style="margin-top:2px">阿里百炼、OpenAI 等，需要密钥</div></div></div></div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="btn primary">下一步</span></div></div></div><div><div class="cap" style="margin-bottom:6px">4a · 体验划词</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="done"><i>✓</i>翻译与识别</span><em></em><span class="on"><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle" style="font-size:15px">试一下</div><div class="otabs"><span class="on"><b>1</b>划词</span><span class=""><b>2</b>截图</span><span class=""><b>3</b>快捷翻译</span><span class=""><b>4</b>语音</span><span class=""><b>5</b>会议字幕</span></div><div class="oplay"><div class="doc" style="box-shadow:0 0 0 .5px var(--hair);padding:14px 16px;font-size:13px;position:relative"><div class="bar mat" style="position:absolute;left:16px;top:-16px"><span class="pi"><svg><use href="#i-search"/></svg></span><span class="sep"></span><span class="pi hov"><svg><use href="#i-tr"/></svg></span><span class="pi"><svg><use href="#i-pen"/></svg></span><span class="pi"><svg><use href="#i-sum"/></svg></span></div><span class="sel">Our flight was delayed by two hours because of the storm.</span> We finally landed at midnight.</div><div class="popup mat" style="width:300px;margin:10px 0 0 30px"><div class="body"><div class="orig" style="font-size:12px">Our flight was delayed by two hours because of the storm.</div><div class="reading" style="font-size:14px;padding-bottom:10px">因为暴风雨，我们的航班延误了两个小时。</div></div></div></div><div class="cap" style="margin-top:8px">用鼠标选中蓝色那句，点插件条上的翻译，或按 ⌥D。</div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="cap" style="color:var(--accent);margin-right:12px">跳过体验</span><span class="btn primary">下一个</span></div></div></div><div><div class="cap" style="margin-bottom:6px">4b · 体验截图翻译</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="done"><i>✓</i>翻译与识别</span><em></em><span class="on"><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle" style="font-size:15px">试一下</div><div class="otabs"><span class=""><b class=okc>✓</b>划词</span><span class="on"><b>2</b>截图</span><span class=""><b>3</b>快捷翻译</span><span class=""><b>4</b>语音</span><span class=""><b>5</b>会议字幕</span></div><div class="oplay"><div class="sign"><div style="font-size:11px;letter-spacing:.1em;opacity:.7">PLATFORM 3</div><div style="font-size:20px;font-weight:700">Airport Express</div><div style="font-size:12px">Next train in 4 min · Doors close 30 s before departure</div></div><div class="shotframe"></div></div><div class="cap" style="margin-top:8px">按 ⌥S，框住这块站牌。识别出的字会在翻译页里译好。</div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="cap" style="color:var(--accent);margin-right:12px">跳过体验</span><span class="btn primary">下一个</span></div></div></div><div><div class="cap" style="margin-bottom:6px">4c · 体验快捷翻译</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="done"><i>✓</i>翻译与识别</span><em></em><span class="on"><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle" style="font-size:15px">试一下</div><div class="otabs"><span class=""><b class=okc>✓</b>划词</span><span class=""><b class=okc>✓</b>截图</span><span class="on"><b>3</b>快捷翻译</span><span class=""><b>4</b>语音</span><span class=""><b>5</b>会议字幕</span></div><div class="oplay"><div class="cap" style="margin-bottom:6px">在下面的输入框里打一句中文，然后连按三下空格</div><div class="input" style="width:100%">麻烦把报价单再发我一份<span class="caret"></span><div class="pill mat sweep"><span class="spin"></span>翻译中</div></div><div class="row" style="margin-top:40px;gap:6px"><span class="cap">换一句：</span><span class="chipT">明天下午三点开会可以吗</span><span class="chipT">我这周五请假</span></div></div><div class="cap" style="margin-top:8px">文字会被换成 English。⌘Z 换回原文。</div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="cap" style="color:var(--accent);margin-right:12px">跳过体验</span><span class="btn primary">下一个</span></div></div></div><div><div class="cap" style="margin-bottom:6px">4d · 体验语音</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="done"><i>✓</i>翻译与识别</span><em></em><span class="on"><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle" style="font-size:15px">试一下</div><div class="otabs"><span class=""><b class=okc>✓</b>划词</span><span class=""><b class=okc>✓</b>截图</span><span class=""><b class=okc>✓</b>快捷翻译</span><span class="on"><b>4</b>语音</span><span class=""><b>5</b>会议字幕</span></div><div class="oplay"><div class="cap">按住 Fn，读出下面这句，松开结束</div><div class="reading" style="margin:8px 0 16px">「帮我订一张明天早上去上海的高铁票。」</div><div style="display:flex;justify-content:center"><div class="capsule"><span class="mode"><svg><use href="#i-tr"/></svg></span><span class="lvl"><i style="height:6px"></i><i style="height:12px"></i><i style="height:16px"></i><i style="height:9px"></i><i style="height:5px"></i></span><span class="txt">帮我订一张明天早上去上海的</span></div></div><div class="field" style="margin-top:14px;padding:10px 12px;font-size:13px">Book me a high-speed train ticket to Shanghai tomorrow morning.</div></div><div class="cap" style="margin-top:8px">当前是语音翻译：说中文，写进去的是 English。三种模式到「更多 › 语音」切换。</div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="cap" style="color:var(--accent);margin-right:12px">跳过体验</span><span class="btn primary">下一个</span></div></div></div><div><div class="cap" style="margin-bottom:6px">4e · 体验会议字幕</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="done"><i>✓</i>翻译与识别</span><em></em><span class="on"><i>4</i>体验</span><em></em><span class=""><i>5</i>完成</span></div><div class="obody"><div class="otitle" style="font-size:15px">试一下</div><div class="otabs"><span class=""><b class=okc>✓</b>划词</span><span class=""><b class=okc>✓</b>截图</span><span class=""><b class=okc>✓</b>快捷翻译</span><span class=""><b class=okc>✓</b>语音</span><span class="on"><b>5</b>会议字幕</span></div><div class="oplay"><div class="row" style="gap:10px"><span class="btn primary">▶ 播放一段英文示例</span><span class="cap">00:12 / 00:40 · 用系统声音识别</span></div><div style="background:#111;border-radius:10px;margin-top:12px;padding:30px 14px 14px;display:flex;justify-content:center"><div class="imm" style="padding:8px 14px"><div class="s" style="font-size:12px">Let's start with a quick update from the design team.</div><div class="t" style="font-size:20px">我们先请设计团队简单汇报一下。</div></div></div></div><div class="cap" style="margin-top:8px">真实开会时在「实时与会议」里点开始；沉浸字幕会浮在所有窗口上。</div></div><div class="ofoot"><span class="btn">上一步</span><span class="spacer"></span><span class="cap" style="color:var(--accent);margin-right:12px">跳过体验</span><span class="btn primary">下一个</span></div></div></div><div><div class="cap" style="margin-bottom:6px">5 · 完成</div><div class="owin"><div class="lights" style="position:static;margin:12px 0 0 14px"><i></i><i></i><i></i></div><div class="ostep"><span class="done"><i>✓</i>语言</span><em></em><span class="done"><i>✓</i>授权</span><em></em><span class="done"><i>✓</i>翻译与识别</span><em></em><span class="done"><i>✓</i>体验</span><em></em><span class="on"><i>5</i>完成</span></div><div class="obody"><div style="text-align:center;padding-top:10px"><div style="width:52px;height:52px;border-radius:14px;background:rgba(52,199,89,.15);color:var(--ok);display:inline-grid;place-items:center;font-size:24px">✓</div><div class="otitle" style="margin-top:10px">可以用了</div><div class="osub">体验了 5 项中的 4 项。没授权的那项用到时会提醒你。</div></div><div class="group" style="margin-top:14px"><div class="sr"><div class="l">划词翻译</div><span class="keycap">⌥D</span></div><div class="sr"><div class="l">截图翻译</div><span class="keycap">⌥S</span></div><div class="sr"><div class="l">快捷翻译</div><span class="cap">连按三下空格</span></div><div class="sr"><div class="l">打开 Korgino</div><span class="keycap">⌥⌘K</span></div></div><div class="row" style="margin-top:12px"><span class="tog"></span><span style="font-size:12px;margin-left:8px">登录时打开</span></div></div><div class="ofoot"><span class="spacer"></span><span class="btn primary">打开 Korgino</span></div></div></div></div>
+<p class="note" style="margin-top:16px"><b>示例怎么跟着语言换</b>：第 1 步和第 4 步的例句按「母语 → 目标语言」挑。读的例句用目标语言写、译成母语；写的例句用母语写、译成目标语言。内置几组常用的：简体中文↔English（上图）、简体中文↔日本語（「次の電車は4分後です」/「这周五我请假」）、English↔简体中文（反过来）、English↔Español。其它组合用 English 例句，结果按所选语言实时翻出来。站牌图同样准备几种语言的版本。</p>
 </div>
 <script>
 document.querySelectorAll(".pb").forEach(b=>{const doc=b.parentElement,sel=doc.querySelector(".sel");
