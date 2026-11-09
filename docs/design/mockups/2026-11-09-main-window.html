@@ -79,7 +79,7 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 .srcCard b{font-size:13px;font-weight:600}
 .srcCard .desc{font-size:12px;color:var(--fg2);margin:2px 0 12px}
 .srcCard .uses{font-size:11px;color:var(--fg3);margin-top:10px}
-.secH{font-size:11px;font-weight:600;color:var(--fg3);margin:8px 0 0;letter-spacing:.02em}
+.secH{font-size:11px;font-weight:600;color:var(--fg3);letter-spacing:.02em}
 .list{background:var(--card);border-radius:10px;box-shadow:0 0 0 .5px var(--hair)}
 .li{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:.5px solid var(--hair)}
 .li:first-child{border-top:0}
@@ -108,7 +108,7 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 .mat{background:var(--mat);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 0 0 .5px rgba(0,0,0,.12),var(--shadow)}
 
 /* translate popup */
-.popup{width:380px;border-radius:14px;overflow:hidden}
+.popup{width:420px;border-radius:14px;overflow:hidden}
 .popup .head{display:flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 12px;border-bottom:.5px solid var(--hair);font-size:12px}
 .popup .dir{display:flex;align-items:center;gap:5px;font-weight:500;padding:3px 7px;border-radius:6px;background:var(--well)}
 .popup .dir::after{content:"";width:5px;height:5px;border-right:1.3px solid var(--fg2);border-bottom:1.3px solid var(--fg2);transform:rotate(45deg) translate(-1px,-1px);margin-left:2px}
@@ -143,7 +143,7 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 .capsule .mode svg{width:12px;height:12px}
 .capsule .lvl{display:flex;align-items:center;gap:2px;height:16px}
 .capsule .lvl i{width:3px;border-radius:2px;background:#fff;display:block}
-.capsule .txt{font-size:13px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.capsule .txt{font-size:13px;max-width:300px;white-space:nowrap;overflow:hidden}
 .capsule .txt span{direction:ltr;unicode-bidi:bidi-override}
 .capsule .tag{font-size:11px;color:rgba(255,255,255,.7)}
 .dock{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:420px;height:52px;border-radius:16px;background:rgba(255,255,255,.35);backdrop-filter:blur(20px);box-shadow:0 0 0 .5px rgba(255,255,255,.4)}
@@ -281,11 +281,11 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
      <div class="ico"><svg><use href="#i-mic"/></svg></div>
      <b>麦克风</b>
      <div class="desc">自己和身边的人说的话</div>
-     <span class="btn primary">开始</span>
+     <span class="btn">开始</span>
      <div class="uses">Apple 本地识别 · 译成 English（Google）</div>
     </div>
    </div>
-   <div class="row"><span class="secH">会议记录</span><div class="spacer"></div><span class="cap">共 12 场</span></div>
+   <div class="row" style="margin-top:8px;align-items:baseline"><span class="secH">会议记录</span><div class="spacer"></div><span class="cap">共 12 场</span></div>
    <div class="list">
     <div class="li"><div><div class="t">产品周会</div><div class="s">11月8日 14:02 · 42 分钟 · 系统声音 + 麦克风</div></div><div class="spacer"></div><span class="chev"></span></div>
     <div class="li"><div><div class="t">Interview with Sarah</div><div class="s">11月6日 10:30 · 25 分钟 · 麦克风</div></div><div class="spacer"></div><span class="chev"></span></div>
@@ -298,7 +298,7 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 <!-- ============ 3 设置 ============ -->
 <h2>③ 主窗口 · 设置 › 常用</h2>
 <p class="note">点侧栏「设置」后，侧栏换成设置目录。常用一页 12 行，其余七页在「高级」。高级里给某个功能另选了服务时，常用那一行下面出一行蓝字，点了跳过去。</p>
-<div class="win" style="height:700px">
+<div class="win" style="height:790px">
  <div class="side">
   <div class="lights"><i></i><i></i><i></i></div>
   <div class="back">返回</div>
@@ -376,8 +376,8 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
     <div class="orig">The Commission will open a formal investigation into whether the app store rules comply with the DMA.</div>
     <div class="reading">委员会将正式调查应用商店规则是否符合《数字市场法》。</div>
     <div class="foot"><span class="logo" style="background:#4285F4">G</span>Google<div class="spacer"></div><span class="ib hov"><svg><use href="#i-spk"/></svg></span><span class="ib hov"><svg><use href="#i-copy"/></svg></span><span class="ib hov"><svg><use href="#i-back"/></svg></span></div>
-    <div class="fold"><span class="logo" style="background:#0F2B46">D</span><b style="font-weight:500;color:var(--fg)">DeepL</b><span class="peek">委员会将对应用商店规则是否符合 DMA 展开正式调查。</span></div>
-    <div class="fold" style="padding-bottom:12px"><span class="logo" style="background:#D97757">C</span><b style="font-weight:500;color:var(--fg)">Claude</b><span class="peek">委员会将就应用商店规则是否符合《数字市场法》启动正式调查。</span></div>
+    <div class="fold"><span class="logo" style="background:#0F2B46">D</span><b style="font-weight:500;color:var(--fg)">DeepL</b><span class="peek">委员会将对应用商店规则是否符合 DMA 展开正式调查。</span><span class="chev" style="transform:rotate(135deg);margin-left:4px"></span></div>
+    <div class="fold" style="padding-bottom:12px"><span class="logo" style="background:#D97757">C</span><b style="font-weight:500;color:var(--fg)">Claude</b><span class="peek">委员会将就应用商店规则是否符合《数字市场法》启动正式调查。</span><span class="chev" style="transform:rotate(135deg);margin-left:4px"></span></div>
    </div>
   </div>
  </div>
@@ -387,8 +387,8 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 <h2>⑤ 划词插件条</h2>
 <p class="note">选区上方 8 磅。翻译固定第一个，一根分隔线后是插件；超过 6 个时第 6 格换成「⋯」。名字提示悬停 400 ms 后才出，划过不闪。</p>
 <div class="stage desk" style="padding:44px 60px 40px">
- <div class="doc" style="max-width:640px;margin-top:20px">
-  <div style="position:absolute;left:196px;top:-8px">
+ <div class="doc" style="max-width:640px;margin-top:30px;padding-top:40px">
+  <div id="pbar" style="position:absolute;left:196px;top:-8px">
    <div class="bar mat">
     <span class="pi"><svg><use href="#i-tr"/></svg></span>
     <span class="sep"></span>
@@ -420,17 +420,17 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 <h2>⑦ 语音胶囊</h2>
 <p class="note">和快捷翻译浮标拆开。屏幕底部居中，离 Dock 上沿 16 磅，深色。按住 Fn：模式图标、电平、识别出的字（太长从左边截）。松开：竖条换成转圈。</p>
 <div class="stage desk" style="height:240px;padding:0">
- <div style="position:absolute;left:50%;bottom:88px;transform:translateX(-50%);display:flex;gap:24px">
-  <div class="capsule">
+ <div style="position:absolute;left:50%;bottom:78px;transform:translateX(-50%);display:flex;gap:28px;align-items:flex-start">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="capsule">
    <span class="mode"><svg><use href="#i-tr"/></svg></span>
    <span class="lvl"><i style="height:6px"></i><i style="height:12px"></i><i style="height:16px"></i><i style="height:9px"></i><i style="height:5px"></i></span>
-   <span class="txt"><span>我们下周把这个版本先发给内测用户看看反馈</span></span>
-  </div>
-  <div class="capsule">
+   <span class="txt">…先发给内测用户看看大家的反馈再决定要不要上线</span>
+  </div><span class="cap" style="color:rgba(0,0,0,.5)">按住 Fn · 语音翻译</span></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="capsule">
    <span class="mode"><svg><use href="#i-tr"/></svg></span>
    <span class="spin" style="border-color:rgba(255,255,255,.25);border-top-color:#fff"></span>
    <span class="tag">翻译中</span>
-  </div>
+  </div><span class="cap" style="color:rgba(0,0,0,.5)">松开后</span></div>
  </div>
  <div class="dock"></div>
 </div>
@@ -505,5 +505,10 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 </div>
 
 </div>
+<script>
+(function(){const b=document.getElementById("pbar"),sel=document.querySelector(".sel"),doc=b.parentElement;
+const r=sel.getClientRects()[0],d=doc.getBoundingClientRect(),bar=b.querySelector(".bar").getBoundingClientRect();
+b.style.left=(r.left-d.left)+"px";b.style.top=(r.top-d.top-8-bar.height)+"px";})();
+</script>
 </body>
 </html>
