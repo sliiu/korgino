@@ -127,10 +127,10 @@ private struct MaskConfirmView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "lock.shield")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.orange)
+                    .font(Theme.TypeScale.title)
+                    .foregroundStyle(Theme.attention)
                 Text(L("将要发送的内容里有私密信息"))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Theme.TypeScale.title)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -141,7 +141,7 @@ private struct MaskConfirmView: View {
             if !hits.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(String(format: L("被替换的内容（%d 处）"), hits.count))
-                        .font(.system(size: 11.5, weight: .medium))
+                        .font(Theme.TypeScale.caption).fontWeight(.medium)
                         .foregroundStyle(.secondary)
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
@@ -156,13 +156,13 @@ private struct MaskConfirmView: View {
             }
 
             Text(L("发出去的会换成占位符，结果回来后自动填回原文。判断错了可以选「发送原文」。"))
-                .font(.system(size: 11.5))
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             ScrollView {
                 Text(preview)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(Theme.TypeScale.label.monospaced())
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(8)
@@ -198,15 +198,15 @@ private struct MaskConfirmView: View {
     private func hitRow(_ hit: MaskHit) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(hit.label)
-                .font(.system(size: 10.5, weight: .medium))
+                .font(Theme.TypeScale.micro)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1.5)
                 .background(
-                    Capsule().fill(Color.orange.opacity(0.18))
+                    Capsule().fill(Theme.attention.opacity(0.18))
                 )
                 .fixedSize()
             Text(Self.clip(hit.value))
-                .font(.system(size: 11.5, design: .monospaced))
+                .font(Theme.TypeScale.caption.monospaced())
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -222,7 +222,7 @@ private struct MaskConfirmView: View {
 
     private func line(_ text: String, strong: Bool) -> some View {
         Text(text)
-            .font(.system(size: 12, weight: strong ? .medium : .regular))
+            .font(strong ? Theme.TypeScale.labelMedium : Theme.TypeScale.label)
             .foregroundStyle(strong ? Color.primary : Color.secondary)
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)

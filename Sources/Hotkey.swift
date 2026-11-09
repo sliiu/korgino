@@ -127,7 +127,7 @@ struct HotkeyRecorderButton<Accessory: View>: View {
             if let w = conflictWarning, !w.isEmpty, enabled {
                 Text(w)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.attention)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }

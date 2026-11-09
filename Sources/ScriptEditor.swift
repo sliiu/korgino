@@ -8,7 +8,7 @@ import SwiftUI
 struct ScriptEditor: NSViewRepresentable {
     @Binding var text: String
 
-    static let fontSize: CGFloat = 12
+    static let fontSize = Theme.TypeScale.nsLabel.pointSize
 
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
@@ -142,7 +142,7 @@ enum ScriptHighlighter {
 
     /// 等宽字，行距放大一点，长脚本才不挤成一块。
     static func baseFont() -> NSFont {
-        NSFont.monospacedSystemFont(ofSize: ScriptEditor.fontSize, weight: .regular)
+        Theme.TypeScale.nsLabelMono
     }
 
     static func paragraphStyle() -> NSParagraphStyle {

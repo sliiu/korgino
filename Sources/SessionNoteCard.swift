@@ -58,7 +58,7 @@ struct SessionNoteCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Theme.TypeScale.body).fontWeight(.medium)
                 if let stamp = stampLine {
                     Text(stamp)
                         .font(.caption)
@@ -114,7 +114,7 @@ struct SessionNoteCard: View {
         VStack(alignment: .leading, spacing: 12) {
             section(L("这场在说什么")) {
                 Text(page.summary.isEmpty ? L("没有") : page.summary)
-                    .font(.system(size: 13))
+                    .font(Theme.TypeScale.body)
                     .foregroundStyle(page.summary.isEmpty ? Color.secondary : Color.primary)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
@@ -140,7 +140,7 @@ struct SessionNoteCard: View {
         section(title) {
             if items.isEmpty {
                 Text(L("没有"))
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .foregroundStyle(.tertiary)
             } else {
                 VStack(alignment: .leading, spacing: 5) {
@@ -155,11 +155,11 @@ struct SessionNoteCard: View {
     private func itemRow(_ item: SessionNoteItem, symbol: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: symbol)
-                .font(.system(size: 9, weight: .semibold))
+                .font(Theme.TypeScale.micro)
                 .foregroundStyle(.tertiary)
                 .frame(width: 12)
             Text(item.text)
-                .font(.system(size: 12.5))
+                .font(Theme.TypeScale.label)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,7 +168,7 @@ struct SessionNoteCard: View {
                     onJump(first)
                 } label: {
                     Image(systemName: "text.quote")
-                        .font(.system(size: 10.5))
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.plain)
@@ -183,18 +183,18 @@ struct SessionNoteCard: View {
         section(L("反复出现的词")) {
             if terms.isEmpty {
                 Text(L("没有"))
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .foregroundStyle(.tertiary)
             } else {
                 ForEach(Array(terms.enumerated()), id: \.offset) { _, term in
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text(term.word)
-                            .font(.system(size: 12))
+                            .font(Theme.TypeScale.label)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                         Text(term.rendering)
-                            .font(.system(size: 13))
+                            .font(Theme.TypeScale.body)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                     }
@@ -207,12 +207,12 @@ struct SessionNoteCard: View {
         section(L("没对上的地方")) {
             if lines.isEmpty {
                 Text(L("没有"))
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .foregroundStyle(.tertiary)
             } else {
                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                     Text(line)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)

@@ -1129,7 +1129,7 @@ struct FileTranslateView: View {
                 SectionHeader(L("原文"))
                 if let url = model.sourceURL {
                     Text((url.path as NSString).abbreviatingWithTildeInPath)
-                        .font(.system(size: 11))
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -1250,12 +1250,12 @@ struct FileTranslateView: View {
 
                 VStack(spacing: 12) {
                     Image(systemName: "doc.badge.arrow.up")
-                        .font(.system(size: 40, weight: .light))
+                        .font(Theme.TypeScale.display)
                         .foregroundStyle(model.isDropTargeted ? Color.accentColor : Color.secondary)
                     Text(L("拖入文件"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Theme.TypeScale.reading).fontWeight(.semibold)
                     Text("txt · md · pdf · docx · xlsx · pptx")
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.tertiary)
                     Button(L("选择文件…")) { model.chooseFile() }
                         .controlSize(.regular)
@@ -1321,8 +1321,8 @@ struct FileTranslateView: View {
                         ProgressView().controlSize(.mini)
                     } else if page.error != nil && page.text == nil {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.red)
+                            .font(Theme.TypeScale.micro)
+                            .foregroundStyle(Theme.danger)
                     } else {
                         ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11)
                     }
@@ -1345,7 +1345,7 @@ struct FileTranslateView: View {
                     model.closePage(page.id)
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(Theme.TypeScale.micro)
                         .foregroundStyle(.secondary)
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
@@ -1355,7 +1355,7 @@ struct FileTranslateView: View {
                 .padding(.trailing, 2)
             }
         }
-        .font(.system(size: 11, weight: active ? .semibold : .regular))
+        .font(Theme.TypeScale.caption).fontWeight(active ? .semibold : .regular)
         .foregroundStyle(active ? Color.accentColor : Color.primary.opacity(0.75))
         .background(
             Capsule(style: .continuous)
@@ -1374,7 +1374,7 @@ struct FileTranslateView: View {
                 }
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Theme.TypeScale.caption).fontWeight(.semibold)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -1404,7 +1404,7 @@ struct FileTranslateView: View {
                 .labelsHidden()
             } label: {
                 Text("→ \(page.language.shortTitle)")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Theme.TypeScale.caption).fontWeight(.medium)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.visible)
@@ -1423,7 +1423,7 @@ struct FileTranslateView: View {
                     .padding(.leading, 4)
                 if !page.progress.isEmpty {
                     Text(page.progress)
-                        .font(.system(size: 11).monospacedDigit())
+                        .font(Theme.TypeScale.caption).monospacedDigit()
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
@@ -1458,7 +1458,7 @@ struct FileTranslateView: View {
             HStack(spacing: 4) {
                 ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11)
                 Text(model.pageName(page))
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
             }
         }
         .menuStyle(.borderlessButton)
@@ -1473,7 +1473,7 @@ struct FileTranslateView: View {
                 Spacer()
                 ProgressView(String(format: L("%@ 翻译中…"), String(describing: model.pageName(page))))
                 if !page.progress.isEmpty {
-                    Text(page.progress).font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text(page.progress).font(Theme.TypeScale.label).foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -1485,7 +1485,7 @@ struct FileTranslateView: View {
                     Button(L("下载 Apple 语言包…")) {
                         AppleLangPack.presentDownloadPrompt(force: true)
                     }
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                 }
                 Spacer()
             }
@@ -1526,7 +1526,7 @@ struct FileTranslateView: View {
         let _ = model.favoriteBump
         return HStack(spacing: 4) {
             Text(model.progressLabel)
-                .font(.system(size: 11))
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             if let e = model.lastError {
@@ -2170,7 +2170,7 @@ struct SyncableTextEditor: NSViewRepresentable {
         tv.allowsUndo = true
         tv.isEditable = isEditable
         tv.isSelectable = true
-        tv.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        tv.font = Theme.TypeScale.nsLabelMono
         tv.textContainerInset = NSSize(width: 4, height: 6)
         tv.backgroundColor = .clear
         tv.drawsBackground = false

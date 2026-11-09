@@ -378,20 +378,20 @@ struct SystemAudioTranslateView: View {
         } label: {
             HStack(spacing: 6) {
                 ZStack {
-                    Circle().fill(live ? Color.red.opacity(0.16) : Color.primary.opacity(0.05))
+                    Circle().fill(live ? Theme.live.opacity(0.16) : Color.primary.opacity(0.05))
                     Circle()
-                        .strokeBorder(live ? Color.red.opacity(0.4) : Theme.hairline, lineWidth: 0.5)
+                        .strokeBorder(live ? Theme.live.opacity(0.4) : Theme.hairline, lineWidth: 0.5)
                     Image(systemName: live ? "record.circle.fill" : "record.circle")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(live ? Color.red : (armed ? Color.red.opacity(0.65) : Color.secondary))
+                        .font(Theme.TypeScale.label).fontWeight(.semibold)
+                        .foregroundStyle(live ? Theme.live : (armed ? Theme.live.opacity(0.65) : Color.secondary))
                         .symbolEffect(.pulse, options: .repeating, isActive: live)
                 }
                 .frame(width: 24, height: 24)
                 if live, let started = model.recordStartedAt {
                     TimelineView(.periodic(from: started, by: 1)) { context in
                         Text(Self.elapsedLabel(context.date.timeIntervalSince(started)))
-                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Color.red)
+                            .font(Theme.TypeScale.micro.monospaced())
+                            .foregroundStyle(Theme.live)
                             .monospacedDigit()
                             .lineLimit(1)
                     }
@@ -439,10 +439,10 @@ struct SystemAudioTranslateView: View {
     private func chipLabel(_ title: String?, icon: String, on: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(Theme.TypeScale.caption).fontWeight(.semibold)
             if let title {
                 Text(title)
-                    .font(.system(size: 12, weight: on ? .semibold : .regular))
+                    .font(Theme.TypeScale.label).fontWeight(on ? .semibold : .regular)
                     .lineLimit(1)
             }
             Circle()
@@ -472,7 +472,7 @@ struct SystemAudioTranslateView: View {
                 .frame(width: 6, height: 6)
             if showsText {
                 Text(shortStatus)
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .fixedSize()
@@ -568,21 +568,21 @@ struct SystemAudioTranslateView: View {
                 .frame(width: 26, height: 26)
                 .overlay {
                     Image(systemName: kind == .system ? "speaker.wave.2.fill" : "mic.fill")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(Theme.TypeScale.label).fontWeight(.semibold)
                         .foregroundStyle(live ? Color.accentColor : Color.secondary)
                 }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(kind.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Theme.TypeScale.body).fontWeight(.semibold)
                     if partial {
                         Text(L("识别中"))
-                            .font(.system(size: 10))
+                            .font(Theme.TypeScale.micro)
                             .foregroundStyle(.tertiary)
                     }
                 }
                 Text(laneSummary(kind))
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
@@ -599,11 +599,11 @@ struct SystemAudioTranslateView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Theme.TypeScale.micro)
                     Text(configOpen(kind) ? L("收起") : L("设置"))
-                        .font(.system(size: 11))
+                        .font(Theme.TypeScale.caption)
                     Image(systemName: configOpen(kind) ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
+                        .font(Theme.TypeScale.micro)
                 }
                 .foregroundStyle(configOpen(kind) ? Color.accentColor : Color.secondary)
                 .padding(.horizontal, 8)
@@ -806,16 +806,16 @@ struct SystemAudioTranslateView: View {
     private func laneHeader(_ lane: RecognitionLane, _ kind: Kind, setup: Bool, count: Int, hasLines: Bool) -> some View {
         HStack(spacing: 8) {
             Text(laneTitle(lane))
-                .font(.system(size: 12, weight: .semibold))
+                .font(Theme.TypeScale.label).fontWeight(.semibold)
                 .lineLimit(1)
             Text(laneTargetSummary(lane))
-                .font(.system(size: 11))
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.tertiary)
                 .lineLimit(1)
             Spacer(minLength: 6)
             if count > 0 {
                 Text(String(format: L("%@ 段"), String(count)))
-                    .font(.system(size: 10.5, design: .monospaced))
+                    .font(Theme.TypeScale.caption.monospaced())
                     .foregroundStyle(.tertiary)
             }
             Button(L("笔记")) { model.writeNote(lane.id, kind) }
@@ -867,7 +867,7 @@ struct SystemAudioTranslateView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -890,14 +890,14 @@ struct SystemAudioTranslateView: View {
     private var emptyState: some View {
         VStack(spacing: 6) {
             Image(systemName: "captions.bubble")
-                .font(.system(size: 20, weight: .light))
+                .font(Theme.TypeScale.title)
                 .foregroundStyle(.quaternary)
             Text(model.isActive ? L("正在听，听到人声就会出字幕") : L("开始后，字幕会出现在这里"))
-                .font(.system(size: 12))
+                .font(Theme.TypeScale.label)
                 .foregroundStyle(.tertiary)
             if !model.isActive {
                 Text(L("先在上面选好声音和语言，再点「开始」"))
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.quaternary)
             }
         }
@@ -1120,7 +1120,7 @@ struct SystemAudioTranslateView: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.08))
                 Capsule()
-                    .fill(level > 0.85 ? Color.red : Color.accentColor)
+                    .fill(level > 0.85 ? Theme.live : Theme.accent)
                     .frame(width: max(4, geo.size.width * level))
             }
         }
@@ -1163,7 +1163,7 @@ struct SystemAudioTranslateView: View {
         let keys = translationKeys(seg, kind)
         return HStack(alignment: .top, spacing: 8) {
             Text(SRTDocument.stamp(seg.start))
-                .font(.system(size: 10.5, design: .monospaced))
+                .font(Theme.TypeScale.caption.monospaced())
                 .foregroundStyle(latest && model.isActive ? Color.accentColor.opacity(0.8) : Color.secondary.opacity(0.6))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
@@ -1194,14 +1194,14 @@ struct SystemAudioTranslateView: View {
         VStack(alignment: .leading, spacing: 4) {
             if editingID == seg.id {
                 TextField(L("原文"), text: $editSource, axis: .vertical)
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .textFieldStyle(.roundedBorder)
                 ForEach(keys, id: \.self) { key in
                     TextField(LaneBindingNames.title(key: key), text: Binding(
                         get: { editTranslations[key] ?? "" },
                         set: { editTranslations[key] = $0 }
                     ), axis: .vertical)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Theme.TypeScale.reading)
                         .textFieldStyle(.roundedBorder)
                 }
                 HStack(spacing: 4) {
@@ -1220,7 +1220,7 @@ struct SystemAudioTranslateView: View {
                 }
                 HStack(alignment: .top, spacing: 6) {
                     highlightedSource(seg.source, ranges: seg.maskRanges)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1269,7 +1269,7 @@ struct SystemAudioTranslateView: View {
                         .frame(maxWidth: CaptionBudget.lineWidth, alignment: .leading)
                 } else {
                     Text(text)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Theme.TypeScale.reading)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1294,7 +1294,7 @@ struct SystemAudioTranslateView: View {
                 }
                 HStack(alignment: .top, spacing: 6) {
                     highlightedSource(draft.text, ranges: draft.mask)
-                        .font(.system(size: 12))
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1312,7 +1312,7 @@ struct SystemAudioTranslateView: View {
                             ErrorLine(text: text)
                         } else {
                             Text(text)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(Theme.TypeScale.reading)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -1445,8 +1445,8 @@ struct ImmersiveCaptionOverlay: View {
         let sourceOnly = model.immersiveIsSource(providerID)
         return HStack(spacing: 4) {
             Image(systemName: "line.3.horizontal")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.5))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(Theme.onDark.tertiary)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
                 .help(L("拖动"))
@@ -1462,14 +1462,14 @@ struct ImmersiveCaptionOverlay: View {
                 }
             }
             Text(model.immersiveTitle(providerID))
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.7))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(Theme.onDark.secondary)
                 .lineLimit(1)
                 .padding(.leading, 4)
             Spacer(minLength: 4)
             if model.isActive {
                 Circle()
-                    .fill(Color.red.opacity(0.85))
+                    .fill(Theme.live)
                     .frame(width: 6, height: 6)
                     .help(L("正在听"))
             }
@@ -1482,8 +1482,8 @@ struct ImmersiveCaptionOverlay: View {
     private func chromeButton(_ systemImage: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
+                .font(Theme.TypeScale.caption).fontWeight(.medium)
+                .foregroundStyle(Theme.onDark.secondary)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }
@@ -1495,8 +1495,8 @@ struct ImmersiveCaptionOverlay: View {
     private func captionToggle(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(on ? 0.95 : 0.45))
+                .font(Theme.TypeScale.caption).fontWeight(.medium)
+                .foregroundStyle(on ? Theme.onDark.primary : Theme.onDark.tertiary)
                 .padding(.horizontal, 8)
                 .frame(height: 22)
                 .background(
@@ -1513,37 +1513,33 @@ struct ImmersiveCaptionOverlay: View {
         VStack(spacing: 3) {
             if !lines.mark.isEmpty {
                 Text(lines.mark)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(Theme.TypeScale.caption).fontWeight(.semibold)
+                    .foregroundStyle(Theme.onDark.secondary)
             }
             if sourceVisible {
                 captionText(
                     lines.source,
                     ranges: lines.sourceMask,
-                    size: translationAnchored ? 15 : 28,
-                    weight: translationAnchored ? .medium : .semibold,
-                    color: .white.opacity(lines.sourcePartial ? 0.78 : (translationAnchored ? 0.7 : 1)),
+                    font: translationAnchored ? Theme.TypeScale.displaySource : Theme.TypeScale.display,
+                    color: lines.sourcePartial ? Theme.onDark.secondary : (translationAnchored ? Theme.onDark.secondary : Theme.onDark.primary),
                     limit: 6
                 )
             }
             if translationVisible {
                 let failed = lines.translation.hasPrefix(L("翻译失败"))
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    if failed {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(Color.red.opacity(0.95))
-                    }
+                if failed {
+                    ErrorLine(text: lines.translation, onDark: true)
+                        .frame(maxWidth: CaptionBudget.lineWidth)
+                } else {
                     captionText(
                         lines.translation,
-                        size: 28,
-                        weight: .semibold,
-                        color: failed ? Color.red.opacity(0.95) : .white.opacity(lines.translationPartial ? 0.88 : 1),
+                        font: Theme.TypeScale.display,
+                        color: lines.translationPartial ? Theme.onDark.secondary : Theme.onDark.primary,
                         limit: 6
                     )
                 }
             } else if pane.showTranslation, lines.sourcePartial, pane.showSource {
-                captionText("…", size: 18, weight: .semibold, color: .white.opacity(0.4), limit: 1)
+                captionText("…", font: Theme.TypeScale.title, color: Theme.onDark.tertiary, limit: 1)
             }
             if !sourceVisible && !translationVisible {
                 if !pane.showSource && !pane.showTranslation
@@ -1552,9 +1548,8 @@ struct ImmersiveCaptionOverlay: View {
                 } else {
                     captionText(
                         model.isActive ? "···" : L("沉浸字幕"),
-                        size: model.isActive ? 16 : 22,
-                        weight: .semibold,
-                        color: .white.opacity(0.42),
+                        font: model.isActive ? Theme.TypeScale.title : Theme.TypeScale.display,
+                        color: Theme.onDark.tertiary,
                         limit: 1
                     )
                 }
@@ -1565,13 +1560,12 @@ struct ImmersiveCaptionOverlay: View {
     private func captionText(
         _ text: String,
         ranges: [NSRange] = [],
-        size: CGFloat,
-        weight: Font.Weight,
+        font: Font,
         color: Color,
         limit: Int
     ) -> some View {
         highlightedSource(text, ranges: ranges)
-            .font(.system(size: size, weight: weight))
+            .font(font)
             .foregroundStyle(color)
             .multilineTextAlignment(.center)
             .lineLimit(limit)
@@ -1622,7 +1616,7 @@ func highlightedSource(_ text: String, ranges: [NSRange]) -> Text {
               let lower = AttributedString.Index(swift.lowerBound, within: attr),
               let upper = AttributedString.Index(swift.upperBound, within: attr),
               lower < upper else { continue }
-        attr[lower..<upper].backgroundColor = Color.orange.opacity(0.45)
+        attr[lower..<upper].backgroundColor = Theme.attention.opacity(0.45)
     }
     return Text(attr)
 }

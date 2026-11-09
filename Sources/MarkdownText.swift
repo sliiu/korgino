@@ -33,8 +33,8 @@ enum MarkdownTextUtil {
 /// Compact AttributedString markdown preview for popup / lists.
 struct InlineMarkdownText: View {
     let text: String
-    var fontSize: CGFloat = 14
-    var weight: Font.Weight = .regular
+    var font: Font = Theme.TypeScale.reading
+    var weight: Font.Weight? = nil
 
     var body: some View {
         Group {
@@ -43,12 +43,12 @@ struct InlineMarkdownText: View {
                 options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .full)
             ) {
                 Text(attributed)
-                    .font(.system(size: fontSize, weight: weight))
+                    .font(font).fontWeight(weight)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(text)
-                    .font(.system(size: fontSize, weight: weight))
+                    .font(font).fontWeight(weight)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -71,7 +71,7 @@ struct CopyMarkdownMenu: View {
         IconButton(
             systemImage: copied ? "checkmark" : "doc.on.doc",
             help: L("复制完整内容（含 Markdown 格式）；右键可复制纯文本"),
-            tint: copied ? .green : nil,
+            tint: copied ? Theme.ok : nil,
             size: 11
         ) {
             MarkdownTextUtil.copyMarkdown(text)

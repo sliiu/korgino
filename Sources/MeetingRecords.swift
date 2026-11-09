@@ -605,21 +605,21 @@ enum MeetingWordDocument {
                 .font: font, .foregroundColor: color, .paragraphStyle: style,
             ]))
         }
-        let body = NSFont.systemFont(ofSize: 11)
-        let small = NSFont.systemFont(ofSize: 9.5)
-        add(title, font: .boldSystemFont(ofSize: 20), spacing: 4)
+        let body = Theme.TypeScale.nsCaption
+        let small = Theme.TypeScale.nsMicro
+        add(title, font: Theme.TypeScale.nsTitle, spacing: 4)
         add("\(TimeText.medium.string(from: record.startedAt)) · \(MeetingExport.duration(record.duration))", font: small, color: muted, spacing: 14)
         for lane in record.lanes {
             let segs = record.segments(in: lane.id)
             guard !segs.isEmpty || lane.note != nil else { continue }
             if record.lanes.count > 1 {
-                add("\(lane.captureTitle) · \(lane.asrName)", font: .boldSystemFont(ofSize: 15), spacing: 8)
+                add("\(lane.captureTitle) · \(lane.asrName)", font: Theme.TypeScale.nsReading, spacing: 8)
             }
             if let note = lane.note {
-                add(L("一场笔记"), font: .boldSystemFont(ofSize: 13), spacing: 6)
+                add(L("一场笔记"), font: Theme.TypeScale.nsBodyMedium, spacing: 6)
                 if !note.summary.isEmpty { add(note.summary, font: body, spacing: 10) }
                 for (name, items, mark) in [(L("议题"), note.topics, "•"), (L("结论"), note.decisions, "•"), (L("待办"), note.todos, "☐")] where !items.isEmpty {
-                    add(name, font: .boldSystemFont(ofSize: 11), spacing: 3)
+                    add(name, font: Theme.TypeScale.nsCaptionMedium, spacing: 3)
                     for item in items {
                         let times = item.cues.compactMap { id in segs.first { $0.id.uuidString == id } }.map { MeetingExport.clock($0.start) }
                         let tail = times.isEmpty ? "" : "（\(times.joined(separator: ", "))）"
@@ -628,17 +628,17 @@ enum MeetingWordDocument {
                     out.append(NSAttributedString(string: "\n"))
                 }
                 if !note.terms.isEmpty {
-                    add(L("反复出现的词"), font: .boldSystemFont(ofSize: 11), spacing: 3)
+                    add(L("反复出现的词"), font: Theme.TypeScale.nsCaptionMedium, spacing: 3)
                     for term in note.terms { add("\(term.word) — \(term.rendering)", font: body, spacing: 2, indent: 12) }
                     out.append(NSAttributedString(string: "\n"))
                 }
             }
-            add(L("文字记录"), font: .boldSystemFont(ofSize: 13), spacing: 6)
+            add(L("文字记录"), font: Theme.TypeScale.nsBodyMedium, spacing: 6)
             var lastSpeaker = -1
             for seg in segs {
                 let name = lane.marks.token(seg.speaker, fallback: "[\(L("说话人")) \(seg.speaker)]").map(MeetingExport.stripBrackets)
                 if let name, seg.speaker != lastSpeaker {
-                    add(name, font: .boldSystemFont(ofSize: 10.5), color: muted, spacing: 1)
+                    add(name, font: Theme.TypeScale.nsMicro, color: muted, spacing: 1)
                 }
                 lastSpeaker = seg.speaker
                 add("\(MeetingExport.clock(seg.start))  \(seg.source)", font: body, spacing: 1)
@@ -670,7 +670,7 @@ struct MeetingRecordsView: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "tray")
-                        .font(.system(size: 28))
+                        .font(Theme.TypeScale.display)
                         .foregroundStyle(.tertiary)
                     Text(model.entries.isEmpty ? L("还没有会议记录") : L("选一份会议记录"))
                         .foregroundStyle(.secondary)
@@ -719,19 +719,19 @@ struct MeetingRecordsView: View {
         return VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 6) {
                 if model.isRecording(record) {
-                    Circle().fill(Color.red).frame(width: 6, height: 6)
+                    Circle().fill(Theme.live).frame(width: 6, height: 6)
                 }
                 Text(model.title(record))
-                    .font(.system(size: 12.5, weight: .medium))
+                    .font(Theme.TypeScale.labelMedium)
                     .lineLimit(1)
             }
             Text(rowSubtitle(record))
-                .font(.system(size: 10.5))
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             if !record.preview.isEmpty {
                 Text(record.preview)
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
                     .lineLimit(2)
             }
@@ -798,7 +798,7 @@ private struct MeetingRecordDetail: View {
             HStack(spacing: 8) {
                 TextField(model.title(record), text: $titleDraft)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(Theme.TypeScale.title)
                     .onSubmit { model.rename(record.id, to: titleDraft) }
                     .help(L("给这一场起个名字，回车保存"))
                 Spacer(minLength: 8)
@@ -838,11 +838,11 @@ private struct MeetingRecordDetail: View {
                         .help(L("在这里的改动会同步到实时字幕窗口"))
                 }
             }
-            .font(.system(size: 11))
+            .font(Theme.TypeScale.caption)
             .foregroundStyle(.secondary)
             if !model.message.isEmpty {
                 Text(model.message)
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
             }
             let lanes = model.shownLanes(record)
@@ -990,7 +990,7 @@ private struct MeetingSegmentRow: View {
         HStack(alignment: .top, spacing: 10) {
             Button(action: onPlay) {
                 Text(MeetingExport.clock(seg.start))
-                    .font(.system(size: 10.5, design: .monospaced))
+                    .font(Theme.TypeScale.caption.monospaced())
                     .foregroundStyle(playing ? Color.accentColor : Color.secondary)
             }
             .buttonStyle(.plain)
@@ -1004,7 +1004,7 @@ private struct MeetingSegmentRow: View {
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(seg.source)
-                        .font(.system(size: 12.5))
+                        .font(Theme.TypeScale.label)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1022,7 +1022,7 @@ private struct MeetingSegmentRow: View {
                     if let tr = seg.translations[binding.key], !tr.isEmpty {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(tr)
-                                .font(.system(size: 12.5))
+                                .font(Theme.TypeScale.label)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .textSelection(.enabled)
@@ -1074,7 +1074,7 @@ private struct MeetingSegmentRow: View {
                 SpeakerChip(speaker: seg.speaker, token: token)
             } else {
                 Text(L("标说话人"))
-                    .font(.system(size: 10.5))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -1103,7 +1103,7 @@ private struct MeetingPlayerBar: View {
             .buttonStyle(.borderless)
             .disabled(recording)
             Text(MeetingExport.clock(active ? model.playTime : 0))
-                .font(.system(size: 11, design: .monospaced))
+                .font(Theme.TypeScale.caption.monospaced())
                 .foregroundStyle(.secondary)
             Slider(
                 value: Binding(get: { active ? model.playTime : 0 }, set: { model.seek($0) }),
@@ -1111,7 +1111,7 @@ private struct MeetingPlayerBar: View {
             )
             .disabled(!active)
             Text(MeetingExport.clock(active ? model.playDuration : record.duration))
-                .font(.system(size: 11, design: .monospaced))
+                .font(Theme.TypeScale.caption.monospaced())
                 .foregroundStyle(.secondary)
             if recording {
                 Text(L("停下后才能放"))

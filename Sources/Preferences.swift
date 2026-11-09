@@ -413,11 +413,11 @@ private struct RailButton: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Theme.TypeScale.body).fontWeight(.medium)
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
                     .frame(width: 16)
                 Text(title)
-                    .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                    .font(Theme.TypeScale.body).fontWeight(selected ? .semibold : .regular)
                     .foregroundStyle(selected ? Color.primary : Color.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -766,11 +766,11 @@ struct PreferencesPane: View {
         switch value {
         case "✓":
             Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .semibold))
+                .font(Theme.TypeScale.caption).fontWeight(.semibold)
                 .foregroundStyle(.primary)
         case "—":
             Image(systemName: "minus")
-                .font(.system(size: 11, weight: .semibold))
+                .font(Theme.TypeScale.caption).fontWeight(.semibold)
                 .foregroundStyle(.tertiary)
         default:
             Text(value)
@@ -800,8 +800,8 @@ struct PreferencesPane: View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
             GridRow {
                 Text("")
-                Text(L("免费版")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
-                Text("Pro").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.accentColor)
+                Text(L("免费版")).font(Theme.TypeScale.caption).fontWeight(.semibold).foregroundStyle(.secondary)
+                Text("Pro").font(Theme.TypeScale.caption).fontWeight(.semibold).foregroundStyle(Color.accentColor)
             }
             ForEach(Array(groups.enumerated()), id: \.offset) { idx, group in
                 GridRow {
@@ -844,7 +844,7 @@ struct PreferencesPane: View {
                     HStack(spacing: 10) {
                         Slider(value: $config.panelOpacity, in: 0.35...1)
                         Text("\(Int((config.panelOpacity * 100).rounded()))%")
-                            .font(.system(size: 11, design: .rounded))
+                            .font(Theme.TypeScale.caption)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                             .frame(width: 40, alignment: .trailing)
@@ -1317,9 +1317,9 @@ struct PreferencesPane: View {
                     }
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Korgino")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(Theme.TypeScale.title)
                         Text(String(format: L("版本 %@"), String(describing: AppInfo.fullVersion)))
-                            .font(.system(size: 11))
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                     }
@@ -1369,9 +1369,9 @@ struct PreferencesPane: View {
             Section(L("致谢")) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L("声纹模型"))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Theme.TypeScale.labelMedium)
                     Text(L("WeSpeaker ResNet34-LM，在 VoxCeleb 上训练，CC BY 4.0。由 wquguru/cicada 转成 Core ML 并重新量化（Apache-2.0）。"))
-                        .font(.system(size: 11))
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 12) {
@@ -1380,16 +1380,16 @@ struct PreferencesPane: View {
                         Link("wquguru/cicada", destination: URL(string: "https://github.com/wquguru/cicada")!)
                         Link("Apache-2.0", destination: URL(string: "https://www.apache.org/licenses/LICENSE-2.0")!)
                     }
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     Text(L("开源组件"))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Theme.TypeScale.labelMedium)
                         .padding(.top, 6)
                     Text(L("界面、网络与音频处理只用系统自带的框架，不含第三方库。声纹部分用了 wquguru/cicada 的 Apache-2.0 代码（已改成 Swift 并接入本应用），许可全文和改动说明随应用附在 Resources/LICENSES 与 THIRD-PARTY-NOTICES.md。"))
-                        .font(.system(size: 11))
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(L("各服务商的名称与标识归各自所有者，这里只用来标示正在连接的服务，与它们无从属或背书关系。"))
-                        .font(.system(size: 11))
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -1605,7 +1605,7 @@ struct PreferencesPane: View {
                 )) {
                     HStack(spacing: 6) {
                         Image(systemName: "apple.logo")
-                            .font(.system(size: 13))
+                            .font(Theme.TypeScale.body)
                             .frame(width: 16)
                         Text(L("Apple 语音分析"))
                         Spacer(minLength: 0)
@@ -1618,7 +1618,7 @@ struct PreferencesPane: View {
                 )) {
                     HStack(spacing: 6) {
                         Image(systemName: "apple.logo")
-                            .font(.system(size: 13))
+                            .font(Theme.TypeScale.body)
                             .frame(width: 16)
                         Text(L("Apple 语音"))
                         Spacer(minLength: 0)
@@ -1653,13 +1653,13 @@ struct PreferencesPane: View {
                     ForEach(config.asrTerms, id: \.self) { term in
                         HStack(spacing: 4) {
                             Text(term)
-                                .font(.system(size: 12))
+                                .font(Theme.TypeScale.label)
                                 .lineLimit(1)
                             Button {
                                 config.asrTerms.removeAll { $0 == term }
                             } label: {
                                 Image(systemName: "xmark")
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(Theme.TypeScale.micro)
                                     .foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
@@ -1698,7 +1698,7 @@ struct PreferencesPane: View {
             )) {
                 HStack(spacing: 6) {
                     Image(systemName: "apple.logo")
-                        .font(.system(size: 13))
+                        .font(Theme.TypeScale.body)
                         .frame(width: 16)
                     Text(L("Apple 语音"))
                     Spacer(minLength: 0)
@@ -1771,7 +1771,7 @@ struct PreferencesPane: View {
                 HStack(spacing: 6) {
                     Text(config.translateCap(use) == 1 ? L("免费版只用默认一家") : L("免费版最多同时两家"))
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.attention)
                     ProBadge(help: L("Pro 不限家数"))
                 }
             }
@@ -1988,7 +1988,7 @@ struct PreferencesPane: View {
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(Theme.TypeScale.micro)
                             .foregroundStyle(.secondary)
                             .frame(width: 22, height: 22)
                             .background(Circle().fill(Theme.wellFill))
@@ -2011,12 +2011,12 @@ struct PreferencesPane: View {
         var body: some View {
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Button(action: remove) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Theme.TypeScale.micro)
                         .foregroundStyle(.secondary)
                         .frame(width: 12, height: 12)
                 }
@@ -2162,7 +2162,7 @@ struct PreferencesPane: View {
                 )) {
                     HStack(spacing: 6) {
                         Image(systemName: p.systemImage)
-                            .font(.system(size: 13))
+                            .font(Theme.TypeScale.body)
                             .frame(width: 16)
                         Text(p.displayName)
                     }
@@ -2633,7 +2633,7 @@ struct PreferencesPane: View {
     private func expandChevron(expanded: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
             Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+                .font(Theme.TypeScale.micro)
                 .foregroundStyle(.tertiary)
                 .rotationEffect(.degrees(expanded ? 90 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: expanded)
@@ -2818,12 +2818,12 @@ struct PreferencesPane: View {
                 if o.text != nil {
                     Label(L("成功"), systemImage: "checkmark.circle.fill")
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.ok)
                         .help(L("成功"))
                 } else {
                     Label(L("失败"), systemImage: "xmark.circle.fill")
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.danger)
                         .help(L("失败"))
                 }
             }
@@ -2872,7 +2872,7 @@ struct AddProviderSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(L("添加提供商"))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Theme.TypeScale.reading).fontWeight(.semibold)
                 Spacer()
                 Button(L("取消")) { isPresented = false }
                     .keyboardShortcut(.cancelAction)
@@ -2918,25 +2918,25 @@ struct AddProviderSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(p.name)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(Theme.TypeScale.body).fontWeight(.medium)
                         if p.noKey {
                             Text(L("无需 Key"))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(.green)
+                                .font(Theme.TypeScale.micro)
+                                .foregroundStyle(Theme.ok)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
-                                .background(Capsule().fill(Color.green.opacity(0.12)))
+                                .background(Capsule().fill(Theme.ok.opacity(0.12)))
                         }
                     }
                     if !p.note.isEmpty {
                         Text(p.note)
-                            .font(.system(size: 11))
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
                     if !p.baseURL.isEmpty {
                         Text(p.baseURL)
-                            .font(.system(size: 10).monospaced())
+                            .font(Theme.TypeScale.micro.monospaced())
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -3005,7 +3005,7 @@ struct AIModelPicker: View {
             if !errorText.isEmpty {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.attention)
                     .lineLimit(2)
             } else if !models.isEmpty {
                 Text(String(format: L("已检测到 %@ 个模型，可下拉选择或直接输入"), String(describing: models.count)))
@@ -3133,7 +3133,7 @@ struct AddASRSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(L("添加识别提供商"))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Theme.TypeScale.reading).fontWeight(.semibold)
                 Spacer()
                 Button(L("取消")) { isPresented = false }
                     .keyboardShortcut(.cancelAction)
@@ -3152,10 +3152,10 @@ struct AddASRSheet: View {
                             .well(radius: 7)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(p.name)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(Theme.TypeScale.body).fontWeight(.medium)
                             if !p.note.isEmpty {
                                 Text(p.note)
-                                    .font(.system(size: 11))
+                                    .font(Theme.TypeScale.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             }
@@ -3184,7 +3184,7 @@ struct AddTTSSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(L("添加朗读提供商"))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Theme.TypeScale.reading).fontWeight(.semibold)
                 Spacer()
                 Button(L("取消")) { isPresented = false }
                     .keyboardShortcut(.cancelAction)
@@ -3203,10 +3203,10 @@ struct AddTTSSheet: View {
                             .well(radius: 7)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(p.name)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(Theme.TypeScale.body).fontWeight(.medium)
                             if !p.note.isEmpty {
                                 Text(p.note)
-                                    .font(.system(size: 11))
+                                    .font(Theme.TypeScale.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             }
@@ -3281,7 +3281,7 @@ struct ASRModelPicker: View {
             if !errorText.isEmpty {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.attention)
                     .lineLimit(2)
             } else if !models.isEmpty {
                 Text(String(format: L("已检测到 %@ 个模型，可下拉选择或直接输入"), String(describing: models.count)))

@@ -405,7 +405,7 @@ final class RegionSelectView: NSView {
         // Hint banner
         let hint = hintText()
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+            .font: Theme.TypeScale.nsBodyMedium,
             .foregroundColor: NSColor.white,
         ]
         let size = hint.size(withAttributes: attrs)
@@ -487,11 +487,11 @@ final class RegionSelectView: NSView {
         )
         let hintText = String(format: L("  ·  %@"), L("回车识别"))
         let labAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .semibold),
+            .font: Theme.TypeScale.nsCaption,
             .foregroundColor: NSColor.white,
         ]
         let hintAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 10.5, weight: .medium),
+            .font: Theme.TypeScale.nsMicro,
             .foregroundColor: NSColor.white.withAlphaComponent(0.6),
         ]
         let dimsW = dims.size(withAttributes: labAttrs).width

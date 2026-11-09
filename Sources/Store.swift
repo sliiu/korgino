@@ -166,7 +166,7 @@ struct ProBadge: View {
             Pro.shared.showOffer()
         } label: {
             Text("Pro")
-                .font(.system(size: 10, weight: .semibold))
+                .font(Theme.TypeScale.micro)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 1.5)
                 .foregroundStyle(Color.accentColor)

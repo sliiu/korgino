@@ -159,7 +159,7 @@ final class QuickOverlay {
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? panel.frame
         let width = min(minWidth, max(160, visible.width - 24))
-        let font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        let font = Theme.TypeScale.nsLabelMedium
         let textWidth = max(40, width - 46)
         let measure: (String) -> CGFloat = { line in
             guard !line.isEmpty else { return 0 }
@@ -350,14 +350,14 @@ private struct QuickOverlayView: View {
                 notedBadge(message)
             case .done:
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.ok)
                 Text(L("已替换"))
             case .failed(let message):
                 ErrorLine(text: message, lineLimit: 1)
                     .frame(maxWidth: 320, alignment: .leading)
             }
         }
-        .font(.system(size: 12, weight: .medium))
+        .font(Theme.TypeScale.labelMedium)
         .padding(.horizontal, 10)
         .padding(.vertical, model.source.isEmpty && model.live.isEmpty ? 4 : 6)
         .frame(width: model.source.isEmpty && model.live.isEmpty ? nil : model.bandWidth, alignment: .topLeading)
@@ -393,7 +393,7 @@ private struct QuickOverlayView: View {
             }
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.ok)
                 Text(message)
                     .lineLimit(1)
             }

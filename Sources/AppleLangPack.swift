@@ -118,10 +118,10 @@ private struct ApplePrepareView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "arrow.down.circle")
-                    .font(.system(size: 28, weight: .light))
+                    .font(Theme.TypeScale.display)
                     .foregroundStyle(Color.accentColor)
                 Text(status)
-                    .font(.system(size: 13))
+                    .font(Theme.TypeScale.body)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {

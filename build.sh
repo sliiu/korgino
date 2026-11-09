@@ -47,6 +47,14 @@ fi
 # the Chinese source string and English users see it.
 ./tools/check-strings.sh
 
+# Font sizes live in Theme.TypeScale. A raw .system(size: anywhere else means a
+# size slipped past the seven steps.
+if found=$(grep -n -F '.system(size:' Sources/*.swift | grep -v '^Sources/Theme.swift:'); then
+  echo "$found" >&2
+  echo "Sources/ uses .system(size: outside Theme.swift" >&2
+  exit 1
+fi
+
 # One universal binary: arm64 for Apple silicon, x86_64 for Intel Macs on macOS 15.
 # Slices compile in parallel; lipo merges them. Deployment target stays 15.0.
 SLICE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/korgino-slices.XXXXXX")"

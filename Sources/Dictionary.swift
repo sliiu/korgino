@@ -107,10 +107,10 @@ struct DictionaryView: View {
                 } else {
                     VStack(spacing: 8) {
                         Image(systemName: "character.book.closed")
-                            .font(.system(size: 26, weight: .light))
+                            .font(Theme.TypeScale.display)
                             .foregroundStyle(.tertiary)
                         Text(L("输入单词或短语后查询"))
-                            .font(.system(size: 13))
+                            .font(Theme.TypeScale.body)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -123,7 +123,7 @@ struct DictionaryView: View {
     }
 
     private var searchField: some View {
-        SearchField(text: $model.query, prompt: L("单词 / 短语"), fontSize: 14) { model.lookup() }
+        SearchField(text: $model.query, prompt: L("单词 / 短语"), fontSize: 15) { model.lookup() }
     }
 
     private func entryBody(_ entry: DictionaryEntry) -> some View {
@@ -131,14 +131,14 @@ struct DictionaryView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(entry.word)
-                        .font(.system(size: entry.word.count > 16 ? 18 : 28, weight: .semibold, design: .serif))
+                        .font(Theme.TypeScale.display)
                         .lineLimit(4)
                         .textSelection(.enabled)
                     SpeakButton(text: entry.word, language: DictSpeech.language(entry.word), help: L("朗读"), tag: "dict.\(entry.word)", size: 13)
                 }
                 if let ph = entry.phonetic, !ph.isEmpty {
                     Text(ph)
-                        .font(.system(size: 14))
+                        .font(Theme.TypeScale.reading)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -147,16 +147,16 @@ struct DictionaryView: View {
                     SectionHeader(section.title)
                     if let ph = section.phonetic, !ph.isEmpty, ph != entry.phonetic {
                         Text(ph)
-                            .font(.system(size: 13))
+                            .font(Theme.TypeScale.body)
                             .foregroundStyle(.secondary)
                     }
                     ForEach(Array(section.senses.enumerated()), id: \.element.id) { i, s in
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
                             Text("\(i + 1)")
-                                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                                .font(Theme.TypeScale.label).fontWeight(.semibold).monospacedDigit()
                                 .foregroundStyle(.tertiary)
                                 .frame(width: 16, alignment: .trailing)
-                            senseBody(s, size: 14, exampleSize: 13)
+                            senseBody(s, size: Theme.TypeScale.reading, exampleSize: Theme.TypeScale.body)
                         }
                     }
                 }
@@ -167,8 +167,8 @@ struct DictionaryView: View {
 
 private struct SenseBody: View {
     let sense: DictionarySense
-    var size: CGFloat
-    var exampleSize: CGFloat
+    var size: Font
+    var exampleSize: Font
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -176,12 +176,12 @@ private struct SenseBody: View {
                 PartOfSpeechTag(text: sense.partOfSpeech)
             }
             Text(sense.definition)
-                .font(.system(size: size))
+                .font(size)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
             if let original = sense.original, !original.isEmpty {
                 Text(original)
-                    .font(.system(size: exampleSize))
+                    .font(exampleSize)
                     .foregroundStyle(.tertiary)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
@@ -193,7 +193,7 @@ private struct SenseBody: View {
     }
 }
 
-private func senseBody(_ sense: DictionarySense, size: CGFloat, exampleSize: CGFloat) -> some View {
+private func senseBody(_ sense: DictionarySense, size: Font, exampleSize: Font) -> some View {
     SenseBody(sense: sense, size: size, exampleSize: exampleSize)
 }
 
@@ -201,7 +201,7 @@ private struct PartOfSpeechTag: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.system(size: 10, weight: .semibold))
+            .font(Theme.TypeScale.micro)
             .italic()
             .foregroundStyle(Color.accentColor)
             .padding(.horizontal, 6)
@@ -212,10 +212,10 @@ private struct PartOfSpeechTag: View {
 
 private struct ExampleQuote: View {
     let text: String
-    var size: CGFloat
+    var size: Font
     var body: some View {
         Text(text)
-            .font(.system(size: size))
+            .font(size)
             .italic()
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
@@ -251,12 +251,12 @@ struct PopupDictionarySection: View {
             Button(action: toggleExpanded) {
                 HStack(spacing: 6) {
                     Image(systemName: "character.book.closed")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Theme.TypeScale.caption).fontWeight(.medium)
                         .foregroundStyle(.secondary)
                     if let entry {
-                        Text(entry.word).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                        Text(entry.word).font(Theme.TypeScale.label).fontWeight(.semibold).lineLimit(1)
                         if let ph = entry.phonetic, !ph.isEmpty {
-                            Text(ph).font(.system(size: 11)).foregroundStyle(.tertiary)
+                            Text(ph).font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
                         }
                     } else {
                         SectionHeader(L("词典"))
@@ -272,7 +272,7 @@ struct PopupDictionarySection: View {
             }
             Button(action: toggleExpanded) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(Theme.TypeScale.micro)
                     .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(expanded ? 90 : 0))
                     .frame(width: 22, height: 22)
@@ -290,7 +290,7 @@ struct PopupDictionarySection: View {
                             SectionHeader(section.title)
                             ForEach(section.senses.prefix(entry.sections.count > 1 ? 2 : 4)) { s in
                                 VStack(alignment: .leading, spacing: 4) {
-                                    senseBody(s, size: 12, exampleSize: 11)
+                                    senseBody(s, size: Theme.TypeScale.label, exampleSize: Theme.TypeScale.caption)
                                 }
                             }
                         }

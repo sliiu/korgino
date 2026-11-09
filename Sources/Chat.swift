@@ -326,7 +326,7 @@ private enum ChatMarkdown {
         )
         guard let parsed = try? AttributedString(markdown: text, options: options) else {
             var plain = AttributedString(text)
-            plain.font = .system(size: 13)
+            plain.font = Theme.TypeScale.body
             return plain
         }
         var out = AttributedString()
@@ -346,7 +346,7 @@ private enum ChatMarkdown {
             }
             if previous?.id != block.id, let marker = block.marker {
                 var mark = AttributedString(marker)
-                mark.font = .system(size: 13)
+                mark.font = Theme.TypeScale.body
                 mark.foregroundColor = .secondary
                 out.append(mark)
             }
@@ -365,7 +365,7 @@ private enum ChatMarkdown {
         }
         if out.characters.isEmpty {
             var plain = AttributedString(text)
-            plain.font = .system(size: 13)
+            plain.font = Theme.TypeScale.body
             return plain
         }
         return out
@@ -378,11 +378,10 @@ private enum ChatMarkdown {
 
     private static func font(_ inline: InlinePresentationIntent?, block: Block) -> Font {
         let header = block.headerLevel
-        let size: CGFloat = block.code ? 12 : (header == 1 ? 16 : (header == 2 ? 15 : 13))
-        let code = block.code || inline?.contains(.code) == true
-        var font: Font = code
-            ? .system(size: size, weight: .regular, design: .monospaced)
-            : .system(size: size, weight: header != nil || inline?.contains(.stronglyEmphasized) == true ? .semibold : .regular)
+        let base: Font = block.code || inline?.contains(.code) == true
+            ? Theme.TypeScale.label.monospaced()
+            : (header == 1 ? Theme.TypeScale.title : (header == 2 ? Theme.TypeScale.reading : Theme.TypeScale.body))
+        var font = base.weight(header != nil || inline?.contains(.stronglyEmphasized) == true ? .semibold : .regular)
         if inline?.contains(.emphasized) == true { font = font.italic() }
         return font
     }
@@ -522,8 +521,8 @@ struct TranslationChatView: View {
         let profiles = session.enabledProfiles
         if profiles.isEmpty {
             Text(L("无可用模型"))
-                .font(.system(size: 11))
-                .foregroundStyle(.orange)
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(Theme.attention)
         } else {
             Menu {
                 Section(L("AI 提供商")) {
@@ -547,7 +546,7 @@ struct TranslationChatView: View {
                 }
             } label: {
                 Text(session.effectiveProfile.map(modelLabel) ?? L("选择模型"))
-                    .font(.system(size: 11))
+                    .font(Theme.TypeScale.caption)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.visible)
@@ -565,7 +564,7 @@ struct TranslationChatView: View {
         if items.count > 1 {
             HStack(spacing: 4) {
                 Text(L("提问对象"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(Theme.TypeScale.micro)
                     .foregroundStyle(.tertiary)
                     .padding(.trailing, 2)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -637,7 +636,7 @@ struct TranslationChatView: View {
             if session.isSending {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.mini)
-                    Text(L("思考中…")).font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text(L("思考中…")).font(Theme.TypeScale.label).foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 10)
                 .id("sending")
@@ -680,10 +679,10 @@ struct TranslationChatView: View {
     private func contextChip(title: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.system(size: 10, weight: .semibold))
+                .font(Theme.TypeScale.micro)
                 .foregroundStyle(.tertiary)
             Text(text.truncated(to: 180))
-                .font(.system(size: 11))
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
         }
@@ -698,7 +697,7 @@ struct TranslationChatView: View {
             HStack(spacing: 0) {
                 Spacer(minLength: 48)
                 Text(msg.content)
-                    .font(.system(size: 13))
+                    .font(Theme.TypeScale.body)
                     .foregroundStyle(.white)
                     .textSelection(.enabled)
                     .padding(.horizontal, 11)
@@ -774,7 +773,7 @@ struct TranslationChatView: View {
                     session.cancel()
                 } label: {
                     Image(systemName: "stop.circle.fill")
-                        .font(.system(size: 20))
+                        .font(Theme.TypeScale.title)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -784,7 +783,7 @@ struct TranslationChatView: View {
                     session.send()
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 20))
+                        .font(Theme.TypeScale.title)
                         .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
                 }
                 .buttonStyle(.plain)
@@ -915,7 +914,7 @@ final class ChatComposerTextView: NSTextView {
         drawsBackground = false
         backgroundColor = .clear
         focusRingType = .none
-        font = .systemFont(ofSize: 13)
+        font = Theme.TypeScale.nsBody
         textColor = .labelColor
         insertionPointColor = .labelColor
         textContainerInset = NSSize(width: 0, height: 1)
@@ -931,7 +930,7 @@ final class ChatComposerTextView: NSTextView {
         style.lineBreakMode = .byWordWrapping
         defaultParagraphStyle = style
         typingAttributes = [
-            .font: NSFont.systemFont(ofSize: 13),
+            .font: Theme.TypeScale.nsBody,
             .foregroundColor: NSColor.labelColor,
             .paragraphStyle: style,
         ]
@@ -965,7 +964,7 @@ final class ChatComposerTextView: NSTextView {
     }
 
     var composerLineHeight: CGFloat {
-        layoutManager?.defaultLineHeight(for: font ?? .systemFont(ofSize: 13)) ?? 16
+        layoutManager?.defaultLineHeight(for: font ?? Theme.TypeScale.nsBody) ?? 16
     }
 
     var cappedHeight: CGFloat {
@@ -999,7 +998,7 @@ final class ChatComposerTextView: NSTextView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         guard string.isEmpty else { return }
-        let font = self.font ?? .systemFont(ofSize: 13)
+        let font = self.font ?? Theme.TypeScale.nsBody
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.placeholderTextColor,

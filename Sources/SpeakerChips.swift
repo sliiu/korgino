@@ -28,7 +28,7 @@ struct SpeakerChip: View {
     var body: some View {
         let hue = SpeakerPalette.color(for: speaker)
         Text(SpeakerMarkText.display(token))
-            .font(.system(size: 10.5, weight: .semibold))
+            .font(Theme.TypeScale.micro)
             .foregroundStyle(hue)
             .lineLimit(1)
             .padding(.horizontal, 6)
@@ -70,7 +70,7 @@ struct SpeakerChipButton: View {
             VStack(alignment: .leading, spacing: 10) {
                 TextField("", text: $draft)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 12))
+                    .font(Theme.TypeScale.label)
                     .frame(width: 168)
                     .focused($focused)
                     .onSubmit(commit)
@@ -156,7 +156,7 @@ struct SpeakerChipButton: View {
             if !stored.isEmpty, current == nil {
                 Text(L("这把声音已经不在了"))
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.attention)
             }
         }
     }
