@@ -30,6 +30,7 @@ struct PopupTabSnapshot: Identifiable {
     var dictAutoQuery: String
     var dictExpanded: Bool
     var collapsedProviderIDs: Set<String>
+    var openedProviderIDs: Set<String>
     var detectedLinks: [DetectedLink]
     var chatExpanded: Bool
     var targetLanguage: TargetLanguage
@@ -53,8 +54,10 @@ final class PopupModel: ObservableObject {
     @Published var sourceCaption = L("原文（可编辑）")
     /// When true, outside-click / focus-loss will not dismiss the popup.
     @Published var pinned = false
-    /// Collapsed provider ids in multi-result UI (missing = expanded).
+    /// 用户折起来的服务。第一家不在这里就是展开的。
     @Published var collapsedProviderIDs: Set<String> = []
+    /// 用户点开过的第二家及以后。不在这里的默认折成一行。
+    @Published var openedProviderIDs: Set<String> = []
     /// In-panel dictionary. Short lemmas open it; long text waits for a typed query.
     @Published var dictEntry: DictionaryEntry? = nil
     @Published var dictLoading = false
@@ -161,6 +164,10 @@ struct PopupView: View {
     /// On-screen heights of the lower panes, so a drag starts from what is shown.
     @State private var dictPaneShown: CGFloat = 0
     @State private var chatPaneShown: CGFloat = 0
+    /// 原文超过三行时点开看全。每次重新翻译收回去。
+    @State private var sourceExpanded = false
+    /// 「再加一家」就地弹出的服务列表。
+    @State private var addProviderOpen = false
 
     var body: some View {
         Group {
@@ -197,6 +204,12 @@ struct PopupView: View {
         .onChange(of: chat.isSending) { _, _ in
             DispatchQueue.main.async { onRelayout() }
         }
+        .onChange(of: model.source) { _, _ in
+            sourceExpanded = false
+        }
+        .onChange(of: model.loading) { _, loading in
+            if loading { sourceExpanded = false }
+        }
     }
 
     private var panelShape: RoundedRectangle {
@@ -221,10 +234,8 @@ struct PopupView: View {
         ZStack {
             WindowDragHandle()
             HStack(spacing: 2) {
-                sourceLanguageMenu
-                targetLanguageMenu
+                directionMenu
                 Spacer(minLength: 8)
-                addProviderMenu
                 IconButton(
                     systemImage: "character.book.closed",
                     help: model.dictExpanded ? L("收起释义") : L("查词"),
@@ -233,28 +244,20 @@ struct PopupView: View {
                     model.dictExpanded.toggle()
                     onRelayout()
                 }
-                if model.canChat {
-                    IconButton(
-                        systemImage: "bubble.left.and.bubble.right",
-                        help: chatAllowed
-                            ? L("基于原文与译文用 AI 继续提问")
-                            : L("继续对话需要 Pro"),
-                        tint: model.chatExpanded && chatAllowed ? .accentColor : nil,
-                        action: onToggleChat
-                    )
-                    if !chatAllowed {
-                        ProBadge(help: L("继续对话需要 Pro"))
-                    }
-                }
                 IconButton(
                     systemImage: model.pinned ? "pin.fill" : "pin",
                     help: model.pinned ? L("取消固定（点击外部可关闭）") : L("固定窗口（点击外部不关闭）"),
                     tint: model.pinned ? .accentColor : nil,
                     action: onTogglePin
                 )
+                IconButton(
+                    systemImage: "xmark",
+                    help: L("关闭窗口"),
+                    action: { AppDelegate.shared?.popup.dismiss() }
+                )
             }
-            .padding(.leading, 14)
-            .padding(.trailing, 8)
+            .padding(.leading, 12)
+            .padding(.trailing, 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity)
@@ -265,36 +268,61 @@ struct PopupView: View {
         .clipped()
     }
 
-    private var addProviderMenu: some View {
-        let use: TranslateUse = model.sessionKind == "clipboard" ? .clipboard : model.sessionKind == "ocr" ? .ocr : .select
-        let have = Set(model.outcomes.map(\.id)).union(config.storedTranslateIDs(use))
-        let extra = config.catalogTargets().filter { !have.contains($0.id) }
-        let ocrExtra = config.orderedOCRProviders().filter { provider in
+    /// 顶栏方向本身就是目标语言选择。原文语言留在同一个菜单里，不再另放一个下拉。
+    private var directionMenu: some View {
+        Menu {
+            Picker(L("目标语言"), selection: $model.targetLanguage) {
+                ForEach(TargetLanguage.specific) { lang in
+                    Text(lang.shortTitle).tag(lang)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+            Divider()
+            Picker(L("原文语言"), selection: Binding(
+                get: { model.sourceLanguage },
+                set: { newValue in
+                    guard newValue != model.sourceLanguage else { return }
+                    model.sourceLanguage = newValue
+                    if canRetranslate && !model.pendingFirstTranslate { onRetranslate() }
+                }
+            )) {
+                Text(L("自动检测")).tag(TargetLanguage.auto)
+                Divider()
+                ForEach(TargetLanguage.specific) { lang in
+                    Text(lang.shortTitle).tag(lang)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            Text("\(sourceLabel) → \(targetLabel)")
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .fixedSize()
+        .disabled(model.loading)
+        .help(model.targetPending
+            ? L("目标语言已改，点原文旁的重新翻译生效")
+            : L("这一页的目标语言，不改设置"))
+    }
+
+    /// 已启用、并且这一次还没在译的服务。勾上只管这一次。
+    private var addableTargets: [TranslateTarget] {
+        let have = Set(model.outcomes.map(\.id)).union(model.sessionExtraIDs)
+        return config.catalogTargets().filter { !have.contains($0.id) }
+    }
+
+    private var addableOCR: [OCRProviderID] {
+        guard model.sessionKind == "ocr" else { return [] }
+        return config.orderedOCRProviders().filter { provider in
             config.isOCROn(provider)
                 && provider != config.ocrProvider
                 && !model.ocrGroups.contains { $0.id == provider.rawValue }
         }
-        return Menu {
-            if Pro.unlocked {
-                if model.sessionKind == "ocr" {
-                    ForEach(ocrExtra) { provider in
-                        Button(provider.displayName) { addOCR(provider) }
-                    }
-                }
-                ForEach(extra) { target in
-                    Button(target.displayName) {
-                        AppDelegate.shared?.addSessionTranslate(target.id)
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "plus")
-                .font(Theme.TypeScale.caption).fontWeight(.semibold)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .disabled(!Pro.unlocked || (extra.isEmpty && ocrExtra.isEmpty))
-        .help(Pro.unlocked ? L("这次再加一家") : L("免费版不能再加"))
     }
 
     private func addOCR(_ provider: OCRProviderID) {
@@ -327,65 +355,11 @@ struct PopupView: View {
         return parts.count == 2 ? parts[1] : nil
     }
 
-    /// Detection gets short words wrong (`male` reads as Italian). Picking a source replaces it for this page.
-    private var sourceLanguageMenu: some View {
-        Menu {
-            Picker(L("原文语言"), selection: Binding(
-                get: { model.sourceLanguage },
-                set: { newValue in
-                    guard newValue != model.sourceLanguage else { return }
-                    model.sourceLanguage = newValue
-                    if canRetranslate && !model.pendingFirstTranslate { onRetranslate() }
-                }
-            )) {
-                Text(L("自动检测")).tag(TargetLanguage.auto)
-                Divider()
-                ForEach(TargetLanguage.specific) { lang in
-                    Text(lang.shortTitle).tag(lang)
-                }
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
-        } label: {
-            Text(sourceLabel)
-                .font(Theme.TypeScale.caption).fontWeight(.medium)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.visible)
-        .fixedSize()
-        .disabled(model.loading)
-        .help(model.sourceLanguage == .auto
-            ? L("原文语言是自动检测的，判错时在这里手选，不改设置")
-            : L("这一页的原文语言，不改设置"))
-    }
-
     private var sourceLabel: String {
         if model.sourceLanguage != .auto { return model.sourceLanguage.shortTitle }
         let parts = directionParts
         if parts.count == 2 { return parts[0] }
         return L("自动检测")
-    }
-
-    /// 选了就记下，等用户自己点重新翻译。
-    private var targetLanguageMenu: some View {
-        Menu {
-            Picker(L("目标语言"), selection: $model.targetLanguage) {
-                ForEach(TargetLanguage.specific) { lang in
-                    Text(lang.shortTitle).tag(lang)
-                }
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
-        } label: {
-            Text("→ \(targetLabel)")
-                .font(Theme.TypeScale.caption).fontWeight(.medium)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.visible)
-        .fixedSize()
-        .help(model.targetPending
-            ? L("目标语言已改，点原文旁的重新翻译生效")
-            : L("这一页的目标语言，不改设置"))
     }
 
     /// The language the shown translations went into, until a new pick waits for 重新翻译.
@@ -450,10 +424,8 @@ struct PopupView: View {
         return Pro.unlocked
     }
 
-    private var popupWidth: CGFloat {
-        if model.chatExpanded, chatAllowed { return 440 }
-        return model.singleMode ? 380 : 420
-    }
+    /// 宽度 360 起，最宽 560（拖拽照旧）。测量用起点。
+    private var popupWidth: CGFloat { 360 }
 
     private var canRetranslate: Bool {
         !model.loading
@@ -482,6 +454,7 @@ struct PopupView: View {
             if chatOpen {
                 chatColumn(fills: false)
             }
+            followUpBar
         }
     }
 
@@ -499,7 +472,10 @@ struct PopupView: View {
                     }
                 }
                 .clipped()
-                chatPane
+                VStack(spacing: 0) {
+                    chatPane
+                    followUpBar
+                }
             }
         } else if chatOpen {
             PopupChatSplit(chatMin: 120, chatHeight: model.chatPaneHeight) {
@@ -508,7 +484,10 @@ struct PopupView: View {
                     translationColumn
                 }
                 .clipped()
-                chatPane
+                VStack(spacing: 0) {
+                    chatPane
+                    followUpBar
+                }
             }
         } else {
             PopupChatSplit(chatMin: 64, chatHeight: model.dictPaneHeight) {
@@ -517,7 +496,47 @@ struct PopupView: View {
                     translationColumn
                 }
                 .clipped()
-                dictionaryPane
+                VStack(spacing: 0) {
+                    dictionaryPane
+                    followUpBar
+                }
+            }
+        }
+    }
+
+    /// 底部常驻一行。没有 Pro 时不打开对话，只写需要 Pro。
+    private var followUpBar: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+            if chatAllowed {
+                PopupFollowUpBar(
+                    session: chat,
+                    canAsk: model.canChat,
+                    onSend: {
+                        if !model.chatExpanded {
+                            chat.configure(source: model.source, translations: model.chatTranslations)
+                            model.chatExpanded = true
+                        }
+                        chat.send()
+                        onRelayout()
+                    }
+                )
+            } else {
+                Button {
+                    Pro.shared.showOffer()
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(L("继续对话需要 Pro"))
+                            .font(Theme.TypeScale.label)
+                        ProBadge(help: L("继续对话需要 Pro"))
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -622,70 +641,88 @@ struct PopupView: View {
     }
 
     private var resultColumn: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             if !model.detectedLinks.isEmpty {
                 DetectedLinksBar(links: model.detectedLinks)
+                    .padding(.bottom, 8)
             }
             if let e = model.globalError {
                 errorText(e)
             } else if model.pendingFirstTranslate {
                 EmptyView()
-            } else if model.singleMode {
-                singleBody
             } else {
-                multiBody
+                providerList
             }
             ocrGroupList
+            if !model.pendingFirstTranslate, model.globalError == nil {
+                addProviderRow
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// 原文和译文在同一块面板上。次要色、最多三行，点开看全。没有灰底。
     private var sourceWell: some View {
-        VStack(alignment: .trailing, spacing: 0) {
+        VStack(alignment: .leading, spacing: 2) {
             if model.showsOCRShot, let shot = model.ocrShot {
                 ocrShotPreview(shot)
-            } else {
+            } else if model.pendingFirstTranslate {
                 SourceEditor(text: $model.source, isEnabled: !model.loading, onHeightChange: onRelayout)
-            }
-            if model.pendingFirstTranslate {
-                HStack(spacing: 2) {
-                    ocrShotToggle
-                    Spacer(minLength: 0)
-                    Button(L("翻译")) { onRetranslate() }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(!canRetranslate)
-                        .help(L("涂改识别文字后点击翻译"))
-                }
             } else {
-                HStack(spacing: 2) {
-                    ocrShotToggle
-                    Spacer(minLength: 0)
-                    SpeakButton(text: model.source, help: L("朗读原文"), tag: "popup.source")
-                        .disabled(model.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    IconButton(
-                        systemImage: "arrow.clockwise",
-                        help: model.targetPending
-                            ? L("按新的目标语言重新翻译")
-                            : L("用编辑后的原文再次翻译"),
-                        tint: model.targetPending ? .accentColor : nil,
-                        size: 11,
-                        action: onRetranslate
-                    )
-                    .disabled(!canRetranslate)
-                }
+                Text(model.source)
+                    .font(Theme.TypeScale.body)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(sourceExpanded ? nil : 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        sourceExpanded.toggle()
+                        onRelayout()
+                    }
+                    .help(sourceExpanded ? L("收起原文") : L("点开看全文"))
             }
+            sourceActions
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(0.05 * glassOpacity))
-        )
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+    }
+
+    @ViewBuilder
+    private var sourceActions: some View {
+        if model.pendingFirstTranslate {
+            HStack(spacing: 2) {
+                ocrShotToggle
+                Spacer(minLength: 0)
+                Button(L("翻译")) { onRetranslate() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canRetranslate)
+                    .help(L("涂改识别文字后点击翻译"))
+            }
+        } else {
+            HStack(spacing: 2) {
+                ocrShotToggle
+                Spacer(minLength: 0)
+                SpeakButton(text: model.source, help: L("朗读原文"), tag: "popup.source")
+                    .disabled(model.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                IconButton(
+                    systemImage: "arrow.clockwise",
+                    help: model.targetPending
+                        ? L("按新的目标语言重新翻译")
+                        : L("用编辑后的原文再次翻译"),
+                    tint: model.targetPending ? .accentColor : nil,
+                    size: 11,
+                    action: onRetranslate
+                )
+                .disabled(!canRetranslate)
+            }
+            .opacity(0.72)
+        }
     }
 
     /// 识别到的那张裁剪图，可缩放、旋转、拖动。
@@ -754,58 +791,236 @@ struct PopupView: View {
         return String(format: L("%@中…"), plugin.title)
     }
 
-    @ViewBuilder
-    private var singleBody: some View {
-        if model.loading || (model.outcomes.first?.loading == true) {
-            loadingRow(loadingTitle)
-        } else if let e = model.outcomes.first?.error {
-            errorText(e)
-            if let o = model.outcomes.first, aiProfile(o) != nil {
-                HStack(spacing: 4) {
-                    ProviderIconView(outcomeID: o.id, name: o.name, size: 11)
-                    Text(o.name)
-                        .font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
-                    modelMenu(o)
+    /// 第一家展开，其余折成一行。一家时也走这里，不再另画一张白卡。
+    private var providerList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if model.outcomes.isEmpty, model.loading {
+                loadingRow(loadingTitle)
+                    .padding(.vertical, 8)
+            }
+            ForEach(Array(model.outcomes.enumerated()), id: \.element.id) { index, o in
+                providerBlock(o, index: index, open: providerOpen(o, index: index))
+                if index < model.outcomes.count - 1 {
+                    Rectangle().fill(Theme.hairline).frame(height: 0.5)
                 }
             }
-            if model.outcomes.first?.applePackMissing == true {
+        }
+    }
+
+    /// 第一家默认展开。其余默认折起，用户点开过的留在 `collapsedProviderIDs` 之外。
+    private func providerOpen(_ o: ProviderOutcome, index: Int) -> Bool {
+        if model.collapsedProviderIDs.contains(o.id) { return false }
+        if index == 0 || model.outcomes.count <= 1 { return true }
+        return model.openedProviderIDs.contains(o.id)
+    }
+
+    private func providerBlock(_ o: ProviderOutcome, index: Int, open: Bool) -> some View {
+        ProviderHoverRow {
+            VStack(alignment: .leading, spacing: 6) {
+                if open {
+                    expandedProvider(o, index: index)
+                } else {
+                    collapsedProvider(o, index: index)
+                }
+                writeBackNote(for: o.id)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder
+    private func expandedProvider(_ o: ProviderOutcome, index: Int) -> some View {
+        if o.loading, o.text == nil {
+            loadingRow(loadingTitle)
+            providerNameRow(o, index: index, open: true)
+        } else if let e = o.error {
+            errorText(e)
+            if o.applePackMissing {
                 Button(L("下载 Apple 语言包…")) {
                     AppleLangPack.presentDownloadPrompt(force: true)
                 }
             }
-        } else if let t = model.outcomes.first?.text {
-            VStack(alignment: .leading, spacing: 8) {
-                resultText(t)
-                HStack(spacing: 4) {
-                    if let o = model.outcomes.first {
-                        ProviderIconView(outcomeID: o.id, name: o.name, size: 11)
-                        Text(o.name)
-                            .font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .layoutPriority(1)
-                        modelMenu(o)
-                            .layoutPriority(0)
-                        writeBackShortcutLabel(index: 0)
-                    }
-                    Spacer()
-                    SpeakButton(text: t, language: targetSpeechCode, tag: "popup.\(model.outcomes.first?.id ?? "one")")
-                    favoriteButton(
-                        translation: t,
-                        providerName: model.outcomes.first?.name ?? ""
-                    )
-                    let id = model.outcomes.first?.id ?? "one"
-                    copyButton(id: id, text: t)
-                    writeBackButton(id: id, text: t, index: 0)
-                }
-                writeBackNote(for: model.outcomes.first?.id ?? "one")
-            }
-            .padding(.horizontal, 4)
+            providerNameRow(o, index: index, open: true)
+        } else if let t = o.text {
+            resultText(t)
+            providerNameRow(o, index: index, open: true, text: t)
         }
     }
 
+    /// 折起来的一家：图标、名字、摘要，点开再看全文。
+    private func collapsedProvider(_ o: ProviderOutcome, index: Int) -> some View {
+        Button {
+            toggleProvider(o.id, open: false)
+        } label: {
+            HStack(spacing: 6) {
+                ProviderIconView(outcomeID: o.id, name: o.name, size: 14)
+                Text(o.name)
+                    .font(Theme.TypeScale.caption).fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                writeBackShortcutLabel(index: index)
+                if o.loading {
+                    ProgressView().controlSize(.mini)
+                } else if let t = o.text {
+                    Text(MarkdownTextUtil.plain(t))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                } else if o.error != nil {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(Theme.danger)
+                }
+                Spacer(minLength: 4)
+                providerChevron(open: false) { toggleProvider(o.id, open: false) }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(L("展开"))
+    }
+
+    /// 服务名一行：朗读、复制、写回。悬停这一家时变实。
+    private func providerNameRow(_ o: ProviderOutcome, index: Int, open: Bool, text: String? = nil) -> some View {
+        HStack(spacing: 4) {
+            Button {
+                toggleProvider(o.id, open: open)
+            } label: {
+                HStack(spacing: 6) {
+                    ProviderIconView(outcomeID: o.id, name: o.name, size: 13)
+                    Text(o.name)
+                        .font(Theme.TypeScale.caption).fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    writeBackShortcutLabel(index: index)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            modelMenu(o)
+            Spacer(minLength: 4)
+            if let text {
+                SpeakButton(text: text, language: targetSpeechCode, tag: "popup.\(o.id)")
+                favoriteButton(translation: text, providerName: o.name)
+                copyButton(id: o.id, text: text)
+                writeBackButton(id: o.id, text: text, index: index)
+            }
+            if model.outcomes.count > 1 {
+                providerChevron(open: true) { toggleProvider(o.id, open: true) }
+            }
+        }
+    }
+
+    /// 列表最下一行。免费版写「再加一家需要 Pro」，点了去关于页。
+    @ViewBuilder
+    private var addProviderRow: some View {
+        Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.top, 2)
+        if chatAllowed {
+            Button {
+                addProviderOpen.toggle()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(Theme.TypeScale.caption).fontWeight(.semibold)
+                    Text(L("再加一家"))
+                        .font(Theme.TypeScale.label)
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("这次再加一家"))
+            .disabled(addableTargets.isEmpty && addableOCR.isEmpty)
+            .popover(isPresented: $addProviderOpen, arrowEdge: .bottom) {
+                addProviderPopover
+            }
+        } else {
+            Button {
+                Pro.shared.showOffer()
+            } label: {
+                HStack(spacing: 6) {
+                    Text(L("再加一家需要 Pro"))
+                        .font(Theme.TypeScale.label)
+                    ProBadge(help: L("再加一家需要 Pro"))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var addProviderPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if addableTargets.isEmpty && addableOCR.isEmpty {
+                Text(L("没有更多已启用的服务"))
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+            }
+            ForEach(addableOCR) { provider in
+                Button {
+                    addOCR(provider)
+                    addProviderOpen = false
+                } label: {
+                    addProviderLine(name: provider.displayName, icon: ProviderIconView(ocr: provider, size: 14))
+                }
+                .buttonStyle(.plain)
+            }
+            ForEach(addableTargets) { target in
+                Button {
+                    AppDelegate.shared?.addSessionTranslate(target.id)
+                    addProviderOpen = false
+                } label: {
+                    addProviderLine(
+                        name: target.displayName,
+                        icon: ProviderIconView(outcomeID: target.id, name: target.displayName, size: 14)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+            Button {
+                addProviderOpen = false
+                PreferencesController.shared.show(tab: .providers)
+            } label: {
+                Text(L("管理服务…"))
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(width: 220)
+        .padding(.vertical, 4)
+    }
+
+    private func addProviderLine(name: String, icon: ProviderIconView) -> some View {
+        HStack(spacing: 8) {
+            icon
+            Text(name)
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+    }
+
     private var ocrGroupList: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(model.ocrGroups.sorted { lhs, rhs in
                 let order = config.orderedOCRProviders().map(\.rawValue)
                 let li = order.firstIndex(of: lhs.id) ?? .max
@@ -813,12 +1028,14 @@ struct PopupView: View {
                 return li < ri
             }) { group in
                 VStack(alignment: .leading, spacing: 6) {
+                    Rectangle().fill(Theme.hairline).frame(height: 0.5)
                     Text(group.name)
                         .font(Theme.TypeScale.caption).fontWeight(.semibold)
                         .foregroundStyle(.secondary)
                     Text(group.source)
-                        .font(Theme.TypeScale.label)
+                        .font(Theme.TypeScale.body)
                         .foregroundStyle(.secondary)
+                        .lineLimit(3)
                         .textSelection(.enabled)
                     ForEach(group.outcomes) { outcome in
                         if outcome.loading {
@@ -830,83 +1047,20 @@ struct PopupView: View {
                         }
                     }
                 }
-                .padding(10)
-                .card(fill: Theme.cardFill.opacity(glassOpacity))
-            }
-        }
-    }
-
-    private var multiBody: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(model.outcomes.enumerated()), id: \.element.id) { index, o in
-                let open = !model.collapsedProviderIDs.contains(o.id)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Button {
-                            toggleProvider(o.id, open: open)
-                        } label: {
-                            HStack(spacing: 6) {
-                                ProviderIconView(outcomeID: o.id, name: o.name, size: 12)
-                                Text(o.name).font(Theme.TypeScale.caption).fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                    .layoutPriority(1)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        modelMenu(o)
-                            .layoutPriority(0)
-                        Button {
-                            toggleProvider(o.id, open: open)
-                        } label: {
-                            HStack(spacing: 6) {
-                                writeBackShortcutLabel(index: index)
-                                if o.loading {
-                                    ProgressView().controlSize(.mini)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if let t = o.text {
-                            SpeakButton(text: t, language: targetSpeechCode, tag: "popup.\(o.id)")
-                            favoriteButton(translation: t, providerName: o.name)
-                            copyButton(id: o.id, text: t)
-                            writeBackButton(id: o.id, text: t, index: index)
-                        }
-                        providerChevron(open: open) { toggleProvider(o.id, open: open) }
-                    }
-                    writeBackNote(for: o.id)
-                    if open {
-                        if o.loading && o.text == nil {
-                            EmptyView()
-                        } else if let e = o.error {
-                            errorText(e)
-                            if o.applePackMissing {
-                                Button(L("下载 Apple 语言包…")) {
-                                    AppleLangPack.presentDownloadPrompt(force: true)
-                                }
-                            }
-                        } else if let t = o.text {
-                            resultText(t)
-                        }
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .card(fill: Theme.cardFill.opacity(glassOpacity))
+                .padding(.vertical, 6)
             }
         }
     }
 
     private func toggleProvider(_ id: String, open: Bool) {
         let update = {
-            if open { model.collapsedProviderIDs.insert(id) }
-            else { model.collapsedProviderIDs.remove(id) }
+            if open {
+                model.collapsedProviderIDs.insert(id)
+                model.openedProviderIDs.remove(id)
+            } else {
+                model.collapsedProviderIDs.remove(id)
+                model.openedProviderIDs.insert(id)
+            }
         }
         if reduceMotion {
             update()
@@ -981,17 +1135,26 @@ struct PopupView: View {
     @ViewBuilder
     private func writeBackButton(id: String, text: String, index: Int) -> some View {
         if model.writeBackOffered {
-            IconButton(
-                systemImage: "text.insert",
-                help: model.writeBackBlocked
-                    ?? (index < 9
-                        ? L("写回来源应用里当时的选区") + "（⌘\(index + 1)）"
-                        : L("写回来源应用里当时的选区")),
-                size: 11
-            ) {
+            Button {
                 onWriteBack(id, text)
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(Theme.TypeScale.caption)
+                    Text(L("写回"))
+                        .font(Theme.TypeScale.caption)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+                .frame(height: 22)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(HoverPlateButtonStyle())
             .disabled(model.writeBackBlocked != nil)
+            .help(model.writeBackBlocked
+                ?? (index < 9
+                    ? L("写回来源应用里当时的选区") + "（⌘\(index + 1)）"
+                    : L("写回来源应用里当时的选区")))
             .accessibilityLabel(L("写回"))
         }
     }
@@ -1501,6 +1664,10 @@ private final class PanelEdgeResize: NSView {
             if edges.contains(.left) { frame.origin.x = start.maxX - min.width }
             frame.size.width = min.width
         }
+        if frame.width > 560 {
+            if edges.contains(.left) { frame.origin.x = start.maxX - 560 }
+            frame.size.width = 560
+        }
         if frame.height < min.height {
             if edges.contains(.bottom) { frame.origin.y = start.maxY - min.height }
             frame.size.height = min.height
@@ -1767,6 +1934,7 @@ final class PopupController {
             dictAutoQuery: model.dictAutoQuery,
             dictExpanded: model.dictExpanded,
             collapsedProviderIDs: model.collapsedProviderIDs,
+            openedProviderIDs: model.openedProviderIDs,
             detectedLinks: model.detectedLinks,
             chatExpanded: model.chatExpanded,
             targetLanguage: model.targetLanguage,
@@ -1795,6 +1963,7 @@ final class PopupController {
         model.dictAutoQuery = tab.dictAutoQuery
         model.dictExpanded = tab.dictExpanded
         model.collapsedProviderIDs = tab.collapsedProviderIDs
+        model.openedProviderIDs = tab.openedProviderIDs
         model.detectedLinks = tab.detectedLinks
         model.targetLanguage = tab.targetLanguage
         model.sourceLanguage = tab.sourceLanguage
@@ -1832,6 +2001,7 @@ final class PopupController {
         model.ocrShot = shot
         model.showsOCRShot = false
         model.collapsedProviderIDs = []
+        model.openedProviderIDs = []
         model.dictEntry = nil
         model.dictLoading = false
         model.dictError = nil
@@ -2165,7 +2335,7 @@ final class PopupController {
         let minH: CGFloat = model.chatExpanded ? 240 : 150
         let screen = (panel?.screen ?? NSScreen.main)?.visibleFrame.insetBy(dx: 8, dy: 8)
             ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
-        return (NSSize(width: 300, height: minH), screen)
+        return (NSSize(width: 360, height: minH), screen)
     }
 
     private func relayout() {
@@ -2206,7 +2376,7 @@ final class PopupController {
     }
 
     private func measuredSize() -> NSSize {
-        let width: CGFloat = model.chatExpanded ? 440 : (model.singleMode ? 380 : 420)
+        let width: CGFloat = 360
         let maxH = heightCeiling()
         let minH: CGFloat = model.chatExpanded ? 420 : 120
         let view = makeView(fillsWindow: false)
@@ -2246,7 +2416,8 @@ final class PopupController {
     private func frameKeepingTop(_ size: NSSize, of panel: NSWindow) -> NSRect {
         var frame = panel.frame
         let top = frame.maxY
-        frame.size = size
+        let width = min(560, max(360, frame.width))
+        frame.size = NSSize(width: width, height: size.height)
         frame.origin.y = top - size.height
         clampIntoScreen(&frame)
         return frame
@@ -2530,6 +2701,97 @@ final class PopupController {
     }
 }
 
+
+/// 底部常驻的「继续问 AI…」。开关决定这一次带原文还是带译文，⌘↩ 发送。
+private struct PopupFollowUpBar: View {
+    @ObservedObject var session: ChatSession
+    var canAsk: Bool
+    var onSend: () -> Void
+
+    private var canSend: Bool {
+        canAsk
+            && !session.isSending
+            && !session.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !session.enabledProfiles.isEmpty
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                contextToggle(on: session.asksSource, title: L("带原文")) {
+                    session.toggleAskGroup(source: true)
+                }
+                contextToggle(on: session.asksTranslations, title: L("带译文")) {
+                    session.toggleAskGroup(source: false)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(alignment: .center, spacing: 6) {
+                ChatComposer(
+                    text: $session.input,
+                    placeholder: L("继续问 AI…"),
+                    isEnabled: canAsk && !session.isSending && !session.enabledProfiles.isEmpty,
+                    onSubmit: { if canSend { onSend() } }
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                if session.isSending {
+                    Button {
+                        session.cancel()
+                    } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .font(Theme.TypeScale.title)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("停止生成"))
+                } else {
+                    Button(action: { if canSend { onSend() } }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(Theme.TypeScale.title)
+                            .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSend)
+                    .help(L("⌘↩ 发送"))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(0.05))
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+    }
+
+    private func contextToggle(on: Bool, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+        }
+        .buttonStyle(ChipButtonStyle(selected: on))
+        .disabled(session.isSending || session.contextItems.isEmpty)
+        .help(on
+              ? String(format: L("提问时带上%@。再点一下不带"), title)
+              : String(format: L("提问时也带上%@"), title))
+    }
+}
+
+/// 一家译文。操作行常驻、次要色，鼠标停在这一家上时变实。
+private struct ProviderHoverRow<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    @State private var hovering = false
+
+    var body: some View {
+        content()
+            .opacity(hovering ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.12), value: hovering)
+            .onHover { hovering = $0 }
+    }
+}
 
 /// Transparent AppKit view that starts a window drag on mouseDown (for borderless panels).
 struct WindowDragHandle: NSViewRepresentable {

@@ -220,6 +220,29 @@ final class ChatSession: ObservableObject {
         askPicked = true
     }
 
+    /// 浮层底部两枚开关：带原文，或带上全部译文。最后一项点不掉。
+    func toggleAskGroup(source: Bool) {
+        let ids = contextItems.filter { $0.isSource == source }.map(\.id)
+        guard !ids.isEmpty else { return }
+        var next = askIDs
+        if ids.allSatisfy({ next.contains($0) }) {
+            ids.forEach { next.remove($0) }
+        } else {
+            ids.forEach { next.insert($0) }
+        }
+        guard !next.isEmpty else { return }
+        askIDs = next
+        askPicked = true
+    }
+
+    var asksSource: Bool {
+        askIDs.contains(ChatContextItem.sourceID)
+    }
+
+    var asksTranslations: Bool {
+        translations.contains { askIDs.contains($0.id) }
+    }
+
     /// `primaryID` 是界面上正在看的那一家，没点过提问对象时默认问它。
     func configure(
         source: String,
@@ -483,19 +506,29 @@ struct TranslationChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-                .fixedSize(horizontal: false, vertical: true)
-            askBar
-                .fixedSize(horizontal: false, vertical: true)
-            messageList
-            if let e = session.error {
-                ErrorLine(text: e)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 4)
+            if compact {
+                messageList
+                if let e = session.error {
+                    ErrorLine(text: e)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 4)
+                }
+            } else {
+                header
+                    .fixedSize(horizontal: false, vertical: true)
+                askBar
+                    .fixedSize(horizontal: false, vertical: true)
+                messageList
+                if let e = session.error {
+                    ErrorLine(text: e)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 4)
+                }
+                inputBar
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            inputBar
-                .fixedSize(horizontal: false, vertical: true)
         }
         .background(compact ? Color.clear : Theme.windowFill)
     }
@@ -617,7 +650,9 @@ struct TranslationChatView: View {
 
     private var messageColumn: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if session.messages.isEmpty {
+            if compact {
+                compactChatHeader
+            } else if session.messages.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(session.askedItems) { item in
                         contextChip(
@@ -642,8 +677,25 @@ struct TranslationChatView: View {
                 .id("sending")
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, compact && session.messages.isEmpty && !session.isSending ? 0 : 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 浮层里对话接在译文下面：顶上换这一次的模型，清空在右边。
+    private var compactChatHeader: some View {
+        HStack(spacing: 6) {
+            modelPicker
+            Spacer(minLength: 4)
+            if !session.messages.isEmpty {
+                Button(L("清空")) { session.clearHistory() }
+                    .buttonStyle(.plain)
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .disabled(session.isSending)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 
     @ViewBuilder
@@ -713,15 +765,24 @@ struct TranslationChatView: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 8)
-                    .card(fill: Theme.cardFill.opacity(surfaceOpacity), radius: 14)
+                    .padding(.horizontal, compact ? 4 : 11)
+                    .padding(.vertical, compact ? 2 : 8)
+                    .background {
+                        if !compact {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Theme.cardFill.opacity(surfaceOpacity))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Theme.hairline, lineWidth: 0.5)
+                                )
+                        }
+                    }
                 if !msg.content.isEmpty {
                     HStack(spacing: 4) {
                         IconButton(
                             systemImage: copiedMessageID == msg.id ? "checkmark" : "doc.on.doc",
                             help: L("复制这条回复"),
-                            tint: copiedMessageID == msg.id ? .green : nil,
+                            tint: copiedMessageID == msg.id ? Theme.ok : nil,
                             size: 10
                         ) {
                             let pb = NSPasteboard.general
@@ -733,14 +794,23 @@ struct TranslationChatView: View {
                             }
                         }
                         if let onWriteBack {
-                            IconButton(
-                                systemImage: "text.insert",
-                                help: writeBackBlocked ?? L("写回来源应用里当时的选区"),
-                                size: 10
-                            ) {
+                            Button {
                                 onWriteBack(msg.id, msg.content)
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .font(Theme.TypeScale.caption)
+                                    Text(L("写回"))
+                                        .font(Theme.TypeScale.caption)
+                                }
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 4)
+                                .frame(height: 22)
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(HoverPlateButtonStyle())
                             .disabled(writeBackBlocked != nil)
+                            .help(writeBackBlocked ?? L("写回来源应用里当时的选区"))
                             .accessibilityLabel(L("写回"))
                         }
                     }
