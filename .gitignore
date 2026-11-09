@@ -1,0 +1,7 @@
+.DS_Store
+build/
+dist/
+tools/__pycache__/
+docs/promo/**/node_modules/
+docs/promo/**/dist/
+docs/promo/**/renders/

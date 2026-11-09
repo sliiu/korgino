@@ -1,0 +1,74 @@
+{
+  "ready": true,
+  "cached": false,
+  "engine": "browser",
+  "missing": [],
+  "warnings": [],
+  "fingerprint": "91f942577c1882bbd40e9a196f6b29633eed16598ffd887aa45304908e25023b",
+  "details": {
+    "schema": 2,
+    "engine": "browser",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "versions": {
+      "python": {
+        "path": "/opt/homebrew/opt/python@3.15/bin/python3.15",
+        "version": "3.15.2"
+      },
+      "node": {
+        "path": "/Users/pax/.nvm/versions/node/v24.15.0/bin/node",
+        "version": "v24.15.0"
+      },
+      "npm": {
+        "path": "/Users/pax/.nvm/versions/node/v24.15.0/bin/npm",
+        "version": "11.12.1"
+      },
+      "ffmpeg": {
+        "path": "/opt/homebrew/bin/ffmpeg",
+        "version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers"
+      },
+      "ffprobe": {
+        "path": "/opt/homebrew/bin/ffprobe",
+        "version": "ffprobe version 9.0.2 Copyright (c) 2007-2026 the FFmpeg developers"
+      }
+    },
+    "packages": {
+      "playwright": {
+        "version": "1.58.1",
+        "path": "/Users/pax/Documents/Code/KorgiTranslate/docs/promo/korgino-film/node_modules/playwright/package.json"
+      },
+      "esbuild": {
+        "version": "0.27.3",
+        "path": "/Users/pax/Documents/Code/KorgiTranslate/docs/promo/korgino-film/node_modules/esbuild/package.json"
+      },
+      "react": {
+        "version": "19.2.3",
+        "path": "/Users/pax/Documents/Code/KorgiTranslate/docs/promo/korgino-film/node_modules/react/package.json"
+      },
+      "react-dom": {
+        "version": "19.2.3",
+        "path": "/Users/pax/Documents/Code/KorgiTranslate/docs/promo/korgino-film/node_modules/react-dom/package.json"
+      },
+      "gsap": {
+        "version": "3.15.0",
+        "path": "/Users/pax/Documents/Code/KorgiTranslate/docs/promo/korgino-film/node_modules/gsap/package.json"
+      },
+      "three": {
+        "version": "0.186.1",
+        "path": "/Users/pax/Documents/Code/KorgiTranslate/docs/promo/korgino-film/node_modules/three/package.json"
+      }
+    },
+    "manifests": {
+      "package.json": "9561a9f8fcda1824400bafde09e8e58a1a56da2c0be4ff7016ce516d5136108e",
+      "package-lock.json": "7195932060939d9e2c002de27f5538dc38e51f6d51e5f2950bb3ac857248c867"
+    },
+    "browserEnv": {
+      "PLAYWRIGHT_BROWSERS_PATH": null,
+      "HYPERFRAMES_CHROME_PATH": null
+    }
+  },
+  "browser": {
+    "launched": true,
+    "playwrightVersion": "1.58.1"
+  },
+  "next": "Continue; do not load onboarding."
+}

@@ -1,0 +1,87 @@
+/* Korgino film. Frame design from DIRECTION.md: warm paper, ink, one teal accent. */
+* { box-sizing:border-box; }
+html,body { margin:0; background:#000; }
+#film {
+  position:relative; width:1920px; height:1080px;
+  background:#F6F1E8; color:#2A2622;
+  font-family:"PingFang SC","Noto Sans CJK SC",sans-serif;
+}
+#film *, #film *::before, #film *::after { transition:none !important; animation-duration:0s !important; animation-delay:0s !important; }
+.shot { position:absolute; inset:0; overflow:hidden; opacity:0; visibility:hidden; }
+.split { display:inline-block; white-space:pre-wrap; }
+.split .u { display:inline-block; }
+
+/* paper grain, faint, so the page reads as paper and not a flat fill */
+.paper::before {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background-image:radial-gradient(rgba(42,38,34,.035) 1px, transparent 1px);
+  background-size:7px 7px;
+}
+
+.caption { position:absolute; left:140px; top:96px; }
+.caption .en { font-family:Georgia,serif; font-size:28px; font-weight:400; color:#8A8175; letter-spacing:.01em; }
+.caption .zh { font-size:52px; font-weight:600; margin-top:10px; letter-spacing:.01em; }
+
+/* ---- hook ---- */
+.hook-stage { position:absolute; left:140px; top:360px; width:1500px; }
+.hook-src { font-size:72px; font-weight:600; letter-spacing:.01em; }
+.hook-rule { height:2px; width:0; margin:28px 0; background:#3ED0C4; }
+.hook-dst { font-family:Georgia,serif; font-size:56px; color:#5C564E; }
+
+/* ---- feature stage: the product floats over one line of text ---- */
+.stage { position:absolute; left:140px; top:300px; width:1640px; }
+.stage-src { font-size:34px; color:#8A8175; margin-bottom:26px; }
+.stage-src em { font-style:normal; color:#2A2622; background:rgba(62,208,196,.22); border-radius:8px; padding:2px 10px; }
+
+/* translation panel, rebuilt from Sources/Popup.swift at 2x */
+.panel {
+  width:860px; border-radius:32px; background:rgba(255,255,255,.86);
+  border:1px solid rgba(42,38,34,.12);
+  box-shadow:0 30px 70px rgba(42,38,34,.14), inset 0 1.5px 0 rgba(255,255,255,.9);
+  overflow:hidden;
+}
+.panel-head { height:72px; display:flex; align-items:center; gap:16px; padding:0 28px; border-bottom:1px solid rgba(42,38,34,.08); font-size:24px; color:#5C564E; }
+.panel-head .arrow { color:#3ED0C4; font-weight:600; }
+.panel-src { margin:20px 24px 8px; padding:20px 24px 12px; border-radius:20px; background:rgba(42,38,34,.05); font-size:28px; color:#5C564E; }
+.panel-card { margin:12px 24px 24px; padding:20px 24px; border-radius:20px; background:#FFFFFF; border:1px solid rgba(42,38,34,.06); }
+.panel-card .who { display:flex; align-items:center; gap:12px; font-size:22px; color:#8A8175; font-weight:600; }
+.panel-card .who .dot { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#A594FF,#6A58E4); }
+.panel-card .out { margin-top:10px; font-size:32px; font-weight:500; line-height:1.45; }
+
+/* plugin bar, rebuilt from Sources/SelectionPlugins.swift at 2x */
+.bar { display:inline-flex; align-items:center; gap:6px; height:68px; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.8); border:2px solid rgba(42,38,34,.12); box-shadow:0 12px 28px rgba(42,38,34,.16); }
+.bar .btn { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2A2622; }
+.bar .btn.on { background:rgba(42,38,34,.1); }
+.bar .sep { width:2px; height:32px; background:rgba(42,38,34,.14); margin:0 6px; }
+.bar .x { width:52px; height:56px; display:flex; align-items:center; justify-content:center; color:rgba(42,38,34,.6); }
+.tip { display:inline-block; margin-bottom:12px; padding:0 18px; height:40px; line-height:40px; border-radius:999px; background:rgba(255,255,255,.92); border:1px solid rgba(42,38,34,.12); box-shadow:0 6px 14px rgba(42,38,34,.12); font-size:22px; }
+.plugin-result { margin-top:22px; font-size:30px; font-weight:500; }
+
+/* voice capsule, rebuilt from Sources/QuickOverlay.swift at 2x */
+.keycap { display:inline-flex; align-items:center; justify-content:center; min-width:92px; height:72px; padding:0 22px; border-radius:16px; background:#FFFFFF; border:1px solid rgba(42,38,34,.16); box-shadow:0 3px 0 rgba(42,38,34,.25); font-family:Georgia,serif; font-size:30px; }
+.keycap.down { transform:translateY(3px); box-shadow:0 0 0 rgba(42,38,34,.25); background:#F3EEE4; }
+.capsule { display:inline-flex; align-items:flex-start; gap:16px; margin-top:28px; padding:14px 26px; border-radius:24px; background:rgba(255,255,255,.9); border:1px solid rgba(42,38,34,.12); box-shadow:0 10px 24px rgba(42,38,34,.12); font-size:26px; font-weight:500; }
+.capsule .col { display:flex; flex-direction:column; gap:8px; }
+.capsule .src { color:#8A8175; font-size:24px; font-weight:400; }
+.bars { display:flex; align-items:center; gap:5px; height:28px; }
+.bars i { display:block; width:5px; border-radius:3px; background:#3ED0C4; }
+
+/* caption lane, rebuilt from Sources/SystemAudioTranslate.swift at 2x */
+.lane { width:1240px; border-radius:24px; background:#FFFFFF; border:1px solid rgba(42,38,34,.08); box-shadow:0 24px 60px rgba(42,38,34,.1); overflow:hidden; }
+.lane-head { display:flex; align-items:baseline; gap:16px; padding:22px 28px 16px; }
+.lane-head .name { font-size:26px; font-weight:600; }
+.lane-head .sum { font-size:22px; color:#8A8175; }
+.lane-head .count { margin-left:auto; font-family:"SF Mono",ui-monospace,monospace; font-size:21px; color:#8A8175; }
+.row { display:flex; gap:18px; padding:18px 24px; }
+.row.latest { background:rgba(62,208,196,.1); }
+.row .stamp { width:168px; text-align:right; font-family:"SF Mono",ui-monospace,monospace; font-size:21px; color:rgba(42,38,34,.45); padding-top:4px; }
+.row.latest .stamp { color:#2A2622; }
+.row .who { display:inline-block; font-size:20px; font-weight:600; color:#5C564E; background:rgba(42,38,34,.06); border-radius:999px; padding:2px 14px; margin-bottom:6px; }
+.row .src { font-size:24px; color:#8A8175; }
+.row .dst { font-size:30px; font-weight:500; margin-top:4px; }
+
+/* ---- end ---- */
+.end-stage { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; }
+.end-stage img { width:220px; height:220px; border-radius:50px; }
+.end-stage .name { font-size:84px; font-weight:600; letter-spacing:.01em; }
+.end-stage .line { font-size:32px; color:#8A8175; }

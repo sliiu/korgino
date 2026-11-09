@@ -1,0 +1,1952 @@
+{
+  "agentWorkspaceID" : "00F889A8-B6CC-4F52-B7AD-141DA1D4B15A",
+  "assets" : [
+    {
+      "assetType" : "image",
+      "duration" : 5,
+      "id" : "2B81EBB8-5EDC-4AAD-9F68-935682350437",
+      "naturalHeight" : 1080,
+      "naturalWidth" : 1920,
+      "storage" : "generated"
+    },
+    {
+      "assetType" : "image",
+      "duration" : 5,
+      "id" : "2D0EE154-E7EE-46C2-9612-880776EE5242",
+      "naturalHeight" : 1080,
+      "naturalWidth" : 1920,
+      "storage" : "generated"
+    },
+    {
+      "assetType" : "video",
+      "displayOrientation" : "Landscape Left",
+      "duration" : 8.867,
+      "externalBookmarkData" : "Ym9va3ADAAAAAAUQQAAAAEJcmMybGuAQADDRcJoIF427apr1PhuULup8KofejuhbAAAAAAAAAAAAAAAAAAAAAFwCAAAEAAAAAwMAAAAIACgFAAAAAQEAAFVzZXJzAAAAAwAAAAEBAABwYXgACAAAAAEBAABQcm9qZWN0cw4AAAABAQAAS29yZ2lUcmFuc2xhdGUAAAQAAAABAQAAZG9jcwUAAAABAQAAcHJvbW8AAAAHAAAAAQEAAGZvb3RhZ2UAEgAAAAEBAABjYXB0aW9ucy1jbG9zZS5tb3YAACAAAAABBgAAEAAAACAAAAAsAAAAPAAAAFQAAABgAAAAcAAAAIAAAAAIAAAABAMAAABIAAAAAAAACAAAAAQDAADnMgQAAAAAAAgAAAAEAwAACJlHAgAAAAAIAAAABAMAAAmZRwIAAAAACAAAAAQDAAAqNV4CAAAAAAgAAAAEAwAA0YJeAgAAAAAIAAAABAMAACKSXgIAAAAACAAAAAQDAAB+m14CAAAAACAAAAABBgAAxAAAANQAAADkAAAA9AAAAAQBAAAUAQAAJAEAADQBAAAIAAAAAAQAAEHIRfIiYl5KGAAAAAECAAABAAAAAAAAAA8AAAAAAAAAAAAAAAAAAAAIAAAABAMAAAYAAAAAAAAABAAAAAMDAAD1AQAACAAAAAEJAABmaWxlOi8vLwwAAAABAQAATWFjaW50b3NoIEhECAAAAAQDAAAAkGKT5wAAAAgAAAAABAAAQcgWtGWAAAAkAAAAAQEAADUzQjZEMDQxLTJFOTAtNDYzNC1CRUM0LUUyQUIxQkMyNTMzRBgAAAABAgAAgQAAAAEAAADvEwAAAQAAAAAAAAAAAAAAAQAAAAEBAAAvAAAAAAAAAAEFAADMAAAA\/v\/\/\/wEAAAAAAAAAEAAAAAQQAACcAAAAAAAAAAUQAABEAQAAAAAAABAQAAB8AQAAAAAAAEAQAABsAQAAAAAAAAIgAABIAgAAAAAAAAUgAAC4AQAAAAAAABAgAADIAQAAAAAAABEgAAD8AQAAAAAAABIgAADcAQAAAAAAABMgAADsAQAAAAAAACAgAAAoAgAAAAAAADAgAABUAgAAAAAAAAHAAACcAQAAAAAAABHAAAAgAAAAAAAAABLAAACsAQAAAAAAABDQAAAEAAAAAAAAAA==",
+      "externalPath" : "\/Users\/pax\/Projects\/KorgiTranslate\/docs\/promo\/footage\/captions-close.mov",
+      "id" : "B90B436E-54F8-454D-A279-143EE3924AA2",
+      "naturalHeight" : 900,
+      "naturalWidth" : 1386,
+      "storage" : "external"
+    },
+    {
+      "assetType" : "image",
+      "displayOrientation" : "Portrait",
+      "duration" : 5,
+      "externalBookmarkData" : "Ym9va0QDAAAAAAUQQAAAAAlhkIr1CAg\/ofw+pA9W+fJTBOjcXE0Oz1MNax5scjtyAAAAAAAAAAAAAAAAAAAAADACAAAEAAAAAwMAAAAIACgFAAAAAQEAAFVzZXJzAAAAAwAAAAEBAABwYXgACAAAAAEBAABQcm9qZWN0cw4AAAABAQAAS29yZ2lUcmFuc2xhdGUAAAYAAAABAQAAQXNzZXRzAAADAAAAAQEAAHBuZwANAAAAAQEAAGljb24tMTAyNC5wbmcAAAAcAAAAAQYAABAAAAAgAAAALAAAADwAAABUAAAAZAAAAHAAAAAIAAAABAMAAABIAAAAAAAACAAAAAQDAADnMgQAAAAAAAgAAAAEAwAACJlHAgAAAAAIAAAABAMAAAmZRwIAAAAACAAAAAQDAADTpFICAAAAAAgAAAAEAwAA2aRSAgAAAAAIAAAABAMAAO6kUgIAAAAAHAAAAAEGAACsAAAAvAAAAMwAAADcAAAA7AAAAPwAAAAMAQAACAAAAAAEAABByETKd81T6hgAAAABAgAAAQAAAAAAAAAPAAAAAAAAAAAAAAAAAAAACAAAAAQDAAAFAAAAAAAAAAQAAAADAwAA9QEAAAgAAAABCQAAZmlsZTovLy8MAAAAAQEAAE1hY2ludG9zaCBIRAgAAAAEAwAAAJBik+cAAAAIAAAAAAQAAEHIFrRlgAAAJAAAAAEBAAA1M0I2RDA0MS0yRTkwLTQ2MzQtQkVDNC1FMkFCMUJDMjUzM0QYAAAAAQIAAIEAAAABAAAA7xMAAAEAAAAAAAAAAAAAAAEAAAABAQAALwAAAAAAAAABBQAAzAAAAP7\/\/\/8BAAAAAAAAABAAAAAEEAAAiAAAAAAAAAAFEAAAHAEAAAAAAAAQEAAAUAEAAAAAAABAEAAAQAEAAAAAAAACIAAAHAIAAAAAAAAFIAAAjAEAAAAAAAAQIAAAnAEAAAAAAAARIAAA0AEAAAAAAAASIAAAsAEAAAAAAAATIAAAwAEAAAAAAAAgIAAA\/AEAAAAAAAAwIAAAKAIAAAAAAAABwAAAcAEAAAAAAAARwAAAIAAAAAAAAAASwAAAgAEAAAAAAAAQ0AAABAAAAAAAAAA=",
+      "externalPath" : "\/Users\/pax\/Projects\/KorgiTranslate\/Assets\/png\/icon-1024.png",
+      "id" : "CF669F2E-E307-4A94-A49E-684B35C9C6AE",
+      "naturalHeight" : 1024,
+      "naturalWidth" : 1024,
+      "storage" : "external"
+    },
+    {
+      "assetType" : "image",
+      "displayOrientation" : "Landscape Left",
+      "duration" : 5,
+      "externalBookmarkData" : "Ym9va0wDAAAAAAUQQAAAADjwGmw3pgnrdORfiXQt7iakYtn04ZVnAQkJK8nPWeA7AAAAAAAAAAAAAAAAAAAAADgCAAAEAAAAAwMAAAAIACgFAAAAAQEAAFVzZXJzAAAAAwAAAAEBAABwYXgACAAAAAEBAABQcm9qZWN0cw4AAAABAQAAS29yZ2lUcmFuc2xhdGUAAAQAAAABAQAAZG9jcwUAAAABAQAAcHJvbW8AAAAWAAAAAQEAAGtvcmdpLWxhdW5jaC1jb3Zlci5wbmcAABwAAAABBgAAEAAAACAAAAAsAAAAPAAAAFQAAABgAAAAcAAAAAgAAAAEAwAAAEgAAAAAAAAIAAAABAMAAOcyBAAAAAAACAAAAAQDAAAImUcCAAAAAAgAAAAEAwAACZlHAgAAAAAIAAAABAMAACo1XgIAAAAACAAAAAQDAADRgl4CAAAAAAgAAAAEAwAAt5lfAgAAAAAcAAAAAQYAALQAAADEAAAA1AAAAOQAAAD0AAAABAEAABQBAAAIAAAAAAQAAEHIRi2L1eksGAAAAAECAAABAAAAAAAAAA8AAAAAAAAAAAAAAAAAAAAIAAAABAMAAAUAAAAAAAAABAAAAAMDAAD1AQAACAAAAAEJAABmaWxlOi8vLwwAAAABAQAATWFjaW50b3NoIEhECAAAAAQDAAAAkGKT5wAAAAgAAAAABAAAQcgWtGWAAAAkAAAAAQEAADUzQjZEMDQxLTJFOTAtNDYzNC1CRUM0LUUyQUIxQkMyNTMzRBgAAAABAgAAgQAAAAEAAADvEwAAAQAAAAAAAAAAAAAAAQAAAAEBAAAvAAAAAAAAAAEFAADMAAAA\/v\/\/\/wEAAAAAAAAAEAAAAAQQAACQAAAAAAAAAAUQAAAkAQAAAAAAABAQAABYAQAAAAAAAEAQAABIAQAAAAAAAAIgAAAkAgAAAAAAAAUgAACUAQAAAAAAABAgAACkAQAAAAAAABEgAADYAQAAAAAAABIgAAC4AQAAAAAAABMgAADIAQAAAAAAACAgAAAEAgAAAAAAADAgAAAwAgAAAAAAAAHAAAB4AQAAAAAAABHAAAAgAAAAAAAAABLAAACIAQAAAAAAABDQAAAEAAAAAAAAAA==",
+      "externalPath" : "\/Users\/pax\/Projects\/KorgiTranslate\/docs\/promo\/korgi-launch-cover.png",
+      "id" : "4CDFA2E2-8B29-487E-943E-E1C25ECF2253",
+      "naturalHeight" : 1440,
+      "naturalWidth" : 2560,
+      "storage" : "external"
+    },
+    {
+      "assetType" : "video",
+      "displayOrientation" : "Landscape Left",
+      "duration" : 7.55,
+      "externalBookmarkData" : "Ym9va2gDAAAAAAUQQAAAAAmdnzm1qmDYNhI1v7zNr7kM00Enr\/YEHuoCef2odaKrAAAAAAAAAAAAAAAAAAAAAFQCAAAEAAAAAwMAAAAIACgFAAAAAQEAAFVzZXJzAAAAAwAAAAEBAABwYXgACAAAAAEBAABQcm9qZWN0cw4AAAABAQAAS29yZ2lUcmFuc2xhdGUAAAQAAAABAQAAZG9jcwUAAAABAQAAcHJvbW8AAAAHAAAAAQEAAGZvb3RhZ2UACgAAAAEBAABvY3ItaGkubW92AAAgAAAAAQYAABAAAAAgAAAALAAAADwAAABUAAAAYAAAAHAAAACAAAAACAAAAAQDAAAASAAAAAAAAAgAAAAEAwAA5zIEAAAAAAAIAAAABAMAAAiZRwIAAAAACAAAAAQDAAAJmUcCAAAAAAgAAAAEAwAAKjVeAgAAAAAIAAAABAMAANGCXgIAAAAACAAAAAQDAAAikl4CAAAAAAgAAAAEAwAAwkVfAgAAAAAgAAAAAQYAALwAAADMAAAA3AAAAOwAAAD8AAAADAEAABwBAAAsAQAACAAAAAAEAABByEYg5VlN4xgAAAABAgAAAQAAAAAAAAAPAAAAAAAAAAAAAAAAAAAACAAAAAQDAAAGAAAAAAAAAAQAAAADAwAA9QEAAAgAAAABCQAAZmlsZTovLy8MAAAAAQEAAE1hY2ludG9zaCBIRAgAAAAEAwAAAJBik+cAAAAIAAAAAAQAAEHIFrRlgAAAJAAAAAEBAAA1M0I2RDA0MS0yRTkwLTQ2MzQtQkVDNC1FMkFCMUJDMjUzM0QYAAAAAQIAAIEAAAABAAAA7xMAAAEAAAAAAAAAAAAAAAEAAAABAQAALwAAAAAAAAABBQAAzAAAAP7\/\/\/8BAAAAAAAAABAAAAAEEAAAlAAAAAAAAAAFEAAAPAEAAAAAAAAQEAAAdAEAAAAAAABAEAAAZAEAAAAAAAACIAAAQAIAAAAAAAAFIAAAsAEAAAAAAAAQIAAAwAEAAAAAAAARIAAA9AEAAAAAAAASIAAA1AEAAAAAAAATIAAA5AEAAAAAAAAgIAAAIAIAAAAAAAAwIAAATAIAAAAAAAABwAAAlAEAAAAAAAARwAAAIAAAAAAAAAASwAAApAEAAAAAAAAQ0AAABAAAAAAAAAA=",
+      "externalPath" : "\/Users\/pax\/Projects\/KorgiTranslate\/docs\/promo\/footage\/ocr-hi.mov",
+      "id" : "F1D3E6F4-51D7-4569-B8DA-CF4073610D96",
+      "naturalHeight" : 900,
+      "naturalWidth" : 1386,
+      "storage" : "external"
+    },
+    {
+      "assetType" : "audio",
+      "duration" : 18,
+      "externalBookmarkData" : "Ym9va2gDAAAAAAUQQAAAAKteJUBMgDC7cjaMYmxlyw+2QxizWoo28FtxiFOFar4aAAAAAAAAAAAAAAAAAAAAAFQCAAAEAAAAAwMAAAAIACgFAAAAAQEAAFVzZXJzAAAAAwAAAAEBAABwYXgACAAAAAEBAABQcm9qZWN0cw4AAAABAQAAS29yZ2lUcmFuc2xhdGUAAAQAAAABAQAAZG9jcwUAAAABAQAAcHJvbW8AAAAHAAAAAQEAAGZvb3RhZ2UACQAAAAEBAABzY29yZS53YXYAAAAgAAAAAQYAABAAAAAgAAAALAAAADwAAABUAAAAYAAAAHAAAACAAAAACAAAAAQDAAAASAAAAAAAAAgAAAAEAwAA5zIEAAAAAAAIAAAABAMAAAiZRwIAAAAACAAAAAQDAAAJmUcCAAAAAAgAAAAEAwAAKjVeAgAAAAAIAAAABAMAANGCXgIAAAAACAAAAAQDAAAikl4CAAAAAAgAAAAEAwAA1JpeAgAAAAAgAAAAAQYAALwAAADMAAAA3AAAAOwAAAD8AAAADAEAABwBAAAsAQAACAAAAAAEAABByEXx+50GLxgAAAABAgAAAQAAAAAAAAAPAAAAAAAAAAAAAAAAAAAACAAAAAQDAAAGAAAAAAAAAAQAAAADAwAA9QEAAAgAAAABCQAAZmlsZTovLy8MAAAAAQEAAE1hY2ludG9zaCBIRAgAAAAEAwAAAJBik+cAAAAIAAAAAAQAAEHIFrRlgAAAJAAAAAEBAAA1M0I2RDA0MS0yRTkwLTQ2MzQtQkVDNC1FMkFCMUJDMjUzM0QYAAAAAQIAAIEAAAABAAAA7xMAAAEAAAAAAAAAAAAAAAEAAAABAQAALwAAAAAAAAABBQAAzAAAAP7\/\/\/8BAAAAAAAAABAAAAAEEAAAlAAAAAAAAAAFEAAAPAEAAAAAAAAQEAAAdAEAAAAAAABAEAAAZAEAAAAAAAACIAAAQAIAAAAAAAAFIAAAsAEAAAAAAAAQIAAAwAEAAAAAAAARIAAA9AEAAAAAAAASIAAA1AEAAAAAAAATIAAA5AEAAAAAAAAgIAAAIAIAAAAAAAAwIAAATAIAAAAAAAABwAAAlAEAAAAAAAARwAAAIAAAAAAAAAASwAAApAEAAAAAAAAQ0AAABAAAAAAAAAA=",
+      "externalPath" : "\/Users\/pax\/Projects\/KorgiTranslate\/docs\/promo\/footage\/score.wav",
+      "id" : "A19A600C-BEC7-4E18-9D39-9A3ED4E891AB",
+      "naturalHeight" : 0,
+      "naturalWidth" : 0,
+      "storage" : "external"
+    },
+    {
+      "assetType" : "video",
+      "displayOrientation" : "Landscape Left",
+      "duration" : 5.166666666666667,
+      "externalBookmarkData" : "Ym9va2gDAAAAAAUQQAAAAPWXW7QhwTSUYGPF81QCNnnV7mN1FrN1MyAZLMlP5ND2AAAAAAAAAAAAAAAAAAAAAFQCAAAEAAAAAwMAAAAIACgFAAAAAQEAAFVzZXJzAAAAAwAAAAEBAABwYXgACAAAAAEBAABQcm9qZWN0cw4AAAABAQAAS29yZ2lUcmFuc2xhdGUAAAQAAAABAQAAZG9jcwUAAAABAQAAcHJvbW8AAAAHAAAAAQEAAGZvb3RhZ2UACgAAAAEBAABzZWxlY3QubW92AAAgAAAAAQYAABAAAAAgAAAALAAAADwAAABUAAAAYAAAAHAAAACAAAAACAAAAAQDAAAASAAAAAAAAAgAAAAEAwAA5zIEAAAAAAAIAAAABAMAAAiZRwIAAAAACAAAAAQDAAAJmUcCAAAAAAgAAAAEAwAAKjVeAgAAAAAIAAAABAMAANGCXgIAAAAACAAAAAQDAAAikl4CAAAAAAgAAAAEAwAAI5VeAgAAAAAgAAAAAQYAALwAAADMAAAA3AAAAOwAAAD8AAAADAEAABwBAAAsAQAACAAAAAAEAABByEXxW0suAhgAAAABAgAAAQAAAAAAAAAPAAAAAAAAAAAAAAAAAAAACAAAAAQDAAAGAAAAAAAAAAQAAAADAwAA9QEAAAgAAAABCQAAZmlsZTovLy8MAAAAAQEAAE1hY2ludG9zaCBIRAgAAAAEAwAAAJBik+cAAAAIAAAAAAQAAEHIFrRlgAAAJAAAAAEBAAA1M0I2RDA0MS0yRTkwLTQ2MzQtQkVDNC1FMkFCMUJDMjUzM0QYAAAAAQIAAIEAAAABAAAA7xMAAAEAAAAAAAAAAAAAAAEAAAABAQAALwAAAAAAAAABBQAAzAAAAP7\/\/\/8BAAAAAAAAABAAAAAEEAAAlAAAAAAAAAAFEAAAPAEAAAAAAAAQEAAAdAEAAAAAAABAEAAAZAEAAAAAAAACIAAAQAIAAAAAAAAFIAAAsAEAAAAAAAAQIAAAwAEAAAAAAAARIAAA9AEAAAAAAAASIAAA1AEAAAAAAAATIAAA5AEAAAAAAAAgIAAAIAIAAAAAAAAwIAAATAIAAAAAAAABwAAAlAEAAAAAAAARwAAAIAAAAAAAAAASwAAApAEAAAAAAAAQ0AAABAAAAAAAAAA=",
+      "externalPath" : "\/Users\/pax\/Projects\/KorgiTranslate\/docs\/promo\/footage\/select.mov",
+      "id" : "51D3810B-18C2-4A58-B296-0EF6AF561E99",
+      "naturalHeight" : 900,
+      "naturalWidth" : 1386,
+      "storage" : "external"
+    }
+  ],
+  "audioTracks" : [
+    {
+      "clips" : [
+        {
+          "assetID" : "A19A600C-BEC7-4E18-9D39-9A3ED4E891AB",
+          "id" : "3EE38991-83CD-4E1F-8EAB-DB74B7985E2A",
+          "playbackRate" : 1,
+          "role" : "audio",
+          "sceneLayer" : "3D",
+          "sourceIn" : 0,
+          "sourceOut" : 18,
+          "startTime" : 0,
+          "trackType" : "audio"
+        }
+      ],
+      "height" : 42,
+      "id" : "CAD738A6-012C-47DD-9783-23B5049FA6F9",
+      "isEnabled" : true,
+      "isLocked" : false,
+      "isUserVisible" : true,
+      "name" : "A1"
+    }
+  ],
+  "bezelSettings" : {
+    "aspectRatio" : "Custom",
+    "backgroundFill" : {
+      "fillType" : "Gradient",
+      "gradientDirection" : 0,
+      "gradientEndColor" : {
+        "blue" : 0.09411764705882353,
+        "green" : 0.07058823529411765,
+        "opacity" : 1,
+        "red" : 0.06274509803921569
+      },
+      "gradientStartColor" : {
+        "blue" : 0.34509803921568627,
+        "green" : 0.13725490196078433,
+        "opacity" : 1,
+        "red" : 0.16470588235294117
+      },
+      "pattern" : {
+        "color" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 1,
+          "red" : 0
+        },
+        "opacity" : 0.15,
+        "patternType" : "None",
+        "rotation" : 0,
+        "size" : 8,
+        "spacing" : 40,
+        "thickness" : 1
+      },
+      "solidColor" : {
+        "blue" : 1,
+        "green" : 1,
+        "opacity" : 1,
+        "red" : 1
+      }
+    },
+    "backgroundImage" : {
+      "blurRadius" : 0,
+      "fitMode" : "Fill",
+      "position" : [
+        0.5,
+        0.5
+      ],
+      "scale" : 1
+    },
+    "backgroundVideo" : {
+      "blurRadius" : 0,
+      "fitMode" : "Fill",
+      "position" : [
+        0.5,
+        0.5
+      ],
+      "scale" : 1,
+      "sourceIn" : 0
+    },
+    "customAspectRatioHeight" : 1080,
+    "customAspectRatioWidth" : 1920,
+    "customFrameColor" : {
+      "blue" : 0.5,
+      "green" : 0.5,
+      "opacity" : 1,
+      "red" : 0.5
+    },
+    "ditherStrength" : 0,
+    "frameColor" : "Silver",
+    "isAspectRatioLocked" : false,
+    "isEnabled" : false,
+    "noBezelCornerRadius" : 62,
+    "roundedCornersEnabled" : false,
+    "scene3DEnvironment" : {
+      "pitchDegrees" : 0,
+      "presetID" : "studio-04",
+      "rollDegrees" : 0,
+      "rotationDegrees" : 0,
+      "showAsBackground" : false,
+      "source" : "preset"
+    },
+    "scene3DLightIntensity" : 0.15,
+    "shadow" : {
+      "angle" : 155,
+      "distance" : 75,
+      "enabled" : true,
+      "opacity" : 0.4,
+      "projection" : "Behind",
+      "radius" : 30
+    },
+    "showDynamicIsland" : false,
+    "strokeColor" : {
+      "blue" : 1,
+      "green" : 1,
+      "opacity" : 1,
+      "red" : 1
+    },
+    "strokeEnabled" : false,
+    "strokeOpacity" : 0.5,
+    "strokeWidth" : 2
+  },
+  "bundleRecordingsWithProject" : false,
+  "cameraTransform3D" : {
+    "offsetX" : 0,
+    "offsetY" : 0,
+    "offsetZ" : -0.35,
+    "rotationXDegrees" : 0,
+    "rotationYDegrees" : 16,
+    "rotationZDegrees" : 0,
+    "scale" : 1
+  },
+  "createdAt" : 814474150.735557,
+  "cursorDisplayMode" : "Continuous",
+  "cursorSize" : 0.7,
+  "cursorSmoothing" : "low",
+  "cursorTapAnimationDuration" : 0.4,
+  "effectsClips" : [
+    {
+      "assetID" : "51D3810B-18C2-4A58-B296-0EF6AF561E99",
+      "cameraAnimation" : {
+        "curve" : "custom",
+        "curveParameter" : 0.6,
+        "customControlPoints" : {
+          "control1" : [
+            0.11000000000000001,
+            0.76
+          ],
+          "control2" : [
+            0.3,
+            1
+          ]
+        },
+        "holdsPoseAfterOut" : true,
+        "id" : "3DD0B017-F848-44BF-B13B-5E6CDB37FBD2",
+        "tracks" : {
+          "apertureStops" : {
+            "keyframes" : [
+
+            ]
+          },
+          "deviceModelParameterTracks" : {
+            "foldOpening" : {
+              "keyframes" : [
+
+              ]
+            },
+            "lidOpening" : {
+              "keyframes" : [
+
+              ]
+            }
+          },
+          "environmentPitchDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "environmentRollDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "environmentYawDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "focusDepth" : {
+            "keyframes" : [
+
+            ]
+          },
+          "offsetX" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "C54EA1BA-506F-4634-BF6F-E9470B07F2B9",
+                "time" : 0,
+                "value" : 0
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "5450F7D4-A973-4807-BF80-F05948F43330",
+                "time" : 2.4,
+                "value" : 0
+              }
+            ]
+          },
+          "offsetY" : {
+            "keyframes" : [
+
+            ]
+          },
+          "offsetZ" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "95FEB952-7A09-4783-B268-77E684E024A3",
+                "time" : 0,
+                "value" : -0.16
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "8CB6B9E6-31E9-49EB-8ABE-89BF5F0B30FE",
+                "time" : 2.4,
+                "value" : -0.02
+              }
+            ]
+          },
+          "rotationXDegrees" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "7DB9F5FF-0DE0-4C9C-A811-333A7D819703",
+                "time" : 0,
+                "value" : -2
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "15DE2011-340A-4247-B91A-096F3E75E0D2",
+                "time" : 2.4,
+                "value" : -1
+              }
+            ]
+          },
+          "rotationYDegrees" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "5A818853-F81E-4CED-A0B3-DFEC50877DD4",
+                "time" : 0,
+                "value" : 14
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "40263610-D52C-4922-B814-AC949F085063",
+                "time" : 2.4,
+                "value" : 11
+              }
+            ]
+          },
+          "rotationZDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "scale" : {
+            "keyframes" : [
+
+            ]
+          }
+        }
+      },
+      "id" : "07453327-D0F3-4E5B-A335-88057911D49E",
+      "linkedVideoClipID" : "648611A7-3BA2-41C0-86A3-4A5DD6D0D53B",
+      "playbackRate" : 1,
+      "role" : "zoomEffect",
+      "sceneLayer" : "3D",
+      "sourceIn" : 0,
+      "sourceOut" : 2.4166666666666665,
+      "startTime" : 0,
+      "trackType" : "effects"
+    },
+    {
+      "assetID" : "F1D3E6F4-51D7-4569-B8DA-CF4073610D96",
+      "cameraAnimation" : {
+        "curve" : "custom",
+        "curveParameter" : 0.6,
+        "customControlPoints" : {
+          "control1" : [
+            0.11000000000000001,
+            0.76
+          ],
+          "control2" : [
+            0.3,
+            1
+          ]
+        },
+        "holdsPoseAfterOut" : true,
+        "id" : "3E112FE2-162F-43B0-A8A7-55E747CB2462",
+        "tracks" : {
+          "apertureStops" : {
+            "keyframes" : [
+
+            ]
+          },
+          "deviceModelParameterTracks" : {
+            "foldOpening" : {
+              "keyframes" : [
+
+              ]
+            },
+            "lidOpening" : {
+              "keyframes" : [
+
+              ]
+            }
+          },
+          "environmentPitchDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "environmentRollDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "environmentYawDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "focusDepth" : {
+            "keyframes" : [
+
+            ]
+          },
+          "offsetX" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "06FB2ADA-B815-44A8-8839-08BD2A4C4D09",
+                "time" : 4,
+                "value" : 0.02
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "D3CC102A-FA9E-4DB5-B0CC-A1986D587E70",
+                "time" : 6.2,
+                "value" : 0
+              }
+            ]
+          },
+          "offsetY" : {
+            "keyframes" : [
+
+            ]
+          },
+          "offsetZ" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "C01544E3-5CC1-465E-92DE-751DD416E324",
+                "time" : 4,
+                "value" : -0.1
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "4E57B413-E5D0-4031-88AA-8FE74E9CA27F",
+                "time" : 6.2,
+                "value" : -0.02
+              }
+            ]
+          },
+          "rotationXDegrees" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "86593664-179D-49D1-84DC-6C37E0C33568",
+                "time" : 4,
+                "value" : 1
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "D5A7B9E8-13FD-43DF-85DB-98AAA2B3D43C",
+                "time" : 6.2,
+                "value" : -1
+              }
+            ]
+          },
+          "rotationYDegrees" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "37AA5E89-106E-4D6E-9C01-D736912DFC31",
+                "time" : 4,
+                "value" : 15
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "56C1F06F-5544-40CB-BD95-7DA569800765",
+                "time" : 6.2,
+                "value" : 12
+              }
+            ]
+          },
+          "rotationZDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "scale" : {
+            "keyframes" : [
+
+            ]
+          }
+        }
+      },
+      "id" : "BB1C33F0-B76E-4AA7-9B42-FC078B5A1565",
+      "linkedVideoClipID" : "A7CC2731-AEC5-4DFC-970C-F2C3F175E3AF",
+      "playbackRate" : 1,
+      "role" : "zoomEffect",
+      "sceneLayer" : "3D",
+      "sourceIn" : 0,
+      "sourceOut" : 2.216666666666667,
+      "startTime" : 4,
+      "trackType" : "effects"
+    },
+    {
+      "assetID" : "B90B436E-54F8-454D-A279-143EE3924AA2",
+      "cameraAnimation" : {
+        "curve" : "custom",
+        "curveParameter" : 0.6,
+        "customControlPoints" : {
+          "control1" : [
+            0.11000000000000001,
+            0.76
+          ],
+          "control2" : [
+            0.3,
+            1
+          ]
+        },
+        "holdsPoseAfterOut" : true,
+        "id" : "53EBE106-0121-4E6B-A643-0165C772E21E",
+        "tracks" : {
+          "apertureStops" : {
+            "keyframes" : [
+
+            ]
+          },
+          "deviceModelParameterTracks" : {
+            "foldOpening" : {
+              "keyframes" : [
+
+              ]
+            },
+            "lidOpening" : {
+              "keyframes" : [
+
+              ]
+            }
+          },
+          "environmentPitchDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "environmentRollDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "environmentYawDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "focusDepth" : {
+            "keyframes" : [
+
+            ]
+          },
+          "offsetX" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "8EAA67C9-ADF4-4C49-87C3-E65B5C2E97F7",
+                "time" : 8,
+                "value" : -0.03
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "3E56EB49-F0A1-469B-8039-47D57803EF87",
+                "time" : 9.85,
+                "value" : 0.01
+              }
+            ]
+          },
+          "offsetY" : {
+            "keyframes" : [
+
+            ]
+          },
+          "offsetZ" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "EA2DA14F-E132-4A7A-84B5-85B9EF557B75",
+                "time" : 8,
+                "value" : -0.5
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "42744E9E-308B-4C20-9C49-CBB828174B68",
+                "time" : 9.85,
+                "value" : -0.02
+              }
+            ]
+          },
+          "rotationXDegrees" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "EF23BAE6-47BD-45A9-B443-8D4A798A212B",
+                "time" : 8,
+                "value" : -8
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "08C38484-2B3A-484B-99C6-8D0192613185",
+                "time" : 9.85,
+                "value" : -2
+              }
+            ]
+          },
+          "rotationYDegrees" : {
+            "keyframes" : [
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "718BEF65-D097-4A8D-9BF7-D9459B3771AD",
+                "time" : 8,
+                "value" : 8
+              },
+              {
+                "curve" : "custom",
+                "curveParameter" : 0.6,
+                "customControlPoints" : {
+                  "control1" : [
+                    0.11000000000000001,
+                    0.76
+                  ],
+                  "control2" : [
+                    0.3,
+                    1
+                  ]
+                },
+                "id" : "E4E8F38C-7D30-4A64-B49B-B8AFB7508FFA",
+                "time" : 9.85,
+                "value" : 13
+              }
+            ]
+          },
+          "rotationZDegrees" : {
+            "keyframes" : [
+
+            ]
+          },
+          "scale" : {
+            "keyframes" : [
+
+            ]
+          }
+        }
+      },
+      "id" : "C799CCCE-6060-4F78-A0C0-1269E402E3DD",
+      "linkedVideoClipID" : "E54EA9C8-280D-481D-9449-A3BF57C0DBB3",
+      "playbackRate" : 1,
+      "role" : "zoomEffect",
+      "sceneLayer" : "3D",
+      "sourceIn" : 0,
+      "sourceOut" : 1.8666666666666667,
+      "startTime" : 8,
+      "trackType" : "effects"
+    }
+  ],
+  "exportBitrate" : "High",
+  "exportCodec" : "HEVC",
+  "exportCustomSize" : {
+    "height" : 2160,
+    "isAspectLocked" : true,
+    "width" : 3840
+  },
+  "exportFrameRate" : 60,
+  "exportImageCustomSize" : {
+    "height" : 2160,
+    "isAspectLocked" : true,
+    "width" : 3840
+  },
+  "exportImageFormat" : "PNG",
+  "exportImageJpegQuality" : 0.9,
+  "exportImageResolution" : "4K",
+  "exportProResProfile" : "ProRes 422",
+  "exportQuality" : "4K",
+  "formatVersion" : 70,
+  "modifiedAt" : 814504957.770788,
+  "motionBlurSettings" : {
+    "isEnabled" : false
+  },
+  "projectName" : "korgi-launch",
+  "rememberedExportFilenames" : {
+
+  },
+  "textClips" : [
+    {
+      "assetID" : "51D3810B-18C2-4A58-B296-0EF6AF561E99",
+      "id" : "B9C5E03E-266A-42F7-A5E9-228B92BF27FD",
+      "playbackRate" : 1,
+      "role" : "text",
+      "sceneLayer" : "Top",
+      "sourceIn" : 0,
+      "sourceOut" : 3.8833333333333333,
+      "startTime" : 0.11666666666666667,
+      "textSettings" : {
+        "alignment" : "Left",
+        "animationInDuration" : 0.32,
+        "animationInEnabled" : true,
+        "animationOutDuration" : 0.5,
+        "animationOutEnabled" : false,
+        "animationPreset" : "fade",
+        "backgroundColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 0.6,
+          "red" : 0
+        },
+        "backgroundCornerRadius" : 8,
+        "backgroundEnabled" : false,
+        "backgroundPadding" : [
+          16,
+          8
+        ],
+        "fontName" : "PingFang SC",
+        "fontSize" : 108,
+        "fontWeight" : "Bold",
+        "isItalic" : false,
+        "kerning" : 0,
+        "lineSpacing" : 0,
+        "position" : [
+          0.075,
+          0.48
+        ],
+        "rotation" : 0,
+        "shadowColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 0.6,
+          "red" : 0
+        },
+        "shadowEnabled" : true,
+        "shadowOffset" : [
+          0,
+          8
+        ],
+        "shadowRadius" : 24,
+        "strokeColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 1,
+          "red" : 0
+        },
+        "strokeEnabled" : false,
+        "strokeWidth" : 2,
+        "text" : "划词",
+        "textColor" : {
+          "blue" : 0.9647058823529412,
+          "green" : 0.9568627450980393,
+          "opacity" : 1,
+          "red" : 0.9568627450980393
+        }
+      },
+      "trackType" : "text"
+    },
+    {
+      "assetID" : "F1D3E6F4-51D7-4569-B8DA-CF4073610D96",
+      "id" : "25AD9AF0-5913-4886-BA68-BAF05DDBFC25",
+      "playbackRate" : 1,
+      "role" : "text",
+      "sceneLayer" : "Top",
+      "sourceIn" : 0,
+      "sourceOut" : 3.7,
+      "startTime" : 4.116666666666666,
+      "textSettings" : {
+        "alignment" : "Left",
+        "animationInDuration" : 0.32,
+        "animationInEnabled" : true,
+        "animationOutDuration" : 0.5,
+        "animationOutEnabled" : false,
+        "animationPreset" : "fade",
+        "backgroundColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 0.6,
+          "red" : 0
+        },
+        "backgroundCornerRadius" : 8,
+        "backgroundEnabled" : false,
+        "backgroundPadding" : [
+          16,
+          8
+        ],
+        "fontName" : "PingFang SC",
+        "fontSize" : 108,
+        "fontWeight" : "Bold",
+        "isItalic" : false,
+        "kerning" : 0,
+        "lineSpacing" : 0,
+        "position" : [
+          0.075,
+          0.48
+        ],
+        "rotation" : 0,
+        "shadowColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 0.6,
+          "red" : 0
+        },
+        "shadowEnabled" : true,
+        "shadowOffset" : [
+          0,
+          8
+        ],
+        "shadowRadius" : 24,
+        "strokeColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 1,
+          "red" : 0
+        },
+        "strokeEnabled" : false,
+        "strokeWidth" : 2,
+        "text" : "截图",
+        "textColor" : {
+          "blue" : 0.9647058823529412,
+          "green" : 0.9568627450980393,
+          "opacity" : 1,
+          "red" : 0.9568627450980393
+        }
+      },
+      "trackType" : "text"
+    },
+    {
+      "assetID" : "B90B436E-54F8-454D-A279-143EE3924AA2",
+      "id" : "20E55949-EE09-4489-84C2-2E97C7F9F5D6",
+      "playbackRate" : 1,
+      "role" : "text",
+      "sceneLayer" : "Top",
+      "sourceIn" : 0,
+      "sourceOut" : 7.883333333333334,
+      "startTime" : 8.116666666666667,
+      "textSettings" : {
+        "alignment" : "Left",
+        "animationInDuration" : 0.32,
+        "animationInEnabled" : true,
+        "animationOutDuration" : 0.5,
+        "animationOutEnabled" : false,
+        "animationPreset" : "fade",
+        "backgroundColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 0.6,
+          "red" : 0
+        },
+        "backgroundCornerRadius" : 8,
+        "backgroundEnabled" : false,
+        "backgroundPadding" : [
+          16,
+          8
+        ],
+        "fontName" : "PingFang SC",
+        "fontSize" : 88,
+        "fontWeight" : "Bold",
+        "isItalic" : false,
+        "kerning" : 0,
+        "lineSpacing" : 0,
+        "position" : [
+          0.075,
+          0.48
+        ],
+        "rotation" : 0,
+        "shadowColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 0.6,
+          "red" : 0
+        },
+        "shadowEnabled" : true,
+        "shadowOffset" : [
+          0,
+          8
+        ],
+        "shadowRadius" : 24,
+        "strokeColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "opacity" : 1,
+          "red" : 0
+        },
+        "strokeEnabled" : false,
+        "strokeWidth" : 2,
+        "text" : "实时字幕",
+        "textColor" : {
+          "blue" : 0.9647058823529412,
+          "green" : 0.9568627450980393,
+          "opacity" : 1,
+          "red" : 0.9568627450980393
+        }
+      },
+      "trackType" : "text"
+    }
+  ],
+  "textTracks" : [
+    {
+      "clips" : [
+        {
+          "assetID" : "51D3810B-18C2-4A58-B296-0EF6AF561E99",
+          "id" : "B9C5E03E-266A-42F7-A5E9-228B92BF27FD",
+          "playbackRate" : 1,
+          "role" : "text",
+          "sceneLayer" : "Top",
+          "sourceIn" : 0,
+          "sourceOut" : 3.8833333333333333,
+          "startTime" : 0.11666666666666667,
+          "textSettings" : {
+            "alignment" : "Left",
+            "animationInDuration" : 0.32,
+            "animationInEnabled" : true,
+            "animationOutDuration" : 0.5,
+            "animationOutEnabled" : false,
+            "animationPreset" : "fade",
+            "backgroundColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 0.6,
+              "red" : 0
+            },
+            "backgroundCornerRadius" : 8,
+            "backgroundEnabled" : false,
+            "backgroundPadding" : [
+              16,
+              8
+            ],
+            "fontName" : "PingFang SC",
+            "fontSize" : 108,
+            "fontWeight" : "Bold",
+            "isItalic" : false,
+            "kerning" : 0,
+            "lineSpacing" : 0,
+            "position" : [
+              0.075,
+              0.48
+            ],
+            "rotation" : 0,
+            "shadowColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 0.6,
+              "red" : 0
+            },
+            "shadowEnabled" : true,
+            "shadowOffset" : [
+              0,
+              8
+            ],
+            "shadowRadius" : 24,
+            "strokeColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 1,
+              "red" : 0
+            },
+            "strokeEnabled" : false,
+            "strokeWidth" : 2,
+            "text" : "划词",
+            "textColor" : {
+              "blue" : 0.9647058823529412,
+              "green" : 0.9568627450980393,
+              "opacity" : 1,
+              "red" : 0.9568627450980393
+            }
+          },
+          "trackType" : "text"
+        },
+        {
+          "assetID" : "F1D3E6F4-51D7-4569-B8DA-CF4073610D96",
+          "id" : "25AD9AF0-5913-4886-BA68-BAF05DDBFC25",
+          "playbackRate" : 1,
+          "role" : "text",
+          "sceneLayer" : "Top",
+          "sourceIn" : 0,
+          "sourceOut" : 3.7,
+          "startTime" : 4.116666666666666,
+          "textSettings" : {
+            "alignment" : "Left",
+            "animationInDuration" : 0.32,
+            "animationInEnabled" : true,
+            "animationOutDuration" : 0.5,
+            "animationOutEnabled" : false,
+            "animationPreset" : "fade",
+            "backgroundColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 0.6,
+              "red" : 0
+            },
+            "backgroundCornerRadius" : 8,
+            "backgroundEnabled" : false,
+            "backgroundPadding" : [
+              16,
+              8
+            ],
+            "fontName" : "PingFang SC",
+            "fontSize" : 108,
+            "fontWeight" : "Bold",
+            "isItalic" : false,
+            "kerning" : 0,
+            "lineSpacing" : 0,
+            "position" : [
+              0.075,
+              0.48
+            ],
+            "rotation" : 0,
+            "shadowColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 0.6,
+              "red" : 0
+            },
+            "shadowEnabled" : true,
+            "shadowOffset" : [
+              0,
+              8
+            ],
+            "shadowRadius" : 24,
+            "strokeColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 1,
+              "red" : 0
+            },
+            "strokeEnabled" : false,
+            "strokeWidth" : 2,
+            "text" : "截图",
+            "textColor" : {
+              "blue" : 0.9647058823529412,
+              "green" : 0.9568627450980393,
+              "opacity" : 1,
+              "red" : 0.9568627450980393
+            }
+          },
+          "trackType" : "text"
+        },
+        {
+          "assetID" : "B90B436E-54F8-454D-A279-143EE3924AA2",
+          "id" : "20E55949-EE09-4489-84C2-2E97C7F9F5D6",
+          "playbackRate" : 1,
+          "role" : "text",
+          "sceneLayer" : "Top",
+          "sourceIn" : 0,
+          "sourceOut" : 7.883333333333334,
+          "startTime" : 8.116666666666667,
+          "textSettings" : {
+            "alignment" : "Left",
+            "animationInDuration" : 0.32,
+            "animationInEnabled" : true,
+            "animationOutDuration" : 0.5,
+            "animationOutEnabled" : false,
+            "animationPreset" : "fade",
+            "backgroundColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 0.6,
+              "red" : 0
+            },
+            "backgroundCornerRadius" : 8,
+            "backgroundEnabled" : false,
+            "backgroundPadding" : [
+              16,
+              8
+            ],
+            "fontName" : "PingFang SC",
+            "fontSize" : 88,
+            "fontWeight" : "Bold",
+            "isItalic" : false,
+            "kerning" : 0,
+            "lineSpacing" : 0,
+            "position" : [
+              0.075,
+              0.48
+            ],
+            "rotation" : 0,
+            "shadowColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 0.6,
+              "red" : 0
+            },
+            "shadowEnabled" : true,
+            "shadowOffset" : [
+              0,
+              8
+            ],
+            "shadowRadius" : 24,
+            "strokeColor" : {
+              "blue" : 0,
+              "green" : 0,
+              "opacity" : 1,
+              "red" : 0
+            },
+            "strokeEnabled" : false,
+            "strokeWidth" : 2,
+            "text" : "实时字幕",
+            "textColor" : {
+              "blue" : 0.9647058823529412,
+              "green" : 0.9568627450980393,
+              "opacity" : 1,
+              "red" : 0.9568627450980393
+            }
+          },
+          "trackType" : "text"
+        }
+      ],
+      "height" : 28,
+      "id" : "1230C778-70AF-4004-B8C3-AF5AC8343334",
+      "isEnabled" : true,
+      "isLocked" : false,
+      "name" : "Text",
+      "type" : "text"
+    }
+  ],
+  "timelinePanelHeight" : 185,
+  "timelinePixelsPerSecond" : 50,
+  "videoTracks" : [
+    {
+      "clips" : [
+        {
+          "assetID" : "51D3810B-18C2-4A58-B296-0EF6AF561E99",
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "3D",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "deviceID" : "macbook-pro-14-m4",
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : true,
+            "screenLightIntensity" : 0.45,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : true,
+              "opacity" : 0.55,
+              "projection" : "Behind",
+              "radius" : 40
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "id" : "648611A7-3BA2-41C0-86A3-4A5DD6D0D53B",
+          "playbackRate" : 1,
+          "role" : "video",
+          "sceneLayer" : "3D",
+          "sourceIn" : 2.0500000000000003,
+          "sourceOut" : 5.1,
+          "startTime" : 0,
+          "trackType" : "video",
+          "transform3D" : {
+            "offsetX" : 0.06,
+            "offsetY" : 0,
+            "offsetZ" : 0,
+            "rotationXDegrees" : 0,
+            "rotationYDegrees" : 0,
+            "rotationZDegrees" : 0,
+            "scale" : 0.7
+          }
+        },
+        {
+          "assetID" : "51D3810B-18C2-4A58-B296-0EF6AF561E99",
+          "audioMuted" : true,
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "3D",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "deviceID" : "macbook-pro-14-m4",
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : true,
+            "screenLightIntensity" : 0.45,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : true,
+              "opacity" : 0.55,
+              "projection" : "Behind",
+              "radius" : 40
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "id" : "041432B8-796A-4CD7-AF9F-7C0508657461",
+          "playbackRate" : 0.017543859649122806,
+          "role" : "video",
+          "sceneLayer" : "3D",
+          "sourceIn" : 5.1,
+          "sourceOut" : 5.116666666666666,
+          "startTime" : 3.05,
+          "trackType" : "video",
+          "transform3D" : {
+            "offsetX" : 0.06,
+            "offsetY" : 0,
+            "offsetZ" : 0,
+            "rotationXDegrees" : 0,
+            "rotationYDegrees" : 0,
+            "rotationZDegrees" : 0,
+            "scale" : 0.7
+          }
+        },
+        {
+          "assetID" : "F1D3E6F4-51D7-4569-B8DA-CF4073610D96",
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "3D",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "deviceID" : "macbook-pro-14-m4",
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : true,
+            "screenLightIntensity" : 0.45,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : true,
+              "opacity" : 0.55,
+              "projection" : "Behind",
+              "radius" : 40
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "id" : "A7CC2731-AEC5-4DFC-970C-F2C3F175E3AF",
+          "playbackRate" : 1,
+          "role" : "video",
+          "sceneLayer" : "3D",
+          "sourceIn" : 1.1,
+          "sourceOut" : 5.1,
+          "startTime" : 4,
+          "trackType" : "video",
+          "transform3D" : {
+            "offsetX" : 0.06,
+            "offsetY" : 0,
+            "offsetZ" : 0,
+            "rotationXDegrees" : 0,
+            "rotationYDegrees" : 0,
+            "rotationZDegrees" : 0,
+            "scale" : 0.7
+          }
+        },
+        {
+          "assetID" : "B90B436E-54F8-454D-A279-143EE3924AA2",
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "3D",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "deviceID" : "macbook-pro-14-m4",
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : true,
+            "screenLightIntensity" : 0.45,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : true,
+              "opacity" : 0.55,
+              "projection" : "Behind",
+              "radius" : 40
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "id" : "E54EA9C8-280D-481D-9449-A3BF57C0DBB3",
+          "playbackRate" : 1,
+          "role" : "video",
+          "sceneLayer" : "3D",
+          "sourceIn" : 2.866666666666667,
+          "sourceOut" : 8.716666666666667,
+          "startTime" : 8,
+          "trackType" : "video",
+          "transform3D" : {
+            "offsetX" : 0.06,
+            "offsetY" : 0,
+            "offsetZ" : 0,
+            "rotationXDegrees" : 0,
+            "rotationYDegrees" : 0,
+            "rotationZDegrees" : 0,
+            "scale" : 0.7
+          }
+        },
+        {
+          "assetID" : "B90B436E-54F8-454D-A279-143EE3924AA2",
+          "audioMuted" : true,
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "3D",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "deviceID" : "macbook-pro-14-m4",
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : true,
+            "screenLightIntensity" : 0.45,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : true,
+              "opacity" : 0.55,
+              "projection" : "Behind",
+              "radius" : 40
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "id" : "9E9060E8-A410-4B43-B5B9-77B4B6E59B9F",
+          "playbackRate" : 0.007751937984496124,
+          "role" : "video",
+          "sceneLayer" : "3D",
+          "sourceIn" : 8.716666666666667,
+          "sourceOut" : 8.733333333333334,
+          "startTime" : 13.85,
+          "trackType" : "video",
+          "transform3D" : {
+            "offsetX" : 0.06,
+            "offsetY" : 0,
+            "offsetZ" : 0,
+            "rotationXDegrees" : 0,
+            "rotationYDegrees" : 0,
+            "rotationZDegrees" : 0,
+            "scale" : 0.7
+          }
+        }
+      ],
+      "height" : 50,
+      "id" : "47E657CD-7679-4BAE-ABC5-4436FD7B2316",
+      "isEnabled" : true,
+      "isLocked" : false,
+      "name" : "V1"
+    },
+    {
+      "clips" : [
+        {
+          "assetID" : "2B81EBB8-5EDC-4AAD-9F68-935682350437",
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "Realistic",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : false,
+            "screenLightIntensity" : 1,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : false,
+              "opacity" : 0.4,
+              "projection" : "Behind",
+              "radius" : 30
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "codeClip" : {
+            "images" : {
+              "cover" : "4CDFA2E2-8B29-487E-943E-E1C25ECF2253"
+            },
+            "name" : "Cover",
+            "source" : "const controls = {\n  cover: { type: 'image', label: 'Cover' },\n};\n\nfunction draw(ctx, t, c, clip) {\n  const img = M.image('cover');\n  if (!img) return;\n  ctx.drawImage(img, 0, 0, clip.width, clip.height);\n}\n",
+            "values" : {
+
+            }
+          },
+          "id" : "4366FB61-0684-4925-914C-673F074848D5",
+          "playbackRate" : 1,
+          "role" : "video",
+          "sceneLayer" : "Top",
+          "sourceIn" : 0,
+          "sourceOut" : 0.05,
+          "startTime" : 0,
+          "trackType" : "video"
+        },
+        {
+          "assetID" : "2D0EE154-E7EE-46C2-9612-880776EE5242",
+          "bezelSettings" : {
+            "bezelOrientation" : "Portrait",
+            "bezelStyle" : "Realistic",
+            "censor" : {
+              "regions" : [
+
+              ]
+            },
+            "contentRotationQuarterTurnsClockwise" : 0,
+            "crop" : {
+              "aspectPreset" : "Free",
+              "contentOffset" : [
+                0.5,
+                0.5
+              ],
+              "normalizedRect" : [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            "customFrameColor" : {
+              "blue" : 0.5,
+              "green" : 0.5,
+              "opacity" : 1,
+              "red" : 0.5
+            },
+            "foldEffectMode" : "auto",
+            "frameColor" : "Silver",
+            "noBezelCornerRadius" : 62,
+            "roundedCornersEnabled" : false,
+            "screenLightEnabled" : false,
+            "screenLightIntensity" : 1,
+            "shadow" : {
+              "angle" : 155,
+              "distance" : 75,
+              "enabled" : false,
+              "opacity" : 0.4,
+              "projection" : "Behind",
+              "radius" : 30
+            },
+            "showDynamicIsland" : false,
+            "strokeColor" : {
+              "blue" : 1,
+              "green" : 1,
+              "opacity" : 1,
+              "red" : 1
+            },
+            "strokeEnabled" : false,
+            "strokeOpacity" : 0.5,
+            "strokeWidth" : 2
+          },
+          "codeClip" : {
+            "images" : {
+              "icon" : "CF669F2E-E307-4A94-A49E-684B35C9C6AE"
+            },
+            "name" : "End Card",
+            "source" : "const controls = {\n  name: { type: 'text', label: 'Name', default: 'KorgiTranslate' },\n  line: { type: 'text', label: 'Line', default: '选中，即译' },\n  icon: { type: 'image', label: 'Icon' },\n  accent: { type: 'color', label: 'Accent', default: '#50CDCF' },\n  ink: { type: 'color', label: 'Ink', default: '#F4F4F6' },\n};\n\nfunction round(ctx, x, y, w, h, r) {\n  ctx.beginPath();\n  ctx.roundRect(x, y, w, h, r);\n}\n\nfunction draw(ctx, t, c, clip) {\n  const W = clip.width;\n  const H = clip.height;\n  const k = M.ease.outCubic(M.clamp(t \/ 0.28));\n  const iconSize = 188;\n  const nameSize = 90;\n  const lineSize = 52;\n  ctx.save();\n  ctx.font = M.font(nameSize, 'system-ui', 650);\n  const nameW = ctx.measureText(c.name).width;\n  ctx.font = M.font(lineSize, 'PingFang SC', 500);\n  const lineW = ctx.measureText(c.line).width;\n  const gap = 40;\n  const textW = Math.max(nameW, lineW);\n  const blockW = iconSize + gap + textW;\n  const x0 = (W - blockW) \/ 2;\n  const y0 = (H - iconSize) \/ 2 + (1 - k) * 28;\n  ctx.globalAlpha = k;\n  if (c.icon && c.icon.width) {\n    ctx.save();\n    round(ctx, x0, y0, iconSize, iconSize, 36);\n    ctx.clip();\n    ctx.drawImage(c.icon, x0, y0, iconSize, iconSize);\n    ctx.restore();\n  }\n  const tx = x0 + iconSize + gap;\n  ctx.textAlign = 'left';\n  ctx.textBaseline = 'middle';\n  ctx.fillStyle = c.ink;\n  ctx.font = M.font(nameSize, 'system-ui', 650);\n  ctx.fillText(c.name, tx, y0 + iconSize * 0.34);\n  ctx.fillStyle = c.accent;\n  ctx.font = M.font(lineSize, 'PingFang SC', 500);\n  ctx.fillText(c.line, tx, y0 + iconSize * 0.7);\n  ctx.restore();\n}\n",
+            "values" : {
+
+            }
+          },
+          "id" : "C8E3FD0F-574C-468D-AE15-9E909C2B8946",
+          "playbackRate" : 1,
+          "role" : "video",
+          "sceneLayer" : "Top",
+          "sourceIn" : 0,
+          "sourceOut" : 2,
+          "startTime" : 16,
+          "trackType" : "video"
+        }
+      ],
+      "height" : 50,
+      "id" : "A8C28AF2-15C7-499C-A709-85072F566A1A",
+      "isEnabled" : true,
+      "isLocked" : false,
+      "name" : "V2"
+    }
+  ]
+}

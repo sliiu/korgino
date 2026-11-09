@@ -1,0 +1,111 @@
+{
+  "demo": false,
+  "product": "Korgino",
+  "style": "default",
+  "scope": {"versions": "whole product, as of 2026-11-07", "platforms": ["mac"]}, "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "duration": 45,
+  "repo": "/Users/pax/Documents/Code/KorgiTranslate",
+  "audioRequired": true,
+  "sfxRequired": true,
+  "typography": {
+    "mode": "bilingual",
+    "zhFont": "PingFang SC / Noto Sans CJK SC",
+    "enFont": "Georgia",
+    "zhStyle": "sans-serif"
+  },
+  "audio": {
+    "ducking": {"enabled": true},
+    "music": {"file": "assets/music.wav", "gain": 0.6},
+    "cues": [
+      {"at": 1.1, "actionId": "hook-line", "file": "assets/sfx/tap.wav", "gain": 0.55, "role": "sfx", "kind": "tap"},
+      {"at": 5.3, "actionId": "popup-appear", "file": "assets/sfx/pop.wav", "gain": 0.6, "role": "sfx", "kind": "pop"},
+      {"at": 13.4, "actionId": "plugin-1", "file": "assets/sfx/tap.wav", "gain": 0.4, "role": "sfx", "kind": "tap"},
+      {"at": 13.7, "actionId": "plugin-2", "file": "assets/sfx/tap.wav", "gain": 0.4, "role": "sfx", "kind": "tap"},
+      {"at": 14.0, "actionId": "plugin-3", "file": "assets/sfx/tap.wav", "gain": 0.4, "role": "sfx", "kind": "tap"},
+      {"at": 20.5, "actionId": "voice-down", "file": "assets/sfx/key-down.wav", "gain": 0.6, "role": "sfx", "kind": "key"},
+      {"at": 23.6, "actionId": "voice-up", "file": "assets/sfx/key-up.wav", "gain": 0.5, "role": "sfx", "kind": "key"},
+      {"at": 29.2, "actionId": "caption-1", "file": "assets/sfx/tap.wav", "gain": 0.35, "role": "sfx", "kind": "tap"},
+      {"at": 31.4, "actionId": "caption-2", "file": "assets/sfx/tap.wav", "gain": 0.35, "role": "sfx", "kind": "tap"},
+      {"at": 33.8, "actionId": "caption-3", "file": "assets/sfx/tap.wav", "gain": 0.35, "role": "sfx", "kind": "tap"},
+      {"at": 38.4, "actionId": "end-logo", "file": "assets/sfx/pop.wav", "gain": 0.55, "role": "sfx", "kind": "pop"}
+    ]
+  },
+  "shots": [
+    {
+      "id": "hook", "start": 0, "end": 5, "type": "title",
+      "headlineEn": "A line, and its other line.", "headline": "选中一句，就有另一句。",
+      "description": "一句中文落下，英文译文从它下面长出来。",
+      "descriptionAt": 0, "claim": true,
+      "source": ["Sources/Popup.swift", "docs/adr/0056-native-and-target-are-a-pair.md"],
+      "plainExplanation": "选中一段文字，浮层里给出另一种语言的译文。",
+      "actions": [{"id": "hook-line", "at": 1.1, "action": "translation line grows in", "soundRequired": true}],
+      "component": null
+    },
+    {
+      "id": "popup", "start": 5, "end": 13, "type": "detail",
+      "headlineEn": "Select, and it lands beside.", "headline": "划一段，译文落在旁边。",
+      "description": "翻译浮层从一句中文上浮起，译文写入，语言方向高亮。",
+      "descriptionAt": 0, "claim": true,
+      "source": ["Sources/Popup.swift"],
+      "plainExplanation": "在别的应用里选中文字，Korgino 的浮层显示原文和译文。",
+      "actions": [
+        {"id": "popup-enter", "at": 0, "action": "caption enters", "soundRequired": false},
+        {"id": "popup-appear", "at": 0.3, "action": "panel rises", "soundRequired": true}
+      ],
+      "component": "src/shots/ui.jsx PopupPanel"
+    },
+    {
+      "id": "plugins", "start": 13, "end": 20, "type": "detail",
+      "headlineEn": "One tap, a result.", "headline": "点一下，直接出结果。",
+      "description": "三枚插件按钮逐个点亮，悬停显名，结果落下。",
+      "descriptionAt": 0, "claim": true,
+      "source": ["Sources/SelectionPlugins.swift"],
+      "plainExplanation": "选中文字后浮出一排图标，点一下就出结果，翻译只是其中一种。",
+      "actions": [
+        {"id": "plugin-1", "at": 0.4, "action": "first button lights", "soundRequired": true},
+        {"id": "plugin-2", "at": 0.7, "action": "second button lights", "soundRequired": true},
+        {"id": "plugin-3", "at": 1.0, "action": "third button lights", "soundRequired": true}
+      ],
+      "component": "src/shots/ui.jsx PluginBar"
+    },
+    {
+      "id": "voice", "start": 20, "end": 28, "type": "detail",
+      "headlineEn": "Hold Fn, speak.", "headline": "按住 Fn，边说边译。",
+      "description": "按键按下，语音胶囊出现并听写，松开后原文和译文落定。",
+      "descriptionAt": 0, "claim": true,
+      "source": ["Sources/QuickOverlay.swift", "docs/adr/0053-three-voice-gestures.md"],
+      "plainExplanation": "按住 Fn 说话，松开后得到译文。",
+      "actions": [
+        {"id": "voice-down", "at": 0.5, "action": "key pressed, capsule appears", "soundRequired": true},
+        {"id": "voice-up", "at": 3.6, "action": "key released, result settles", "soundRequired": true}
+      ],
+      "component": "src/shots/ui.jsx VoiceCapsule"
+    },
+    {
+      "id": "captions", "start": 28, "end": 38, "type": "detail",
+      "headlineEn": "Lines, as they are said.", "headline": "听着，字幕一行一行落下。",
+      "description": "一路字幕面板，三行从底部逐行顶上，最新一行带浅底。",
+      "descriptionAt": 0, "claim": true,
+      "source": ["Sources/SystemAudioTranslate.swift", "docs/adr/0059-lane-panel.md"],
+      "plainExplanation": "听系统声音，边说边出字幕和译文，一路一块面板。",
+      "actions": [
+        {"id": "caption-1", "at": 1.2, "action": "first caption row", "soundRequired": true},
+        {"id": "caption-2", "at": 3.4, "action": "second caption row", "soundRequired": true},
+        {"id": "caption-3", "at": 5.8, "action": "third caption row", "soundRequired": true}
+      ],
+      "component": "src/shots/ui.jsx CaptionLane"
+    },
+    {
+      "id": "end", "start": 38, "end": 45, "type": "end",
+      "headlineEn": "Selected, spoken, heard.", "headline": "选中，说出，听着，都译。",
+      "description": "图标落定，名字与收尾句停住。",
+      "descriptionAt": 0, "claim": false,
+      "source": [],
+      "plainExplanation": "片尾：产品名和一句收尾。",
+      "actions": [{"id": "end-logo", "at": 0.4, "action": "icon settles", "soundRequired": true}],
+      "component": null
+    }
+  ]
+}

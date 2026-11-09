@@ -1,0 +1,16 @@
+---
+description: 改完代码后重新打包 app 并安装到 ~/Applications
+alwaysApply: true
+---
+
+# 重新打包
+
+改过会进 app 的文件（`Sources/`、`Info.plist`、`Assets/`、`build.sh`）后，结束前必须运行：
+
+```bash
+./build.sh
+```
+
+脚本会编译、签名，覆盖 `~/Applications/Korgino.app`，然后打开它。只做 typecheck 不算完成。装好但没打开也不算完成。
+
+没改这些文件时不必打包。

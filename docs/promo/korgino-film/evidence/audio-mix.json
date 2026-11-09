@@ -1,0 +1,335 @@
+{
+  "planSha256": "0150957b366cc0fa085d333eda189ed30671d6c90b495af67c828cc1bdd10cab",
+  "music": {
+    "file": "assets/music.wav",
+    "gain": 0.6,
+    "sha256": "91099159bf603eda68befa5a33b44567ad86ea513ff0075e30b310337828e7df"
+  },
+  "cues": [
+    {
+      "at": 1.1,
+      "actionId": "hook-line",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.55,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 5.3,
+      "actionId": "popup-appear",
+      "file": "assets/sfx/pop.wav",
+      "gain": 0.6,
+      "role": "sfx",
+      "kind": "pop",
+      "sha256": "ea11b896eb402c995a63f01ff298f0def88deed0ce96d37eb5f52d266b654dc9"
+    },
+    {
+      "at": 13.4,
+      "actionId": "plugin-1",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.4,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 13.7,
+      "actionId": "plugin-2",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.4,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 14.0,
+      "actionId": "plugin-3",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.4,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 20.5,
+      "actionId": "voice-down",
+      "file": "assets/sfx/key-down.wav",
+      "gain": 0.6,
+      "role": "sfx",
+      "kind": "key",
+      "sha256": "e24ef52ec10235cc6356a65d8094e98cb3f8b44c44cd0f81aeed954ad9d3112c"
+    },
+    {
+      "at": 23.6,
+      "actionId": "voice-up",
+      "file": "assets/sfx/key-up.wav",
+      "gain": 0.5,
+      "role": "sfx",
+      "kind": "key",
+      "sha256": "6d88926c37f269eaf07b13f0728e7862a3e85645dfe7e113749e058823328323"
+    },
+    {
+      "at": 29.2,
+      "actionId": "caption-1",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.35,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 31.4,
+      "actionId": "caption-2",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.35,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 33.8,
+      "actionId": "caption-3",
+      "file": "assets/sfx/tap.wav",
+      "gain": 0.35,
+      "role": "sfx",
+      "kind": "tap",
+      "sha256": "8790948ab83720acb48e30bbf192533208c19716b1452935c9d8386f27583a0b"
+    },
+    {
+      "at": 38.4,
+      "actionId": "end-logo",
+      "file": "assets/sfx/pop.wav",
+      "gain": 0.55,
+      "role": "sfx",
+      "kind": "pop",
+      "sha256": "ea11b896eb402c995a63f01ff298f0def88deed0ce96d37eb5f52d266b654dc9"
+    }
+  ],
+  "master": {
+    "file": "assets/master.wav",
+    "sha256": "91cd548684823f9cf9793bdb7d23be6adf153386c258c4e780664de5e32e78b7"
+  },
+  "sfxStem": {
+    "file": "assets/sfx-stem.wav",
+    "sha256": "31980d78feff8d66956455dbe8716ef73619ddf94674c63c2cbcce489208609c"
+  },
+  "musicStem": {
+    "file": "assets/music-ducked.wav",
+    "sha256": "6b6f8ed1b9fca6b84bf66a034a4727a43392679831bdb216cfb6b9f69101a276"
+  },
+  "ducking": {
+    "method": "cue-envelope",
+    "windows": [
+      {
+        "actionId": "hook-line",
+        "kind": "tap",
+        "start": 1.06,
+        "attackEnd": 1.1,
+        "holdEnd": 1.28,
+        "end": 1.58,
+        "db": 4
+      },
+      {
+        "actionId": "popup-appear",
+        "kind": "pop",
+        "start": 5.26,
+        "attackEnd": 5.3,
+        "holdEnd": 5.42,
+        "end": 5.66,
+        "db": 3.5
+      },
+      {
+        "actionId": "plugin-1",
+        "kind": "tap",
+        "start": 13.360000000000001,
+        "attackEnd": 13.4,
+        "holdEnd": 13.58,
+        "end": 13.88,
+        "db": 4
+      },
+      {
+        "actionId": "plugin-2",
+        "kind": "tap",
+        "start": 13.66,
+        "attackEnd": 13.7,
+        "holdEnd": 13.879999999999999,
+        "end": 14.18,
+        "db": 4
+      },
+      {
+        "actionId": "plugin-3",
+        "kind": "tap",
+        "start": 13.96,
+        "attackEnd": 14.0,
+        "holdEnd": 14.18,
+        "end": 14.48,
+        "db": 4
+      },
+      {
+        "actionId": "voice-down",
+        "kind": "key",
+        "start": 20.46,
+        "attackEnd": 20.5,
+        "holdEnd": 20.68,
+        "end": 20.98,
+        "db": 4
+      },
+      {
+        "actionId": "voice-up",
+        "kind": "key",
+        "start": 23.560000000000002,
+        "attackEnd": 23.6,
+        "holdEnd": 23.78,
+        "end": 24.080000000000002,
+        "db": 4
+      },
+      {
+        "actionId": "caption-1",
+        "kind": "tap",
+        "start": 29.16,
+        "attackEnd": 29.2,
+        "holdEnd": 29.38,
+        "end": 29.68,
+        "db": 4
+      },
+      {
+        "actionId": "caption-2",
+        "kind": "tap",
+        "start": 31.36,
+        "attackEnd": 31.4,
+        "holdEnd": 31.58,
+        "end": 31.88,
+        "db": 4
+      },
+      {
+        "actionId": "caption-3",
+        "kind": "tap",
+        "start": 33.76,
+        "attackEnd": 33.8,
+        "holdEnd": 33.98,
+        "end": 34.279999999999994,
+        "db": 4
+      },
+      {
+        "actionId": "end-logo",
+        "kind": "pop",
+        "start": 38.36,
+        "attackEnd": 38.4,
+        "holdEnd": 38.519999999999996,
+        "end": 38.76,
+        "db": 3.5
+      }
+    ],
+    "overlap": "deepest-envelope-wins"
+  },
+  "timing": [
+    {
+      "actionId": "hook-line",
+      "fileStart": 1.1,
+      "audibleLandmark": 1.1,
+      "actionTime": 1.1,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "popup-appear",
+      "fileStart": 5.3,
+      "audibleLandmark": 5.3,
+      "actionTime": 5.3,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "plugin-1",
+      "fileStart": 13.4,
+      "audibleLandmark": 13.4,
+      "actionTime": 13.4,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "plugin-2",
+      "fileStart": 13.7,
+      "audibleLandmark": 13.7,
+      "actionTime": 13.7,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "plugin-3",
+      "fileStart": 14.0,
+      "audibleLandmark": 14.0,
+      "actionTime": 14.0,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "voice-down",
+      "fileStart": 20.5,
+      "audibleLandmark": 20.5,
+      "actionTime": 20.5,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "voice-up",
+      "fileStart": 23.6,
+      "audibleLandmark": 23.6,
+      "actionTime": 23.6,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "caption-1",
+      "fileStart": 29.2,
+      "audibleLandmark": 29.2,
+      "actionTime": 29.2,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "caption-2",
+      "fileStart": 31.4,
+      "audibleLandmark": 31.4,
+      "actionTime": 31.4,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "caption-3",
+      "fileStart": 33.8,
+      "audibleLandmark": 33.8,
+      "actionTime": 33.8,
+      "errorFrames": 0.0
+    },
+    {
+      "actionId": "end-logo",
+      "fileStart": 38.4,
+      "audibleLandmark": 38.4,
+      "actionTime": 38.4,
+      "errorFrames": 0.0
+    }
+  ],
+  "warnings": [],
+  "normalization": {
+    "requested": "linear",
+    "normalization_type": "dynamic",
+    "measurement": {
+      "input_i": "-25.34",
+      "input_tp": "-9.54",
+      "input_lra": "4.90",
+      "input_thresh": "-35.40",
+      "output_i": "-16.01",
+      "output_tp": "-1.50",
+      "output_lra": "4.80",
+      "output_thresh": "-26.05",
+      "normalization_type": "dynamic",
+      "target_offset": "0.01"
+    },
+    "output": {
+      "input_i": "-25.34",
+      "input_tp": "-9.54",
+      "input_lra": "4.90",
+      "input_thresh": "-35.40",
+      "output_i": "-16.00",
+      "output_tp": "-1.50",
+      "output_lra": "4.70",
+      "output_thresh": "-26.04",
+      "normalization_type": "dynamic",
+      "target_offset": "-0.00"
+    }
+  },
+  "listeningStatus": "Not auditioned by script; listen to isolated SFX, final mix and encoded MP4."
+}

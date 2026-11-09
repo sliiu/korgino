@@ -1,0 +1,78 @@
+# Tag v* on this private repo builds two disk images and publishes them to the
+# public sliiu/korgino repo, which is what the in-app update check reads.
+#
+# Needs a fine-grained PAT in KORGINO_RELEASES_TOKEN: contents read/write on
+# sliiu/korgino only. The org plan has no cross-repo token, so this is a secret.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version from the tag
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "tag must be v plus dotted numbers, got ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" Info.plist
+          echo "version=$version" >> "$GITHUB_ENV"
+
+      - name: Build macOS 26
+        run: ./build.sh --macos26 --no-install
+
+      - name: Build macOS 15
+        run: ./build.sh --macos15 --no-install
+
+      - name: Disk images
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          make_dmg() {
+            local name="$1" src="$2"
+            rm -rf "$stage/$name"
+            mkdir -p "$stage/$name"
+            cp -R "$src" "$stage/$name/Korgino.app"
+            ln -s /Applications "$stage/$name/Applications"
+            hdiutil create -volname "Korgino" -srcfolder "$stage/$name" \
+              -ov -format UDZO "dist/$name.dmg"
+          }
+          make_dmg "Korgino-${version}-macos26" dist/Korgino-macos26.app
+          make_dmg "Korgino-${version}-macos15" dist/Korgino-macos15.app
+          rm -rf "$stage"
+
+      - name: Publish to sliiu/korgino
+        env:
+          GH_TOKEN: ${{ secrets.KORGINO_RELEASES_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "KORGINO_RELEASES_TOKEN is not set" >&2
+            exit 1
+          fi
+          notes="$(mktemp)"
+          cat > "$notes" <<EOF
+          macOS 26: Korgino-${version}-macos26.dmg
+          macOS 15: Korgino-${version}-macos15.dmg
+
+          Both builds unlock Pro until 2026-12-31. Signed ad-hoc; not notarized.
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            --repo sliiu/korgino \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$notes" \
+            "dist/Korgino-${version}-macos26.dmg" \
+            "dist/Korgino-${version}-macos15.dmg"
+          rm -f "$notes"
