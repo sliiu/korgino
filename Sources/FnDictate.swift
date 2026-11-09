@@ -56,7 +56,7 @@ final class FnDictate {
 
     /// 起不来时给一句话，同时把输入框让出来。
     private func fail(_ message: String, session: Int) {
-        QuickOverlay.shared.fail(message, rect: nil)
+        VoiceCapsule.shared.fail(message)
         releaseField(session: session)
     }
 
@@ -92,7 +92,7 @@ final class FnDictate {
         fieldPID = pid
         armFieldProbe(pid)
         SpeechPlayback.shared.stop()
-        QuickOverlay.shared.prepare(mode.title)
+        VoiceCapsule.shared.prepare(mode)
         Task { await start(token: current) }
     }
 
@@ -147,7 +147,7 @@ final class FnDictate {
         keepOverlay = false
         abandon()
         if keep { return }
-        QuickOverlay.shared.hide()
+        VoiceCapsule.shared.hide()
     }
 
     private func start(token current: Int) async {
@@ -231,7 +231,7 @@ final class FnDictate {
         }
         ear = made
         syncPulse()
-        QuickOverlay.shared.listen(mode.title)
+        VoiceCapsule.shared.listen(mode)
         if stopAsked {
             end()
         }
@@ -242,13 +242,13 @@ final class FnDictate {
         let plain = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !plain.isEmpty else { return }
         guard mode.translates else {
-            QuickOverlay.shared.note(plain)
+            VoiceCapsule.shared.note(plain)
             return
         }
         let previous = heard
         heard = plain
         let carry = (!translated.isEmpty && (plain.hasPrefix(previous) || previous.hasPrefix(plain))) ? translated : ""
-        QuickOverlay.shared.note(source: plain, text: carry)
+        VoiceCapsule.shared.note(carry.isEmpty ? plain : carry)
         ensurePump(session: session)
     }
 
@@ -287,7 +287,7 @@ final class FnDictate {
             translated = shown
             renderedFor = text
             renderedSource = text
-            QuickOverlay.shared.note(source: heard, text: shown)
+            VoiceCapsule.shared.note(shown)
             if mode == .interpret { voiceStable(shown) }
         }
     }
@@ -299,12 +299,12 @@ final class FnDictate {
             await finishInterp(ear, link: interp, token: current)
             return
         }
-        QuickOverlay.shared.busy(L("识别中"))
+        VoiceCapsule.shared.busy(L("识别中"))
         let text = await ear.transcript()
         guard current == token else { return }
         let plain = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !plain.isEmpty else {
-            QuickOverlay.shared.fail(L("没有听到人声"), rect: nil)
+            VoiceCapsule.shared.fail(L("没有听到人声"))
             return
         }
         let prepared = await Self.prepareSpeech(plain, bundleID: bundleID)
@@ -319,7 +319,7 @@ final class FnDictate {
                 if basis == plain, renderedFor == plain, !translated.isEmpty {
                     shown = translated
                 } else {
-                    QuickOverlay.shared.busy(L("翻译中"))
+                    VoiceCapsule.shared.busy(L("翻译中"))
                     let rendered = try await Self.render(basis, bundleID: bundleID)
                     shown = rendered.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !shown.isEmpty else { throw TErr(L("没有翻译结果")) }
@@ -327,24 +327,24 @@ final class FnDictate {
             } catch {
                 guard current == token else { return }
                 remember(source: basis, translation: nil, direction: "", front: nil)
-                QuickOverlay.shared.fail(error.localizedDescription, rect: nil)
+                VoiceCapsule.shared.fail(error.localizedDescription)
                 return
             }
             guard current == token else { return }
             let plan = Self.plan(basis, bundleID: bundleID)
-            QuickOverlay.shared.note(source: basis, text: shown)
+            VoiceCapsule.shared.note(shown)
             if mode == .interpret {
                 if speechLanguage.isEmpty { speechLanguage = plan.tgt }
                 voiceRemainder(shown)
                 remember(source: basis, translation: shown, direction: plan.directionLabel, front: nil)
                 if !polishNote.isEmpty {
-                    QuickOverlay.shared.kept(polishNote)
+                    VoiceCapsule.shared.kept(polishNote)
                     return
                 }
-                let overlay = QuickOverlay.shared.generationToken()
+                let overlay = VoiceCapsule.shared.generationToken()
                 SpeechPlayback.shared.whenDone {
                     Task { @MainActor in
-                        QuickOverlay.shared.hideIfStill(overlay)
+                        VoiceCapsule.shared.hideIfStill(overlay)
                     }
                 }
                 return
@@ -352,7 +352,7 @@ final class FnDictate {
             await deliver(shown, source: basis, direction: plan.directionLabel, translation: shown, session: current, notice: polishNote)
             return
         }
-        QuickOverlay.shared.note(basis)
+        VoiceCapsule.shared.note(basis)
         await deliver(basis, source: basis, direction: "", translation: nil, session: current, notice: polishNote)
     }
 
@@ -374,15 +374,14 @@ final class FnDictate {
             interpError = message
             guard !stopAsked else { return }
             abandon()
-            QuickOverlay.shared.fail(message, rect: nil)
+            VoiceCapsule.shared.fail(message)
             return
         }
         let source = heard.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !source.isEmpty || !translated.isEmpty else { return }
-        if mode.translates {
-            QuickOverlay.shared.note(source: source, text: translated)
-        } else if !source.isEmpty {
-            QuickOverlay.shared.note(source)
+        let shown = mode.translates && !translated.isEmpty ? translated : source
+        if !shown.isEmpty {
+            VoiceCapsule.shared.note(shown)
         }
     }
 
@@ -398,7 +397,7 @@ final class FnDictate {
     private func finishInterp(_ ear: DictateEar, link: InterpSession, token current: Int) async {
         ear.stopListening()
         if heard.isEmpty, translated.isEmpty {
-            QuickOverlay.shared.busy(mode.translates ? L("翻译中") : L("识别中"))
+            VoiceCapsule.shared.busy(mode.translates ? L("翻译中") : L("识别中"))
         }
         await link.finish()
         guard current == token else { return }
@@ -407,30 +406,30 @@ final class FnDictate {
         let shown = translated.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !source.isEmpty || !shown.isEmpty else {
             InterpPlayer.shared.stop()
-            QuickOverlay.shared.fail(interpError ?? L("没有听到人声"), rect: nil)
+            VoiceCapsule.shared.fail(interpError ?? L("没有听到人声"))
             return
         }
         guard mode.translates else {
             let prepared = await Self.prepareSpeech(source, bundleID: bundleID)
             guard current == token else { return }
-            QuickOverlay.shared.note(prepared.text)
+            VoiceCapsule.shared.note(prepared.text)
             await deliver(prepared.text, source: prepared.text, direction: "", translation: nil, session: current, notice: prepared.note)
             return
         }
         guard !shown.isEmpty else {
             InterpPlayer.shared.stop()
             remember(source: source, translation: nil, direction: "", front: nil)
-            QuickOverlay.shared.fail(interpError ?? L("没有翻译结果"), rect: nil)
+            VoiceCapsule.shared.fail(interpError ?? L("没有翻译结果"))
             return
         }
         let direction = Lang.languagePair(Lang.detectSource(source).code, interpLanguage.appleCode ?? "en")
-        QuickOverlay.shared.note(source: source, text: shown)
+        VoiceCapsule.shared.note(shown)
         if mode == .interpret {
             remember(source: source, translation: shown, direction: direction, front: nil)
-            let overlay = QuickOverlay.shared.generationToken()
+            let overlay = VoiceCapsule.shared.generationToken()
             InterpPlayer.shared.whenDrained {
                 Task { @MainActor in
-                    QuickOverlay.shared.hideIfStill(overlay)
+                    VoiceCapsule.shared.hideIfStill(overlay)
                 }
             }
             return
@@ -445,7 +444,7 @@ final class FnDictate {
         guard let profile = cfg.voicePolishProfile(bundleID: bundleID) else {
             return (text, L("没有可用来润色的 AI"))
         }
-        QuickOverlay.shared.busy(L("润色中"))
+        VoiceCapsule.shared.busy(L("润色中"))
         do {
             let out = try await Translator.polishSpeech(text, profile: profile, style: cfg.voicePolishStyle, note: cfg.voicePolishNote)
             let trimmed = out.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -512,18 +511,18 @@ final class FnDictate {
         guard token == session else { return }
         remember(source: source, translation: translation, direction: direction, front: front)
         if front == nil, !notice.isEmpty {
-            QuickOverlay.shared.kept(L("已记入历史") + "。" + notice)
+            VoiceCapsule.shared.kept(L("已记入历史") + "。" + notice)
             return
         }
         if front == nil {
-            QuickOverlay.shared.kept(L("已记入历史"))
+            VoiceCapsule.shared.kept(L("已记入历史"))
             return
         }
         if !notice.isEmpty {
-            QuickOverlay.shared.kept(notice)
+            VoiceCapsule.shared.kept(notice)
             return
         }
-        QuickOverlay.shared.hide()
+        VoiceCapsule.shared.hide()
     }
 
     private func armFieldProbe(_ pid: pid_t) {
@@ -671,7 +670,7 @@ private final class DictateEar: @unchecked Sendable {
                 for i in 0..<count { sum += samples[i] * samples[i] }
                 let rms = (sum / Float(count)).squareRoot()
                 DispatchQueue.main.async {
-                    MainActor.assumeIsolated { QuickOverlay.shared.level(rms: rms) }
+                    MainActor.assumeIsolated { VoiceCapsule.shared.level(rms: rms) }
                 }
             }
             self?.queue.async { self?.take(copy) }
@@ -1220,4 +1219,3 @@ private final class OnceBox: @unchecked Sendable {
         cont.resume(returning: text)
     }
 }
-
