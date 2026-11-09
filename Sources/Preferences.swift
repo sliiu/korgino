@@ -729,6 +729,13 @@ struct PreferencesPane: View {
                         .controlSize(.small)
                 }
             }
+            HStack {
+                Spacer(minLength: 0)
+                Button(L("重新看引导")) { Onboarding.replay() }
+                    .buttonStyle(.plain)
+                    .font(Theme.TypeScale.body)
+                    .foregroundStyle(Theme.accent)
+            }
         }
     }
 
