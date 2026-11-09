@@ -119,6 +119,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
             _ = AXIsProcessTrustedWithOptions(opts)
         }
+        // 常规应用：从启动台、Finder 打开时要看得到窗口。
+        MainWindowController.shared.show()
     }
 
     private func item(
