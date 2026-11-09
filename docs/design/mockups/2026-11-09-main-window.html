@@ -171,6 +171,33 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 .block svg{width:22px;height:22px;color:var(--danger)}
 .panel{background:var(--card);border-radius:12px;box-shadow:0 0 0 .5px var(--hair);padding:16px 18px}
 .label{font-size:11px;color:var(--fg3);font-weight:600;margin-bottom:8px}
+
+.chipT{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:10px;font-size:11px;background:var(--well);color:var(--fg2);white-space:nowrap}
+.chipT.on{background:rgba(10,132,255,.14);color:var(--accent);font-weight:500}
+.lvlS{display:inline-flex;align-items:flex-end;gap:2px;height:12px}.lvlS i{width:2px;border-radius:1px;background:var(--ok);display:block}
+.feed{flex:1;overflow:hidden;padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.cue{display:grid;grid-template-columns:40px 1fr;gap:10px}
+.cue .when{font-size:11px;color:var(--fg3);line-height:1.8}
+.spk{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;color:#fff;font-size:10px;font-weight:500}
+.cue .o{font-size:13px;color:var(--fg2)}
+.cue .t{font-size:15px;font-weight:500;margin-top:2px}
+.cue .t2{font-size:15px;font-weight:500;margin-top:6px;color:var(--fg)}
+.cue .t2 span{display:block;font-size:11px;font-weight:400;color:var(--fg3)}
+.latest{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12px;padding:4px 12px;border-radius:12px;background:var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.12),var(--shadow)}
+.menu{border-radius:10px;padding:5px;width:230px;position:relative;z-index:2}
+.mi{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:5px;font-size:13px}
+.mi:nth-child(2){background:var(--accent);color:#fff}
+.mi .ck{width:12px;font-size:11px}
+.msep{height:.5px;background:var(--hair);margin:4px 6px}
+.me{align-self:flex-end;max-width:85%;background:var(--accent);color:#fff;border-radius:12px 12px 4px 12px;padding:7px 10px;font-size:13px}
+.ai{font-size:13px;line-height:1.55}
+.ask{border-top:.5px solid var(--hair);padding:8px 12px 10px}
+.askIn{display:flex;align-items:center;height:30px;padding:0 10px;border-radius:8px;background:var(--well);font-size:13px}
+.kbd{font-size:10px;font-weight:500;padding:1px 4px;border-radius:3px;background:var(--well);color:var(--fg2)}
+.split{display:inline-flex;height:22px;border-radius:6px;overflow:hidden;box-shadow:0 0 0 .5px rgba(0,0,0,.16);background:var(--card);font-size:12px}
+.split .sa{padding:0 8px;display:grid;place-items:center}
+.split .sb{padding:0 6px;display:grid;place-items:center;border-left:.5px solid var(--hair);color:var(--fg2)}
+.caret{display:inline-block;width:1px;height:14px;background:var(--accent);vertical-align:-2px;margin-left:1px}
 </style>
 </head>
 <body>
@@ -199,6 +226,7 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
   <symbol id="i-sum" viewBox="0 0 16 16"><path d="M12 3H4l4.5 5L4 13h8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-q" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.3 6.3a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".8" fill="currentColor"/></symbol>
   <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="12.5" cy="8" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
  </defs>
 </svg>
@@ -295,6 +323,140 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
  </div>
 </div>
 
+<!-- ============ 2b 实时 · 开始前展开设置 ============ -->
+<h2>②b 实时与会议 · 开始前的设置</h2>
+<p class="note">卡片默认只露三件事：听什么语言、译成什么、开始。点「设置」展开这一条采集的全部选项，按「常用 → 更多」分两段。多路识别、每路多家翻译、沉浸字幕都在展开后的「识别与翻译」里，一行一家，结构照 <code>0059</code>/<code>0060</code>。开始后自动收起。</p>
+<div class="win" style="height:760px">
+ <div class="side">
+  <div class="lights"><i></i><i></i><i></i></div>
+  <div class="nav"><svg><use href="#i-tr"/></svg>翻译</div>
+  <div class="nav on"><svg><use href="#i-wave"/></svg>实时与会议</div>
+  <div class="nav"><svg><use href="#i-clock"/></svg>历史</div>
+  <div class="navgrp">更多</div>
+  <div class="nav"><svg><use href="#i-book"/></svg>词典</div>
+  <div class="nav"><svg><use href="#i-film"/></svg>媒体字幕</div>
+  <div class="nav"><svg><use href="#i-mic"/></svg>语音</div>
+  <div class="grow"></div>
+  <div class="nav"><svg><use href="#i-gear"/></svg>设置</div>
+ </div>
+ <div class="main">
+  <div class="content" style="gap:12px">
+   <div class="srcCard" style="padding:14px 16px">
+    <div class="row">
+     <div class="ico" style="margin:0;width:26px;height:26px"><svg><use href="#i-spk"/></svg></div>
+     <b>系统声音</b>
+     <div class="spacer"></div>
+     <span class="cap" style="color:var(--accent)">收起设置 ⌃</span>
+     <span class="btn primary">开始</span>
+    </div>
+    <div class="row" style="margin-top:12px;gap:16px">
+     <span class="cap">听</span><span class="pop">English</span>
+     <span class="cap">译成</span><span class="pop">简体中文</span>
+    </div>
+
+    <div class="setsec" style="margin:16px 0 6px">识别与翻译</div>
+    <div class="group" style="box-shadow:0 0 0 .5px var(--hair)">
+     <div class="sr" style="background:var(--well)"><div class="l" style="font-weight:500">第 1 路 · Apple 本地</div><span class="pop">换引擎</span><span class="ib"><svg><use href="#i-more"/></svg></span></div>
+     <div class="sr" style="padding-left:28px"><div class="l"><span class="logo" style="background:#4285F4;margin-right:6px">G</span>Google → 简体中文</div><span class="chipT on">沉浸字幕</span><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+     <div class="sr" style="padding-left:28px"><div class="l"><span class="logo" style="background:#D97757;margin-right:6px">C</span>Claude → 简体中文<small style="display:inline;margin-left:6px">同传：读出来</small></div><span class="chipT">沉浸字幕</span><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+     <div class="sr" style="padding-left:28px"><span style="color:var(--accent);font-size:12px">＋ 加翻译</span></div>
+     <div class="sr"><span style="color:var(--accent);font-size:12px">＋ 再加一路识别</span><span class="cap" style="margin-left:6px">用另一个引擎同时识别，对比准确度</span></div>
+    </div>
+
+    <div class="setsec" style="margin:16px 0 6px">更多</div>
+    <div class="group">
+     <div class="sr"><div class="l">分说话人</div><span class="cap">少分</span><div style="width:120px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--accent) 45%,rgba(0,0,0,.12) 45%);position:relative"><i style="position:absolute;left:45%;top:-6px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 1px 3px rgba(0,0,0,.2)"></i></div><span class="cap">多分</span></div>
+     <div class="sr"><div class="l">录音<small>存进这场会议记录，可导出 M4A</small></div><span class="tog"></span></div>
+     <div class="sr"><div class="l">同传译音送到<small>通话时把译音送进虚拟声卡。请戴耳机</small></div><span class="pop">不送出</span></div>
+    </div>
+   </div>
+
+   <div class="srcCard" style="padding:14px 16px">
+    <div class="row">
+     <div class="ico" style="margin:0;width:26px;height:26px"><svg><use href="#i-mic"/></svg></div>
+     <b>麦克风</b><span class="cap">MacBook Pro 麦克风</span>
+     <div class="spacer"></div>
+     <span class="cap" style="color:var(--accent)">设置 ⌄</span>
+     <span class="btn">开始</span>
+    </div>
+    <div class="row" style="margin-top:12px;gap:16px">
+     <span class="cap">听</span><span class="pop">简体中文</span>
+     <span class="cap">译成</span><span class="pop">English</span>
+    </div>
+   </div>
+   <div class="cap">两条可以同时开。「同时开始」在两张卡都设好后出现在这里。</div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ 2c 正在听 ============ -->
+<h2>②c 实时与会议 · 正在听</h2>
+<p class="note">顶栏一行管整场：在听的点和时长、电平、沉浸字幕、笔记、导出、停止。下面按采集分两栏，每栏里按路分块（只有一路时就是一块）。一条字幕：时间和说话人在左，原文 13 浅、译文 15 实；多家译文竖排，服务名用 11 磅小字。离开底部时出「回到最新」。笔记从右侧滑出，不压字幕。</p>
+<div class="win" style="height:640px;width:1100px">
+ <div class="side">
+  <div class="lights"><i></i><i></i><i></i></div>
+  <div class="nav"><svg><use href="#i-tr"/></svg>翻译</div>
+  <div class="nav on"><svg><use href="#i-wave"/></svg>实时与会议<span class="badge"></span></div>
+  <div class="nav"><svg><use href="#i-clock"/></svg>历史</div>
+  <div class="navgrp">更多</div>
+  <div class="nav"><svg><use href="#i-book"/></svg>词典</div>
+  <div class="nav"><svg><use href="#i-film"/></svg>媒体字幕</div>
+  <div class="nav"><svg><use href="#i-mic"/></svg>语音</div>
+  <div class="grow"></div>
+  <div class="nav"><svg><use href="#i-gear"/></svg>设置</div>
+ </div>
+ <div class="main">
+  <div class="row" style="padding:12px 18px;border-bottom:.5px solid var(--hair);gap:10px">
+   <span class="status" style="color:var(--fg)"><i style="background:var(--danger)"></i><b style="font-weight:500">正在听</b><span class="muted">18:42</span></span>
+   <span class="cap">产品周会</span>
+   <div class="spacer"></div>
+   <span class="btn"><svg><use href="#i-text"/></svg>沉浸字幕</span>
+   <span class="btn"><svg><use href="#i-pen"/></svg>笔记</span>
+   <span class="btn">导出…</span>
+   <span class="btn" style="color:var(--danger)"><span style="width:8px;height:8px;border-radius:2px;background:var(--danger)"></span>停止</span>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 260px;min-height:0">
+   <!-- column system -->
+   <div style="border-right:.5px solid var(--hair);display:flex;flex-direction:column;min-height:0">
+    <div class="row" style="padding:8px 16px;gap:8px">
+     <b style="font-size:12px">系统声音</b><span class="cap">English → 简体中文</span>
+     <span class="lvlS"><i style="height:5px"></i><i style="height:9px"></i><i style="height:12px"></i><i style="height:7px"></i></span>
+     <div class="spacer"></div><span class="cap" style="color:var(--accent)">设置 ⌄</span>
+    </div>
+    <div class="feed">
+     <div class="cue"><div class="when">18:20<br><span class="spk" style="background:#5E5CE6">A</span></div><div><div class="o">So the first thing we did was rebuild the onboarding flow from scratch.</div><div class="t">所以我们做的第一件事，是从头重做新手引导。</div></div></div>
+     <div class="cue"><div class="when">18:31<br><span class="spk" style="background:#5E5CE6">A</span></div><div><div class="o">And then we measured how many people finish it on day one.</div><div class="t">然后我们统计了第一天有多少人完成引导。</div><div class="t2"><span>Claude</span>接着，我们衡量了首日完成引导的人数。</div></div></div>
+     <div class="cue"><div class="when">18:40<br><span class="spk" style="background:#FF9F0A">B</span></div><div><div class="o">That went from thirty-one to fifty-eight percent.</div><div class="t" style="color:var(--fg2)">这个比例从百分之三十一涨到了…</div></div></div>
+    </div>
+   </div>
+   <!-- column mic -->
+   <div style="border-right:.5px solid var(--hair);display:flex;flex-direction:column;min-height:0;position:relative">
+    <div class="row" style="padding:8px 16px;gap:8px">
+     <b style="font-size:12px">麦克风</b><span class="cap">简体中文 → English</span>
+     <span class="lvlS"><i style="height:3px"></i><i style="height:4px"></i><i style="height:3px"></i><i style="height:2px"></i></span>
+     <div class="spacer"></div><span class="cap" style="color:var(--accent)">设置 ⌄</span>
+    </div>
+    <div class="feed">
+     <div class="cue"><div class="when">17:58<br><span class="spk" style="background:#30B0C7">我</span></div><div><div class="o">那留存呢？第七天有变化吗？</div><div class="t">What about retention? Did day seven change?</div></div></div>
+     <div class="cue"><div class="when">18:05<br><span class="spk" style="background:#30B0C7">我</span></div><div><div class="o">好，我们下周把这个版本先发给内测用户。</div><div class="t">OK, let's ship this build to beta users next week.</div></div></div>
+    </div>
+    <span class="latest">回到最新 ↓</span>
+   </div>
+   <!-- note -->
+   <div style="background:var(--card);padding:14px 16px;display:flex;flex-direction:column;gap:8px;overflow:hidden">
+    <div class="row"><b style="font-size:13px">一场笔记</b><div class="spacer"></div><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+    <span class="cap">18:40 更新 · 跟着字幕更新</span>
+    <div class="label" style="margin:6px 0 0">要点</div>
+    <div style="font-size:12px;line-height:1.6">· 新手引导从头重做<br>· 首日完成率 31% → 58%</div>
+    <div class="label" style="margin:6px 0 0">待办</div>
+    <div style="font-size:12px;line-height:1.6">· 下周把新版本发给内测用户<br>· 补第 7 天留存数据</div>
+    <div class="label" style="margin:6px 0 0">反复出现的词</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap"><span class="chipT">onboarding</span><span class="chipT">retention</span><span class="chipT">day one</span></div>
+   </div>
+  </div>
+ </div>
+</div>
+
 <!-- ============ 3 设置 ============ -->
 <h2>③ 主窗口 · 设置 › 常用</h2>
 <p class="note">点侧栏「设置」后，侧栏换成设置目录。常用一页 12 行，其余七页在「高级」。高级里给某个功能另选了服务时，常用那一行下面出一行蓝字，点了跳过去。</p>
@@ -383,24 +545,117 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
  </div>
 </div>
 
+<!-- ============ 4b 浮层：加一家 / 继续对话 / 写回 ============ -->
+<h2>④b 翻译浮层 · 加一家、继续对话、替换与插入</h2>
+<p class="note">左：点译文列表最下面的「＋ 再加一家」，原地弹出服务列表，勾上就多译一家，只管这一次；底部「管理服务…」进设置。免费版这一行写「再加一家需要 Pro」。<br>中：浮层底部常驻一行「继续问 AI」。发出后在译文下面接着长出对话，顶上可换模型，「带原文」「带译文」两枚开关决定这次提问附带什么。<br>右：写回分两个动作。「替换」盖掉选区（现在的写回，<code>0009</code>，⌘1–9）。<b>「插入」是新增</b>：把译文接在原文后面，原文留着，适合写双语。按住 ⌥ 时 ⌘1–9 改成插入。</p>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+ <div class="stage desk" style="padding:22px 18px;min-height:500px">
+  <div class="cap" style="margin-bottom:10px;color:rgba(0,0,0,.5)">再加一家</div>
+  <div class="popup mat" style="width:100%">
+   <div class="head"><span class="dir">English → 简体中文</span><div class="spacer"></div><span class="ib"><svg><use href="#i-pin"/></svg></span><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+   <div class="body">
+    <div class="orig">The Commission will open a formal investigation.</div>
+    <div class="reading">委员会将展开正式调查。</div>
+    <div class="foot"><span class="logo" style="background:#4285F4">G</span>Google<div class="spacer"></div></div>
+    <div class="fold" style="color:var(--accent);padding-bottom:12px">＋ 再加一家</div>
+   </div>
+  </div>
+  <div class="mat menu" style="margin:-8px 0 0 14px">
+   <div class="mi"><span class="ck">✓</span><span class="logo" style="background:#4285F4">G</span>Google<span class="cap" style="margin-left:auto">默认</span></div>
+   <div class="mi"><span class="ck"></span><span class="logo" style="background:#0F2B46">D</span>DeepL</div>
+   <div class="mi"><span class="ck"></span><span class="logo" style="background:#D97757">C</span>Claude · Sonnet</div>
+   <div class="mi"><span class="ck"></span><span class="logo" style="background:#10A37F">O</span>OpenAI · GPT</div>
+   <div class="mi"><span class="ck"></span><span class="logo" style="background:#000">A</span>Apple 本地</div>
+   <div class="msep"></div>
+   <div class="mi muted"><span class="ck"></span>管理服务…</div>
+  </div>
+ </div>
+
+ <div class="stage desk" style="padding:22px 18px;min-height:500px">
+  <div class="cap" style="margin-bottom:10px;color:rgba(0,0,0,.5)">继续对话</div>
+  <div class="popup mat" style="width:100%">
+   <div class="head"><span class="dir">English → 简体中文</span><div class="spacer"></div><span class="ib"><svg><use href="#i-pin"/></svg></span><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+   <div class="body">
+    <div class="orig">The Commission will open a formal investigation.</div>
+    <div class="reading">委员会将展开正式调查。</div>
+    <div class="foot"><span class="logo" style="background:#4285F4">G</span>Google<div class="spacer"></div></div>
+    <div style="border-top:.5px solid var(--hair);padding-top:10px;display:flex;flex-direction:column;gap:10px">
+     <div class="row" style="gap:6px"><span class="pop" style="height:20px;font-size:11px">Claude · Sonnet</span><div class="spacer"></div><span class="cap">清空</span></div>
+     <div class="me">"formal investigation" 在法律语境里有什么特别含义？</div>
+     <div class="ai">在欧盟竞争法里，「正式调查」指委员会已正式立案（opening of proceedings），之后可以要求企业提交材料，最终可能作出有约束力的决定或罚款。比「初步审查」更进一步。
+      <div class="foot" style="padding:6px 0 0"><div class="spacer"></div><span class="ib"><svg><use href="#i-copy"/></svg></span><span class="ib"><svg><use href="#i-back"/></svg></span></div>
+     </div>
+    </div>
+   </div>
+   <div class="ask">
+    <div class="row" style="gap:6px;margin-bottom:6px"><span class="chipT on">带原文</span><span class="chipT on">带译文</span></div>
+    <div class="askIn"><span class="muted">继续问 AI…</span><span class="cap" style="margin-left:auto">⌘↩</span></div>
+   </div>
+  </div>
+ </div>
+
+ <div class="stage desk" style="padding:22px 18px;min-height:500px">
+  <div class="cap" style="margin-bottom:10px;color:rgba(0,0,0,.5)">替换与插入（按住 ⌘ 一秒后出数字标号）</div>
+  <div class="popup mat" style="width:100%">
+   <div class="head"><span class="dir">简体中文 → English</span><div class="spacer"></div><span class="ib"><svg><use href="#i-pin"/></svg></span><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+   <div class="body">
+    <div class="orig">我们下周把这个版本先发给内测用户。</div>
+    <div class="reading">We'll ship this build to beta users next week.</div>
+    <div class="foot"><span class="logo" style="background:#4285F4">G</span>Google<span class="kbd">⌘1</span><div class="spacer"></div><span class="ib"><svg><use href="#i-spk"/></svg></span><span class="ib"><svg><use href="#i-copy"/></svg></span>
+     <span class="split"><span class="sa">替换</span><span class="sb">⌄</span></span></div>
+    <div class="fold" style="padding-bottom:12px"><span class="logo" style="background:#0F2B46">D</span><b style="font-weight:500;color:var(--fg)">DeepL</b><span class="kbd">⌘2</span><span class="peek">Next week we'll release this version to beta testers first.</span></div>
+   </div>
+  </div>
+  <div class="mat menu" style="margin:6px 0 0 auto;width:200px;position:relative">
+   <div class="mi"><span class="ck">✓</span>替换选区<span class="cap" style="margin-left:auto">⌘1</span></div>
+   <div class="mi"><span class="ck"></span>插入到原文后<span class="cap" style="margin-left:auto">⌥⌘1</span></div>
+  </div>
+  <div class="cap" style="margin:16px 0 6px;color:rgba(0,0,0,.5)">插入后，来源应用里</div>
+  <div class="doc" style="padding:14px 16px;font-size:13px">我们下周把这个版本先发给内测用户。<br><span class="sel">We'll ship this build to beta users next week.</span></div>
+ </div>
+</div>
+
 <!-- ============ 5 划词插件条 ============ -->
 <h2>⑤ 划词插件条</h2>
-<p class="note">选区上方 8 磅。翻译固定第一个，一根分隔线后是插件；超过 6 个时第 6 格换成「⋯」。名字提示悬停 400 ms 后才出，划过不闪。</p>
-<div class="stage desk" style="padding:44px 60px 40px">
- <div class="doc" style="max-width:640px;margin-top:30px;padding-top:40px">
-  <div id="pbar" style="position:absolute;left:196px;top:-8px">
-   <div class="bar mat">
-    <span class="pi"><svg><use href="#i-tr"/></svg></span>
-    <span class="sep"></span>
-    <span class="pi hov"><svg><use href="#i-pen"/></svg></span>
-    <span class="pi"><svg><use href="#i-sum"/></svg></span>
-    <span class="pi"><svg><use href="#i-q"/></svg></span>
-    <span class="pi"><svg><use href="#i-spark"/></svg></span>
-    <span class="pi"><svg><use href="#i-more"/></svg></span>
+<p class="note">选区上方 8 磅。最左固定一个放大镜，点开就地变成搜索框，搜全部插件（翻译也是其中一个）；回车用第一个，↑↓ 选。放大镜后一根分隔线，再是用户放到条上的插件，最多 6 个，翻译不是必选。条上放不下的不再用「⋯」，都从搜索里找。名字提示悬停 400 ms 后才出。</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+ <div class="stage desk" style="padding:30px 28px 34px">
+  <div class="cap" style="margin-bottom:8px;color:rgba(0,0,0,.5)">平时</div>
+  <div class="doc" style="padding-top:44px">
+   <div id="pbar" style="position:absolute;left:196px;top:-8px">
+    <div class="bar mat">
+     <span class="pi"><svg><use href="#i-search"/></svg></span>
+     <span class="sep"></span>
+     <span class="pi hov"><svg><use href="#i-pen"/></svg></span>
+     <span class="pi"><svg><use href="#i-sum"/></svg></span>
+     <span class="pi"><svg><use href="#i-q"/></svg></span>
+     <span class="pi"><svg><use href="#i-spark"/></svg></span>
+    </div>
+    <span class="tip" style="left:40px;top:-26px">润色</span>
    </div>
-   <span class="tip" style="left:44px;top:-26px">润色</span>
+   <p style="margin:0">Over the past decade, <span class="sel">remote work has shifted from a perk to an expectation</span> for many knowledge workers.</p>
   </div>
-  <p style="margin:14px 0 0">Over the past decade, <span class="sel">remote work has shifted from a perk to an expectation for many knowledge workers</span>, reshaping how companies think about offices, hiring, and culture.</p>
+  <div class="cap" style="margin-top:10px;color:rgba(0,0,0,.5)">这位用户没把翻译放上条：润色、总结、解释、改写。</div>
+ </div>
+ <div class="stage desk" style="padding:30px 28px 34px">
+  <div class="cap" style="margin-bottom:8px;color:rgba(0,0,0,.5)">点放大镜后</div>
+  <div class="doc" style="padding-top:44px;min-height:230px">
+   <div id="pbar2" style="position:absolute;left:196px;top:-8px">
+    <div class="bar mat" style="width:236px">
+     <span class="pi" style="color:var(--accent)"><svg><use href="#i-search"/></svg></span>
+     <span style="flex:1;font-size:13px;padding:0 4px">译<span class="caret"></span></span>
+     <span class="pi"><svg><use href="#i-x"/></svg></span>
+    </div>
+    <div class="mat menu" style="margin-top:4px;width:236px">
+     <div class="mi"><svg style="width:14px;height:14px"><use href="#i-tr"/></svg>翻译<span class="cap" style="margin-left:auto">↩</span></div>
+     <div class="mi"><svg style="width:14px;height:14px"><use href="#i-pen"/></svg>译成英文邮件</div>
+     <div class="mi"><svg style="width:14px;height:14px"><use href="#i-spark"/></svg>意译成口语</div>
+     <div class="msep"></div>
+     <div class="mi muted" style="font-size:12px">管理插件…</div>
+    </div>
+   </div>
+   <p style="margin:0">Over the past decade, <span class="sel">remote work has shifted from a perk to an expectation</span> for many knowledge workers.</p>
+  </div>
  </div>
 </div>
 
@@ -506,9 +761,9 @@ h2{font-size:15px;font-weight:600;margin:48px 0 4px}
 
 </div>
 <script>
-(function(){const b=document.getElementById("pbar"),sel=document.querySelector(".sel"),doc=b.parentElement;
+document.querySelectorAll("#pbar,#pbar2").forEach(b=>{const doc=b.parentElement,sel=doc.querySelector(".sel");
 const r=sel.getClientRects()[0],d=doc.getBoundingClientRect(),bar=b.querySelector(".bar").getBoundingClientRect();
-b.style.left=(r.left-d.left)+"px";b.style.top=(r.top-d.top-8-bar.height)+"px";})();
+b.style.left=(r.left-d.left)+"px";b.style.top=(r.top-d.top-8-bar.height)+"px";});
 </script>
 </body>
 </html>
