@@ -83,4 +83,10 @@ enum ConfigKeys {
     static let voicePolishNote = "voicePolishNote"
     static let voicePolishStyle = "voicePolishStyle"
     static let youdaoAppKey = "youdaoAppKey"
+    /// 登录时打开。这一轮只存，还没接 SMAppService。默认关。
+    static let launchAtLogin = "launchAtLogin"
+    /// 关掉窗口后留在菜单栏。这一轮只存。默认开。
+    static let keepInMenuBar = "keepInMenuBar"
+    /// 发出前先确认。这一轮只存，发送流程还是原来的确认窗。默认开。
+    static let maskConfirmBeforeSend = "maskConfirmBeforeSend"
 }
