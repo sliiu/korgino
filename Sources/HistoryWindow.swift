@@ -5,33 +5,15 @@ import SwiftUI
 @MainActor
 final class HistoryController {
     static let shared = HistoryController()
-    private var window: NSWindow?
     let model = HistoryModel()
 
     func show(pane: HistoryModel.Pane = .history) {
         model.pane = pane
         model.reload()
-        if window == nil {
-            let hc = NSHostingController(rootView: HistoryFavoritesView(model: model))
-            hc.sceneBridgingOptions = [.toolbars]
-            let w = NSWindow(contentViewController: hc)
-            w.title = L("历史和收藏")
-            w.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
-            w.toolbarStyle = .unified
-            w.isReleasedWhenClosed = false
-            w.setContentSize(NSSize(width: 520, height: 600))
-            // Without this the window lets itself be dragged narrower than the list and toolbar need.
-            w.minSize = NSSize(width: 440, height: 420)
-            w.center()
-            window = w
-        }
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        MainWindowController.shared.show(page: .history)
     }
 
-    func relocalize() {
-        window?.title = L("历史和收藏")
-    }
+    func relocalize() {}
 
     func reshowHistory(_ e: HistoryEntry) {
         guard let app = NSApp.delegate as? AppDelegate else { return }

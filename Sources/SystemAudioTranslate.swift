@@ -356,10 +356,6 @@ final class SystemAudioTranslateController: ObservableObject {
     @Published var lastActiveSource: SourceKind?
     @Published var translateEngineLabel = ""
 
-    /// 跨文件（LiveCaptionWindow）读写。
-    var window: NSWindow?
-    /// 跨文件（LiveCaptionWindow）读写。
-    var hosting: NSHostingView<AnyView>?
 
     struct ImmersivePane: Equatable {
         var showSource = false

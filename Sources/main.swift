@@ -12,27 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let hotKeys = HotKeys()
     let popup = PopupController()
+    var openItem: NSMenuItem!
     var selectItem: NSMenuItem!
-    var quickItem: NSMenuItem!
     var quickUndoItem: NSMenuItem!
-    var clipboardItem: NSMenuItem!
-    var ocrItem: NSMenuItem!
-    var fileItem: NSMenuItem!
-    var translateGroupItem: NSMenuItem!
-    var captionsGroupItem: NSMenuItem!
-    var liveCaptionsWindowItem: NSMenuItem!
-    var mediaCaptionsItem: NSMenuItem!
-    var meetingRecordsItem: NSMenuItem!
-    var dictionaryItem: NSMenuItem!
-    var historyItem: NSMenuItem!
-    var voiceModeItem: NSMenuItem!
-    var voiceRecognizeItem: NSMenuItem!
-    var voiceTranslateItem: NSMenuItem!
-    var voiceInterpretItem: NSMenuItem!
-    var axItem: NSMenuItem!
-    var screenItem: NSMenuItem!
-    var listenItem: NSMenuItem!
-    var prefsItem: NSMenuItem!
+    var liveCaptionsItem: NSMenuItem!
     var quitItem: NSMenuItem!
     /// Work that fills the translation panel. Starting one replaces the last: they
     /// all write into the same popup, so the older answer must not land in it.
@@ -85,57 +68,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.autoenablesItems = false
         menu.delegate = self
 
-        // One row per feature: menu click + displayed shortcut share the same @objc action.
-        // Global hotkeys (Carbon) below call the identical methods.
+        // 菜单栏只留四个入口。其余功能的快捷键还在，点了打开主窗口并切到对应页。
+        openItem = item(L("打开 Korgino"), #selector(openMainWindow))
+        menu.addItem(openItem)
         selectItem = item(L("划词翻译"), #selector(translateSelection))
         menu.addItem(selectItem)
         // 快捷翻译只在连按空格/组合键时走，菜单里不占一行。撤销有记录时才冒出来。
-        quickItem = item(L("快捷翻译"), #selector(quickTranslate))
         quickUndoItem = item(L("撤销快捷翻译"), #selector(undoQuickTranslate))
         menu.addItem(quickUndoItem)
-
-        clipboardItem = item(L("翻译剪贴板"), #selector(translateClipboard))
-        ocrItem = item(L("OCR 截图翻译"), #selector(ocrTranslate))
-        fileItem = item(L("文档翻译"), #selector(fileTranslate))
-        translateGroupItem = group(L("翻译"), [clipboardItem, ocrItem, fileItem])
-        menu.addItem(translateGroupItem)
-
-        voiceModeItem = NSMenuItem(title: L("语音"), action: nil, keyEquivalent: "")
-        let voiceMenu = NSMenu()
-        voiceMenu.autoenablesItems = false
-        voiceRecognizeItem = item(L("语音识别"), #selector(voiceRecognizeMode))
-        voiceMenu.addItem(voiceRecognizeItem)
-        voiceTranslateItem = item(L("语音翻译"), #selector(voiceTranslateMode))
-        voiceMenu.addItem(voiceTranslateItem)
-        voiceInterpretItem = item(L("语音传译"), #selector(voiceInterpretMode))
-        voiceMenu.addItem(voiceInterpretItem)
-        voiceModeItem.submenu = voiceMenu
-        menu.addItem(voiceModeItem)
-
-        // 一次听下来的字幕、笔记和录音都收在字幕这一组里。
-        liveCaptionsWindowItem = item(L("实时/会议"), #selector(liveCaptions))
-        mediaCaptionsItem = item(L("媒体字幕"), #selector(mediaCaptions))
-        meetingRecordsItem = item(L("会议记录"), #selector(showMeetingRecords))
-        captionsGroupItem = group(L("字幕"), [liveCaptionsWindowItem, mediaCaptionsItem, meetingRecordsItem])
-        menu.addItem(captionsGroupItem)
-
-        dictionaryItem = item(L("词典"), #selector(showDictionary))
-        menu.addItem(dictionaryItem)
+        liveCaptionsItem = item(L("开始实时字幕"), #selector(toggleLiveCaptions))
+        menu.addItem(liveCaptionsItem)
         menu.addItem(.separator())
-        historyItem = item(L("历史和收藏"), #selector(showHistory))
-        menu.addItem(historyItem)
-        prefsItem = item(L("偏好设置…"), #selector(showPrefs), key: ",", mods: [.command])
-        menu.addItem(prefsItem)
-        menu.addItem(.separator())
-        // Permission rows: only visible when NOT granted (updated in menuWillOpen).
-        axItem = item(L("需要辅助功能（划词翻译）"), #selector(openAXSettings))
-        menu.addItem(axItem)
-        screenItem = item(L("需要屏幕录制（OCR）"), #selector(openScreenSettings))
-        menu.addItem(screenItem)
-        listenItem = item(L("需要输入监视（快捷翻译）"), #selector(openListenSettings))
-        menu.addItem(listenItem)
-        menu.addItem(.separator())
-        // 检查更新 / 关于 → 偏好设置 › 通用（避免菜单栏重复）
         quitItem = NSMenuItem(title: L("退出 Korgino"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = [.command]
         // 退出项不画图标。系统有时会给 terminate 补一个方框叉，这里明确清掉。
@@ -190,56 +133,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return i
     }
 
-    /// 一组功能收进一个子菜单，菜单栏只留一行。父项自己没有动作。
-    private func group(_ title: String, _ rows: [NSMenuItem]) -> NSMenuItem {
-        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        let sub = NSMenu()
-        sub.autoenablesItems = false
-        for r in rows { sub.addItem(r) }
-        parent.submenu = sub
-        return parent
-    }
-
     /// Apply UserDefaults hotkeys → Carbon register + menu keyEquivalents.
     func applyHotkeys() {
         let cfg = AppConfig.shared
-        applyFeature(selectItem, action: .select, spec: cfg.hotkeySelect) { [weak self] in
+        // 菜单栏上看得见的几行才画快捷键。其余功能的快捷键仍全局生效，只是不再占一行。
+        applyFeature(openItem, action: .openMain, spec: cfg.hotkeyOpenMain, showsShortcut: true) { [weak self] in
+            MainActor.assumeIsolated { self?.openMainWindow() }
+        }
+        applyFeature(selectItem, action: .select, spec: cfg.hotkeySelect, showsShortcut: true) { [weak self] in
             MainActor.assumeIsolated { self?.translateSelection() }
         }
-        applyFeature(clipboardItem, action: .clipboard, spec: cfg.hotkeyClipboard) { [weak self] in
+        applyFeature(nil, action: .clipboard, spec: cfg.hotkeyClipboard) { [weak self] in
             MainActor.assumeIsolated { self?.translateClipboard() }
         }
-        applyFeature(ocrItem, action: .ocr, spec: cfg.hotkeyOCR) { [weak self] in
+        applyFeature(nil, action: .ocr, spec: cfg.hotkeyOCR) { [weak self] in
             MainActor.assumeIsolated { self?.ocrTranslate() }
         }
-        applyFeature(fileItem, action: .file, spec: cfg.hotkeyFile) { [weak self] in
+        applyFeature(nil, action: .file, spec: cfg.hotkeyFile) { [weak self] in
             MainActor.assumeIsolated { self?.fileTranslate() }
         }
-        applyFeature(liveCaptionsWindowItem, action: .liveCaptions, spec: cfg.hotkeyLiveCaptions) { [weak self] in
+        applyFeature(nil, action: .liveCaptions, spec: cfg.hotkeyLiveCaptions) { [weak self] in
             MainActor.assumeIsolated { self?.liveCaptions() }
         }
-        applyFeature(mediaCaptionsItem, action: .mediaCaptions, spec: cfg.hotkeyMediaCaptions) { [weak self] in
+        applyFeature(nil, action: .mediaCaptions, spec: cfg.hotkeyMediaCaptions) { [weak self] in
             MainActor.assumeIsolated { self?.mediaCaptions() }
         }
-        applyFeature(dictionaryItem, action: .dictionary, spec: cfg.hotkeyDictionary) { [weak self] in
+        applyFeature(nil, action: .dictionary, spec: cfg.hotkeyDictionary) { [weak self] in
             MainActor.assumeIsolated { self?.showDictionary() }
         }
-        applyFeature(historyItem, action: .history, spec: cfg.hotkeyHistory) { [weak self] in
+        applyFeature(nil, action: .history, spec: cfg.hotkeyHistory) { [weak self] in
             MainActor.assumeIsolated { self?.showHistory() }
         }
-        applyFeature(quickItem, action: .quickTranslate, spec: cfg.hotkeyQuick) { [weak self] in
+        applyFeature(nil, action: .quickTranslate, spec: cfg.hotkeyQuick) { [weak self] in
             MainActor.assumeIsolated { self?.quickTranslate() }
         }
-        applyFeature(quickUndoItem, action: .quickUndo, spec: cfg.hotkeyQuickUndo) { [weak self] in
+        applyFeature(quickUndoItem, action: .quickUndo, spec: cfg.hotkeyQuickUndo, showsShortcut: true) { [weak self] in
             MainActor.assumeIsolated { self?.undoQuickTranslate() }
         }
-        applyFeature(voiceRecognizeItem, action: .voiceRecognize, spec: cfg.hotkeyVoiceRecognize) { [weak self] in
+        applyFeature(nil, action: .voiceRecognize, spec: cfg.hotkeyVoiceRecognize) { [weak self] in
             MainActor.assumeIsolated { self?.selectVoiceMode(.recognize) }
         }
-        applyFeature(voiceTranslateItem, action: .voiceTranslate, spec: cfg.hotkeyVoiceTranslate) { [weak self] in
+        applyFeature(nil, action: .voiceTranslate, spec: cfg.hotkeyVoiceTranslate) { [weak self] in
             MainActor.assumeIsolated { self?.selectVoiceMode(.translate) }
         }
-        applyFeature(voiceInterpretItem, action: .voiceInterpret, spec: cfg.hotkeyVoiceInterpret) { [weak self] in
+        applyFeature(nil, action: .voiceInterpret, spec: cfg.hotkeyVoiceInterpret) { [weak self] in
             MainActor.assumeIsolated { self?.selectVoiceMode(.interpret) }
         }
         markVoiceMode()
@@ -272,11 +209,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         _ item: NSMenuItem?,
         action: HotkeyAction,
         spec: HotkeySpec,
+        showsShortcut: Bool = false,
         handler: @escaping () -> Void
     ) {
         let cfg = AppConfig.shared
         let on = cfg.isFeatureEnabled(action)
-        item?.isHidden = !on
+        if showsShortcut { item?.isHidden = !on }
         guard on else {
             item?.keyEquivalent = ""
             item?.keyEquivalentModifierMask = []
@@ -286,7 +224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             sysErrors[action] = ""
             return
         }
-        applyMenuHotkey(item, spec: spec)
+        if showsShortcut { applyMenuHotkey(item, spec: spec) }
         if spec.isBareSpace {
             hotKeys.unregister(id: action.carbonID)
             sysErrors[action] = ""
@@ -341,35 +279,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func refreshLocalizedChrome() {
+        openItem.title = L("打开 Korgino")
         selectItem.title = L("划词翻译")
-        voiceModeItem.title = L("语音")
-        voiceRecognizeItem.title = L("语音识别")
-        voiceTranslateItem.title = L("语音翻译")
-        voiceInterpretItem.title = L("语音传译")
-        quickItem.title = L("快捷翻译")
         quickUndoItem.title = L("撤销快捷翻译")
-        clipboardItem.title = L("翻译剪贴板")
-        ocrItem.title = L("OCR 截图翻译")
-        fileItem.title = L("文档翻译")
-        translateGroupItem.title = L("翻译")
-        liveCaptionsWindowItem.title = L("实时/会议")
-        captionsGroupItem.title = L("字幕")
-        mediaCaptionsItem.title = L("媒体字幕")
-        meetingRecordsItem.title = L("会议记录")
-        dictionaryItem.title = L("词典")
-        historyItem.title = L("历史和收藏")
-        prefsItem.title = L("偏好设置…")
+        liveCaptionsItem.title = liveListening ? L("停止实时字幕") : L("开始实时字幕")
         quitItem.title = L("退出 Korgino")
         quitItem.image = nil
-        axItem.title = L("需要辅助功能（划词翻译）")
-        screenItem.title = L("需要屏幕录制（OCR）")
-        listenItem.title = L("需要输入监视（快捷翻译）")
         installMainMenu()
         PreferencesController.shared.relocalize()
         HistoryController.shared.relocalize()
         DictionaryController.shared.relocalize()
         FileTranslateController.shared.relocalize()
         SystemAudioTranslateController.shared.relocalize()
+        MainWindowController.shared.relocalize()
         MediaCaptionsController.shared.relocalize()
         MeetingRecordsController.shared.relocalize()
         markVoiceMode()
@@ -378,61 +300,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         markVoiceMode()
+        liveCaptionsItem.title = liveListening ? L("停止实时字幕") : L("开始实时字幕")
+        liveCaptionsItem.isHidden = !AppConfig.shared.isFeatureEnabled(.liveCaptions)
 
-        // 剪贴板里有可翻的字才出现这行；没有就整行不显示，留个灰的没法点反而碍事。
-        // 要在 syncFeatureRows 之前定下来，分组才知道这一组还剩不剩东西。
-        let clipOn = AppConfig.shared.isFeatureEnabled(.clipboard)
-            && Self.clipboardHasTranslatableText()
-        clipboardItem.isHidden = !clipOn
-        clipboardItem.isEnabled = clipOn
-
-        // 偏好设置里勾了哪几项，菜单栏就只留哪几行。整行列表在这里统一过一遍，
-        // 不靠各个 @Published 自己发通知 —— 语音模式那几行由 markVoiceMode 管。
+        // 偏好设置里勾了哪几项，对应快捷键就停。菜单栏只留打开、划词、实时字幕和退出。
         syncFeatureRows()
         collapseSeparators(in: menu)
 
-        // Only show permission prompts when not granted — hide once authorized.
-        let axOK = AXIsProcessTrusted()
-        axItem.isHidden = axOK
-        axItem.title = L("需要辅助功能（划词翻译）")
-        let screenOK = CGPreflightScreenCaptureAccess()
-        screenItem.isHidden = screenOK
-        screenItem.title = L("需要屏幕录制（OCR）")
         let needsListen = AppConfig.shared.isFeatureEnabled(.quickTranslate)
             && AppConfig.shared.hotkeyQuick.isBareSpace
-        listenItem.isHidden = CGPreflightListenEventAccess() || !needsListen
-        listenItem.title = L("需要输入监视（快捷翻译）")
         if needsListen, CGPreflightListenEventAccess() {
             _ = QuickTranslate.enableSpaceGesture()
         }
-        // 权限行也参与收线，所以放在最后再收一次。
         collapseSeparators(in: menu)
     }
 
     /// 每个功能一行，勾选状态直接决定 `isHidden`。撤销行另外要求手上真有一条可撤的记录。
     private func syncFeatureRows() {
         let cfg = AppConfig.shared
-        for (item, action) in [
-            (selectItem, HotkeyAction.select),
-            (quickItem, .quickTranslate),
-            (clipboardItem, .clipboard),
-            (ocrItem, .ocr),
-            (fileItem, .file),
-            (liveCaptionsWindowItem, .liveCaptions),
-            (mediaCaptionsItem, .mediaCaptions),
-            (dictionaryItem, .dictionary),
-            (historyItem, .history),
-        ] {
-            item?.isHidden = !cfg.isFeatureEnabled(action)
-        }
+        selectItem?.isHidden = !cfg.isFeatureEnabled(.select)
         if let quickUndoItem {
             let quickOn = cfg.isFeatureEnabled(.quickTranslate) && cfg.isFeatureEnabled(.quickUndo)
             quickUndoItem.isHidden = !quickOn || !QuickTranslate.canUndo
         }
-        // 一组里一行都不剩时，连父项一起收起来，免得上层留个空子菜单。
-        translateGroupItem?.isHidden = [clipboardItem, ocrItem, fileItem].allSatisfy { $0?.isHidden != false }
-        captionsGroupItem?.isHidden = [liveCaptionsWindowItem, mediaCaptionsItem, meetingRecordsItem]
-            .allSatisfy { $0?.isHidden != false }
+        liveCaptionsItem?.isHidden = !cfg.isFeatureEnabled(.liveCaptions)
     }
 
     /// 行被藏掉之后，开头、末尾和连着两条的分隔线一起收起来，菜单里不留空档。
@@ -522,15 +413,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let cfg = AppConfig.shared
         let mode = cfg.voiceMode
         let voiceOn = cfg.dictateEnabled
-        voiceModeItem?.isHidden = !voiceOn
-        if voiceOn {
-            voiceRecognizeItem?.isHidden = false
-            voiceTranslateItem?.isHidden = false
-            voiceInterpretItem?.isHidden = false
-            voiceRecognizeItem?.state = mode == .recognize ? .on : .off
-            voiceTranslateItem?.state = mode == .translate ? .on : .off
-            voiceInterpretItem?.state = mode == .interpret ? .on : .off
-        }
         guard let button = statusItem?.button else { return }
         MenuBarPulse.shared.setBase(Self.menuBarIcon())
         if voiceOn, cfg.voiceModeInMenuBar {
@@ -572,6 +454,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// 菜单上的「开始/停止」直接听或停。全局快捷键仍只打开主窗口的这一页。
+    @objc func toggleLiveCaptions() {
+        guard AppConfig.shared.isFeatureEnabled(.liveCaptions) else { return }
+        SystemAudioTranslateController.shared.toggle()
+    }
+
     @objc func liveCaptions() {
         guard AppConfig.shared.isFeatureEnabled(.liveCaptions) else { return }
         SystemAudioTranslateController.shared.show()
@@ -579,6 +467,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func showMeetingRecords() {
         MeetingRecordsController.shared.show(select: SystemAudioTranslateController.shared.recordID)
+    }
+
+    @objc func openMainWindow() {
+        MainWindowController.shared.show()
+    }
+
+    private var liveListening: Bool {
+        if case .listening = SystemAudioTranslateController.shared.state { return true }
+        return false
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        MainWindowController.shared.show()
+        return false
     }
 
     @objc func mediaCaptions() {
@@ -677,6 +583,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let windowItem = NSMenuItem()
         main.addItem(windowItem)
         let windowMenu = NSMenu(title: L("窗口"))
+        let open = NSMenuItem(title: L("打开 Korgino"), action: #selector(openMainWindow), keyEquivalent: "")
+        open.target = self
+        windowMenu.addItem(open)
         windowMenu.addItem(withTitle: L("关闭窗口"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         windowMenu.addItem(withTitle: L("最小化"), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         windowItem.submenu = windowMenu
@@ -981,17 +890,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    @objc func openAXSettings() {
-        PermissionGrantController.shared.prompt(.accessibility)
-    }
-
-    @objc func openScreenSettings() {
-        PermissionGrantController.shared.prompt(.screenCapture)
-    }
-
-    @objc func openListenSettings() {
-        PermissionGrantController.shared.prompt(.inputMonitoring)
-    }
 }
 
 /// 菜单栏里画出系统按键栏放不下的快捷键。连按三下空格画成三个空格符号。
@@ -1214,33 +1112,13 @@ if let i = args.firstIndex(of: "--test-ocr") {
     RunLoop.main.run()
 }
 
-/// Info.plist 里的布尔。macOS 15 的包用 `LSUIElement` 声明自己是菜单栏应用。
-private func infoPlistFlag(_ key: String) -> Bool {
-    switch Bundle.main.object(forInfoDictionaryKey: key) {
-    case let value as Bool:
-        return value
-    case let value as NSNumber:
-        return value.boolValue
-    case let value as String:
-        return value == "1" || value.lowercased() == "true"
-    default:
-        return false
-    }
-}
-
 MainActor.assumeIsolated {
     // WebKit (incl. Quick Look previews) only draws overlay scrollers when this resolves to overlay.
     UserDefaults.standard.set("WhenScrolling", forKey: "AppleShowScrollBars")
     let app = NSApplication.shared
     let delegate = AppDelegate()
     app.delegate = delegate
-    // macOS 15 只认 Info.plist 的 LSUIElement。启动前切 accessory 会留下 Dock，菜单栏图标也不出现。
-    // macOS 26 不能写这个键，否则 Finder / open 报 -600。那份包只在 26 及以上切。
-    // 已经是 LSUIElement 的包不要再切：两套叠在一起，Control Center 会把状态栏图标拉黑。
-    // 见 docs/adr/0069-menubar-on-macos-15.md。
-    let macOS26 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26
-    if !infoPlistFlag("LSUIElement"), macOS26 {
-        app.setActivationPolicy(.accessory)
-    }
+    // 常规应用：Dock 和 ⌘Tab 里都有 Korgino。不再切 accessory，也不再靠 LSUIElement 拆包。
+    app.setActivationPolicy(.regular)
     app.run()
 }

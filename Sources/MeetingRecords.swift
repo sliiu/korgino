@@ -9,30 +9,14 @@ import UniformTypeIdentifiers
 @MainActor
 final class MeetingRecordsController {
     static let shared = MeetingRecordsController()
-    private var window: NSWindow?
     let model = MeetingRecordsModel()
 
     func show(select id: UUID? = nil) {
         model.reload(select: id)
-        if window == nil {
-            let hc = NSHostingController(rootView: MeetingRecordsView(model: model).environmentObject(AppConfig.shared))
-            let w = NSWindow(contentViewController: hc)
-            w.title = L("会议记录")
-            w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-            w.isReleasedWhenClosed = false
-            w.setContentSize(NSSize(width: 960, height: 640))
-            w.minSize = NSSize(width: 720, height: 420)
-            w.setFrameAutosaveName("KorgiMeetingRecords")
-            w.center()
-            window = w
-        }
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        MainWindowController.shared.show(page: .live)
     }
 
-    func relocalize() {
-        window?.title = L("会议记录")
-    }
+    func relocalize() {}
 }
 
 // MARK: - Model
@@ -658,8 +642,10 @@ enum MeetingWordDocument {
 
 struct MeetingRecordsView: View {
     @ObservedObject var model: MeetingRecordsModel
+    @EnvironmentObject private var config: AppConfig
 
     var body: some View {
+        let _ = config.appLanguage
         NavigationSplitView {
             sidebar
                 .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 340)
