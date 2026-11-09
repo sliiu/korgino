@@ -23,6 +23,16 @@ enum AppleLangPack {
         DownloadHost.shared.present(source: source, target: target, force: force)
     }
 
+    /// 引导第 3 步用的下载。走同一个 `prepareTranslation()`，不再弹一个窗口。
+    /// 跳过不取消：这个视图还在就继续下，视图没了也不中断已经开始的系统下载。
+    @MainActor
+    static func prepareInline(source: String, target: String) -> TranslationSession.Configuration {
+        TranslationSession.Configuration(
+            source: Locale.Language(identifier: source),
+            target: Locale.Language(identifier: target)
+        )
+    }
+
     @MainActor
     static func relocalize() {
         DownloadHost.shared.relocalize()

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ServiceManagement
 import ApplicationServices
 import AVFoundation
 import CoreGraphics
@@ -53,7 +54,7 @@ enum PreferencesTab: String, CaseIterable, Identifiable, Hashable {
 
     /// 侧栏上半，常用三页。
     static let primary: [PreferencesTab] = [.common, .shortcuts, .account]
-    /// 侧栏「高级」下面的七页。语音不在这里，它在侧栏最底下。
+    /// 侧栏「高级」下面的七页。语音不在设置里，它在主窗口「更多」下面。
     static let advanced: [PreferencesTab] = [.providers, .recognition, .dictionary, .plugins, .apps, .privacy, .network]
 
     /// 旧的顶部分页。菜单「关于」和购买入口还用 `.about` 这个名字进来，落到账号页。
@@ -81,66 +82,59 @@ final class PreferencesTabs: ObservableObject {
 @MainActor
 final class PreferencesController: NSObject {
     static let shared = PreferencesController()
-    private var window: NSWindow?
-    private let tabs = PreferencesTabs()
 
+    /// 设置在主窗口里。原来的独立窗口入口都转到这里。
     func show() {
-        if window == nil {
-            buildWindow()
-        }
-        window?.title = tabs.tab.title
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        show(tab: .common)
     }
 
     func show(tab: PreferencesTab) {
-        tabs.tab = tab
-        show()
+        MainWindowController.shared.showSettings(tab: tab)
     }
 
-    /// 打开偏好设置，并停在「语音」。主窗口侧栏「更多 › 语音」还没接进来之前，从这里进。
+    /// 语音在主窗口侧栏「更多」下面，不再进设置。
     func showVoice() {
-        show(tab: .voice)
+        MainWindowController.shared.show(page: .voice)
     }
 
     func close() {
-        window?.close()
-    }
-
-    private func buildWindow() {
-        let root = PreferencesPane(tabs: tabs)
-            .environmentObject(AppConfig.shared)
-        let host = NSHostingView(rootView: AnyView(root))
-        host.translatesAutoresizingMaskIntoConstraints = false
-
-        let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 860, height: 640),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        w.title = L("设置")
-        w.titleVisibility = .hidden
-        w.titlebarAppearsTransparent = true
-        w.toolbarStyle = .unified
-        w.isReleasedWhenClosed = false
-        w.setContentSize(NSSize(width: 860, height: 640))
-        w.minSize = NSSize(width: 760, height: 520)
-        w.contentView = host
-        NSLayoutConstraint.activate([
-            host.topAnchor.constraint(equalTo: w.contentView!.topAnchor),
-            host.leadingAnchor.constraint(equalTo: w.contentView!.leadingAnchor),
-            host.trailingAnchor.constraint(equalTo: w.contentView!.trailingAnchor),
-            host.bottomAnchor.constraint(equalTo: w.contentView!.bottomAnchor),
-        ])
-        w.center()
-        window = w
+        MainWindowController.shared.model.showingSettings = false
     }
 
     func relocalize() {
-        guard window != nil else { return }
-        tabs.epoch += 1
-        window?.title = tabs.tab.title
+        MainWindowController.shared.relocalize()
+    }
+}
+
+/// 「登录时打开」。用 `SMAppService.mainApp` 注册，开关读 service 的 status，不读 UserDefaults。
+/// 这台 SDK（MacOSX 27.2）的 `SMAppService.h` 里，主应用登录项没有要求额外的 entitlement。
+@MainActor
+enum LoginItem {
+    static var isOn: Bool {
+        SMAppService.mainApp.status == .enabled
+    }
+
+    static func set(_ on: Bool) -> String? {
+        let service = SMAppService.mainApp
+        if on {
+            if service.status == .enabled { return nil }
+            do {
+                try service.register()
+            } catch {
+                return error.localizedDescription
+            }
+            if service.status == .requiresApproval {
+                return L("系统要求先在「系统设置 › 通用 › 登录项」里允许 Korgino")
+            }
+            return nil
+        }
+        if service.status == .notRegistered { return nil }
+        do {
+            try service.unregister()
+        } catch {
+            return error.localizedDescription
+        }
+        return nil
     }
 }
 
@@ -150,7 +144,7 @@ private enum ProviderSheet: String, Identifiable {
 }
 
 /// 填写块里控件贴右的那一列。输入框、输入框加按钮、主机加端口都是这个宽。
-private enum SettingsMetrics {
+enum SettingsMetrics {
     static let controlWidth: CGFloat = 300
 }
 
@@ -419,8 +413,77 @@ private struct SettingsRailButton: View {
     }
 }
 
+/// 主窗口侧栏换成设置目录：返回、常用三页、高级七页。点返回回到之前的页。
+struct SettingsSidebar: View {
+    @Binding var tab: PreferencesTab
+    var onBack: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Button(action: onBack) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(Theme.TypeScale.caption)
+                    Text(L("返回"))
+                        .font(Theme.TypeScale.body)
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 28)
+            .padding(.bottom, 8)
+            .help(L("回到之前的页"))
+
+            ForEach(PreferencesTab.primary) { item in
+                SettingsRailButton(title: item.title, selected: tab == item) {
+                    tab = item
+                }
+            }
+
+            Text(L("高级"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.top, 14)
+                .padding(.bottom, 2)
+
+            ForEach(PreferencesTab.advanced) { item in
+                SettingsRailButton(title: item.title, selected: tab == item) {
+                    tab = item
+                }
+            }
+
+            Spacer(minLength: 8)
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 12)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.55))
+    }
+}
+
+/// 设置的一页。侧栏在主窗口里，这里只画右边。
+struct PreferencesDetail: View {
+    var tab: PreferencesTab
+    @StateObject private var tabs = PreferencesTabs()
+    @EnvironmentObject private var config: AppConfig
+
+    var body: some View {
+        PreferencesPane(tabs: tabs, showsRail: false)
+            .environmentObject(config)
+            .onAppear { tabs.tab = tab }
+            .onChange(of: tab) { _, next in tabs.tab = next }
+    }
+}
+
 struct PreferencesPane: View {
     @ObservedObject var tabs: PreferencesTabs
+    /// 主窗口自己有侧栏时，这里不再画一份设置目录。
+    var showsRail = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var tab: PreferencesTab { tabs.tab }
 
@@ -433,7 +496,8 @@ struct PreferencesPane: View {
     @State private var listenTrusted = CGPreflightListenEventAccess()
     @State private var micTrusted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     @State private var speechTrusted = SFSpeechRecognizer.authorizationStatus() == .authorized
-    @State private var launchAtLogin = UserDefaults.standard.object(forKey: ConfigKeys.launchAtLogin) as? Bool ?? false
+    @State private var launchAtLogin = LoginItem.isOn
+    @State private var launchAtLoginError: String?
     @State private var keepInMenuBar = UserDefaults.standard.object(forKey: ConfigKeys.keepInMenuBar) as? Bool ?? true
     @State private var applePackStatus = L("检查中…")
     @State private var providerSheet: ProviderSheet?
@@ -514,66 +578,17 @@ struct PreferencesPane: View {
     private var split: some View {
         let _ = tabs.epoch
         return HStack(alignment: .top, spacing: 0) {
-            sidebar
+            if showsRail {
+                SettingsSidebar(tab: $tabs.tab) {
+                    PreferencesController.shared.close()
+                }
                 .frame(width: 180)
                 .frame(maxHeight: .infinity, alignment: .top)
+            }
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(Theme.windowFill)
         }
-    }
-
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Button {
-                PreferencesController.shared.close()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(Theme.TypeScale.caption)
-                    Text(L("返回"))
-                        .font(Theme.TypeScale.body)
-                }
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 28)
-            .padding(.bottom, 8)
-            .help(L("关掉设置窗口"))
-
-            ForEach(PreferencesTab.primary) { item in
-                SettingsRailButton(title: item.title, selected: tab == item) {
-                    tabs.tab = item
-                }
-            }
-
-            Text(L("高级"))
-                .font(Theme.TypeScale.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .padding(.top, 14)
-                .padding(.bottom, 2)
-
-            ForEach(PreferencesTab.advanced) { item in
-                SettingsRailButton(title: item.title, selected: tab == item) {
-                    tabs.tab = item
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            SettingsRailButton(title: PreferencesTab.voice.title, selected: tab == .voice) {
-                tabs.tab = .voice
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 12)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.55))
     }
 
     private var detail: some View {
@@ -612,7 +627,7 @@ struct PreferencesPane: View {
         case .apps: appsPage
         case .privacy: privacyPage
         case .network: networkPage
-        case .voice: voicePage
+        case .voice: EmptyView()
         case .about: accountPage
         }
     }
@@ -722,6 +737,11 @@ struct PreferencesPane: View {
                         .toggleStyle(.switch)
                         .controlSize(.small)
                 }
+                if let launchAtLoginError {
+                    ErrorLine(text: launchAtLoginError)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                }
                 settingsRow(L("关掉窗口后留在菜单栏"), detail: L("实时字幕在听时会继续听")) {
                     Toggle("", isOn: keepInMenuBarBinding)
                         .labelsHidden()
@@ -809,8 +829,8 @@ struct PreferencesPane: View {
         Binding(
             get: { launchAtLogin },
             set: { on in
-                launchAtLogin = on
-                UserDefaults.standard.set(on, forKey: ConfigKeys.launchAtLogin)
+                launchAtLoginError = LoginItem.set(on)
+                launchAtLogin = LoginItem.isOn
             }
         )
     }
@@ -2001,208 +2021,6 @@ struct PreferencesPane: View {
         QuickAppsSection()
     }
 
-    private var voicePage: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Spacer(minLength: 0)
-                Toggle("", isOn: $config.dictateEnabled)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .accessibilityLabel(L("语音"))
-            }
-            .padding(.top, -28)
-
-            voiceModeCards
-
-            settingsGroup(L("听")) {
-                settingsRow(L("识别")) {
-                    Menu {
-                        Button(L("自动（第一个可用）")) { config.dictateEngineID = "" }
-                        ForEach(config.liveASRChoices()) { choice in
-                            Button(choice.name) { config.dictateEngineID = choice.id }
-                        }
-                    } label: {
-                        let name = config.dictateEngineID.isEmpty
-                            ? L("自动（第一个可用）")
-                            : (config.liveASRChoices().first { $0.id == config.dictateEngineID }?.name ?? L("自动（第一个可用）"))
-                        menuLabel(name)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                }
-                settingsRow(L("识别语言")) {
-                    Menu {
-                        ForEach(ASRLanguage.available(apple: config.isSystemASR(dictateEngine))) { lang in
-                            Button(lang.title) { config.dictateLocaleID = lang.id }
-                        }
-                    } label: {
-                        let title = ASRLanguage.available(apple: config.isSystemASR(dictateEngine))
-                            .first { $0.id == config.dictateLocaleID }?.title ?? L("跟随系统")
-                        menuLabel(title)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                }
-                settingsRow(L("麦克风")) {
-                    dictateInputMenu
-                }
-            }
-            settingsGroup(L("译")) {
-                settingsRow(L("译成")) {
-                    Menu {
-                        Button(L("跟随设置里的目标语言")) { config.dictateTargetLanguage = .auto }
-                        ForEach(TargetLanguage.specific) { lang in
-                            Button(lang.menuTitle) { config.dictateTargetLanguage = lang }
-                        }
-                    } label: {
-                        menuLabel(config.dictateTargetLanguage == .auto
-                                  ? L("跟随设置里的目标语言")
-                                  : config.dictateTargetLanguage.menuTitle)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                }
-                settingsRow(L("翻译服务")) {
-                    Menu {
-                        ForEach(config.catalogTargets()) { target in
-                            Button(target.displayName) {
-                                config.setTranslateIDs([target.id], .dictate)
-                            }
-                        }
-                    } label: {
-                        let id = config.storedTranslateIDs(.dictate).first ?? ""
-                        menuLabel(config.catalogTargets().first { $0.id == id }?.displayName
-                                  ?? config.catalogTargets().first?.displayName
-                                  ?? L("Google (免费)"))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                }
-            }
-            settingsGroup(L("润色")) {
-                settingsRow(L("松开后润色"), detail: L("去掉口头禅，把停顿收成句子。没有 AI 时不改字")) {
-                    Toggle("", isOn: $config.voicePolish)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                }
-                if config.voicePolish {
-                    settingsRow(L("风格")) {
-                        PillSegmented(
-                            selection: $config.voicePolishStyle,
-                            options: [
-                            (VoicePolishStyle.clean, L("收干净")),
-                            (.formal, L("书面")),
-                            (.brief, L("简洁")),
-                            (.custom, L("自己写")),
-                        ]
-                        )
-                    }
-                    if config.voicePolishStyle == .custom {
-                        fieldRow(L("自己的要求")) {
-                            TextField("", text: $config.voicePolishNote)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: SettingsMetrics.controlWidth)
-                        }
-                    }
-                }
-            }
-            settingsGroup(L("切换快捷键")) {
-                voiceHotkeyRow(.voiceRecognize, spec: $config.hotkeyVoiceRecognize)
-                voiceHotkeyRow(.voiceTranslate, spec: $config.hotkeyVoiceTranslate)
-                voiceHotkeyRow(.voiceInterpret, spec: $config.hotkeyVoiceInterpret)
-            }
-            Text(L("快捷键只切换模式，不开始听。按住 Fn 走当前这一条。"))
-                .font(Theme.TypeScale.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, -10)
-        }
-        .disabled(false)
-    }
-
-    private var dictateEngine: String {
-        config.dictateEngineID.isEmpty ? (config.liveASRChoices().first?.id ?? "apple") : config.dictateEngineID
-    }
-
-    private var voiceModeCards: some View {
-        HStack(alignment: .top, spacing: 10) {
-            ForEach(VoiceMode.allCases) { mode in
-                let on = config.voiceMode == mode
-                Button {
-                    config.voiceMode = mode
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(mode.title)
-                                .font(Theme.TypeScale.body)
-                                .fontWeight(on ? .semibold : .regular)
-                            Spacer(minLength: 4)
-                            Text(voiceModeKeys(mode))
-                                .font(Theme.TypeScale.micro)
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Theme.wellFill))
-                        }
-                        Text(voiceModeDetail(mode))
-                            .font(Theme.TypeScale.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                            .fill(Theme.cardFill)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                            .strokeBorder(on ? Theme.accent : Theme.hairline, lineWidth: on ? 1.5 : 0.5)
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func voiceModeKeys(_ mode: VoiceMode) -> String {
-        switch mode {
-        case .recognize: return config.hotkeyVoiceRecognize.display
-        case .translate: return config.hotkeyVoiceTranslate.display
-        case .interpret: return config.hotkeyVoiceInterpret.display
-        }
-    }
-
-    private func voiceModeDetail(_ mode: VoiceMode) -> String {
-        switch mode {
-        case .recognize: return L("写下听到的字")
-        case .translate: return L("边听边出译文，松开写入")
-        case .interpret: return L("说完一句就读出译文")
-        }
-    }
-
-    private var dictateInputMenu: some View {
-        let devices = MicInput.devices()
-        return Menu {
-            Button(L("系统默认")) { config.dictateInputUID = "" }
-            ForEach(devices) { device in
-                Button(device.name) { config.dictateInputUID = device.uid }
-            }
-            if !config.dictateInputUID.isEmpty, !devices.contains(where: { $0.uid == config.dictateInputUID }) {
-                Button(L("已断开")) {}
-                    .disabled(true)
-            }
-        } label: {
-            let name = devices.first { $0.uid == config.dictateInputUID }?.name
-                ?? (config.dictateInputUID.isEmpty ? L("系统默认") : L("已断开"))
-            menuLabel(name)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-    }
-
     private var asrTermsBody: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !config.asrTerms.isEmpty {
@@ -2283,19 +2101,6 @@ struct PreferencesPane: View {
         }
         config.asrTerms = list
         asrTermDraft = ""
-    }
-
-    private func voiceHotkeyRow(_ action: HotkeyAction, spec: Binding<HotkeySpec>) -> some View {
-        HotkeyRecorderButton(
-            action: action,
-            enabled: .constant(true),
-            spec: spec,
-            conflictWarning: config.hotkeyConflictWarning(for: action),
-            showsToggle: false,
-            onChange: { config.setHotkey($0, for: action) }
-        ) {
-            EmptyView()
-        }
     }
 
     private func hotkeyRow(_ action: HotkeyAction, spec: Binding<HotkeySpec>) -> some View {

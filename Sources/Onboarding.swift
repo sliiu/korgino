@@ -178,7 +178,7 @@ enum OnboardingASRChoice: String, CaseIterable, Identifiable {
     var recommended: Bool { self == .analyzer }
 }
 
-/// 体验步的五个标签。这一轮只说明并标「去试试」，不在引导窗口里真的跑。
+/// 体验步的五个标签。点「去试试」就走现有的动作。
 enum OnboardingTry: Int, CaseIterable, Identifiable {
     case select, screenshot, quick, voice, meeting
 
@@ -357,12 +357,19 @@ final class OnboardingModel: ObservableObject {
     /// 体验说明了几项。点过「去试试」或「下一个」的算一项；跳过的不算。
     @Published var tried: Set<Int> = []
     @Published var packInstalled: Bool?
+    /// 选了 Apple 本地之后真正去下。跳过不取消，失败只记下原因。
+    @Published var packDownloading = false
+    @Published var packError: String?
+    @Published var packConfiguration: TranslationSession.Configuration?
     @Published var permissionTick = 0
 
     func refreshPack(native: TargetLanguage, target: TargetLanguage) {
         let source = native.appleCode ?? "en"
         let destination = target.appleCode ?? "en"
         packInstalled = nil
+        packError = nil
+        packConfiguration = nil
+        packDownloading = false
         Task {
             let status = await LanguageAvailability().status(
                 from: Locale.Language(identifier: source),
@@ -370,8 +377,25 @@ final class OnboardingModel: ObservableObject {
             )
             let installed: Bool
             if case .installed = status { installed = true } else { installed = false }
-            await MainActor.run { self.packInstalled = installed }
+            await MainActor.run {
+                self.packInstalled = installed
+                if !installed {
+                    self.packDownloading = true
+                    self.packConfiguration = AppleLangPack.prepareInline(source: source, target: destination)
+                }
+            }
         }
+    }
+
+    func packReady() {
+        packDownloading = false
+        packInstalled = true
+        packError = nil
+    }
+
+    func packFailed(_ message: String) {
+        packDownloading = false
+        packError = message
     }
 
     func noteTried() {
@@ -384,6 +408,7 @@ private struct OnboardingView: View {
     var onFinish: (Bool) -> Void
     @EnvironmentObject private var config: AppConfig
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var launchError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -409,6 +434,23 @@ private struct OnboardingView: View {
             if config.storedTranslateIDs(.select).isEmpty {
                 applyTranslateChoice(.google)
             }
+        }
+        .background {
+            // 跳过不取消：这个任务挂在整页上，离开第 3 步也接着下。
+            Color.clear
+                .frame(width: 0, height: 0)
+                .translationTask(model.packConfiguration) { session in
+                    do {
+                        try await session.prepareTranslation()
+                        await MainActor.run { model.packReady() }
+                    } catch is CancellationError {
+                        await MainActor.run { model.packDownloading = false }
+                    } catch {
+                        await MainActor.run {
+                            model.packFailed(error.localizedDescription)
+                        }
+                    }
+                }
         }
     }
 
@@ -731,17 +773,34 @@ private struct OnboardingView: View {
         }
     }
 
-    /// 语言包只写状态。已安装就写「已安装」，没有就写「首次使用时下载」。这一轮不在引导里真下载。
+    /// 选了 Apple 本地就按第 1 步的语言对下载。失败写出原因，不挡住下一步。
     private var packLine: some View {
-        let text: String
-        switch model.packInstalled {
-        case .some(true): text = L("已安装")
-        case .some(false): text = L("首次使用时下载")
-        case .none: text = L("检查中…")
-        }
-        return HStack(spacing: 8) {
-            StatusDot(model.packInstalled == true ? .ok : .attention, text)
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                if model.packDownloading {
+                    ProgressView().controlSize(.small)
+                    Text(L("正在下载语言包…"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                } else if model.packInstalled == true {
+                    StatusDot(.ok, L("已安装"))
+                } else if model.packInstalled == nil {
+                    StatusDot(.attention, L("检查中…"))
+                } else {
+                    StatusDot(.attention, L("未安装"))
+                }
+                Spacer(minLength: 0)
+                if model.packDownloading {
+                    Button(L("跳过")) { advance() }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(Theme.accent)
+                        .help(L("跳过不取消下载，可以先去下一步"))
+                }
+            }
+            if let packError = model.packError, !packError.isEmpty {
+                ErrorLine(text: packError)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
@@ -882,7 +941,7 @@ private struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Spacer(minLength: 0)
-                    Button(L("去试试")) { model.noteTried() }
+                    Button(L("去试试")) { tryIt() }
                         .controlSize(.small)
                 }
             }
@@ -910,16 +969,52 @@ private struct OnboardingView: View {
     private var tryHint: String {
         switch tryItem {
         case .select:
-            return String(format: L("选中这句后按 ⌥D，会译成：%@"), samples.demoNative)
+            return String(format: L("点「去试试」，这句会填进翻译页并译成：%@"), samples.demoNative)
         case .screenshot:
-            return String(format: L("按 ⌥S 框住这句，识别出的字会译成：%@"), samples.demoNative)
+            return String(format: L("点「去试试」后框住这句，识别出的字会译成：%@"), samples.demoNative)
         case .quick:
-            return String(format: L("连按三下空格，这句会换成：%@"), samples.sayForeign)
+            return String(format: L("点「去试试」，这句会填进翻译页并译成：%@"), samples.sayForeign)
         case .voice:
-            return String(format: L("按住 Fn 读出这句，写进去的是：%@"), samples.sayForeign)
+            return String(format: L("点「去试试」后对着麦克风读这句，写进去的是：%@"), samples.sayForeign)
         case .meeting:
-            return String(format: L("在实时与会议里点开始，字幕会译成：%@"), samples.demoNative)
+            return String(format: L("点「去试试」就开始听系统声音，字幕会译成：%@"), samples.demoNative)
         }
+    }
+
+    /// 点了就走现有动作。没授权的那一项上面已经改成「去授权」，到不了这里。
+    private func tryIt() {
+        model.noteTried()
+        switch tryItem {
+        case .select:
+            putOnPasteboard(samples.demoForeign)
+            onFinish(false)
+            MainWindowController.shared.showTranslate(text: samples.demoForeign)
+        case .screenshot:
+            onFinish(false)
+            (NSApp.delegate as? AppDelegate)?.ocrTranslate()
+        case .quick:
+            putOnPasteboard(samples.sayNative)
+            onFinish(false)
+            MainWindowController.shared.showTranslate(text: samples.sayNative)
+        case .voice:
+            onFinish(false)
+            FnDictate.shared.beginForOnboarding()
+        case .meeting:
+            onFinish(false)
+            let live = SystemAudioTranslateController.shared
+            if !live.isActive {
+                live.setCapture(.system, true)
+            }
+            MainWindowController.shared.show(page: .live)
+            live.start()
+        }
+    }
+
+    /// 划词和快捷翻译的示例句同时放进剪贴板，用户也可以自己贴到别处。
+    private func putOnPasteboard(_ text: String) {
+        let board = NSPasteboard.general
+        board.clearContents()
+        board.setString(text, forType: .string)
     }
 
     // MARK: 完成
@@ -953,14 +1048,18 @@ private struct OnboardingView: View {
             .toggleStyle(.switch)
             .controlSize(.small)
             .padding(.leading, 4)
+            if let launchError {
+                ErrorLine(text: launchError)
+                    .padding(.leading, 4)
+            }
         }
     }
 
-    /// 和设置页「登录时打开」同一个键。这一轮只存，不接开机启动。
+    /// 和设置页「登录时打开」同一个开关：注册或反注册 `SMAppService.mainApp`。
     private var launchBinding: Binding<Bool> {
         Binding(
-            get: { UserDefaults.standard.bool(forKey: ConfigKeys.launchAtLogin) },
-            set: { UserDefaults.standard.set($0, forKey: ConfigKeys.launchAtLogin) }
+            get: { LoginItem.isOn },
+            set: { launchError = LoginItem.set($0) }
         )
     }
 
