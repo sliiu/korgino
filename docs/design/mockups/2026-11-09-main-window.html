@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<title>Korgino 主窗口与浮层 · 效果图 2026-11-09</title>
+<style>
+:root{
+  --accent:#0A84FF; --danger:#FF3B30; --attention:#FF9500; --ok:#34C759;
+  --fg:#1d1d1f; --fg2:rgba(0,0,0,.55); --fg3:rgba(0,0,0,.32);
+  --hair:rgba(0,0,0,.08); --window:#F4F4F6; --card:#FFFFFF; --side:#ECECEF; --well:rgba(0,0,0,.045);
+  --mat:rgba(250,250,252,.82);
+  --shadow:0 4px 12px rgba(0,0,0,.18);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#DADBE0;font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased}
+.page{max-width:1240px;margin:0 auto;padding:40px 32px 80px}
+h1{font-size:22px;font-weight:600;margin:0 0 4px}
+.lede{color:var(--fg2);margin:0 0 36px}
+h2{font-size:15px;font-weight:600;margin:48px 0 4px}
+.note{color:var(--fg2);font-size:12px;margin:0 0 14px;max-width:820px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+
+/* ---------- window chrome ---------- */
+.win{background:var(--window);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 22px 60px rgba(0,0,0,.22);overflow:hidden;display:flex;height:620px;width:900px}
+.side{width:180px;background:var(--side);border-right:.5px solid var(--hair);padding:44px 10px 10px;display:flex;flex-direction:column;gap:1px;position:relative;flex:none}
+.lights{position:absolute;top:16px;left:16px;display:flex;gap:8px}
+.lights i{width:12px;height:12px;border-radius:50%;display:block}
+.lights i:nth-child(1){background:#FF5F57}.lights i:nth-child(2){background:#FEBC2E}.lights i:nth-child(3){background:#28C840}
+.nav{display:flex;align-items:center;gap:8px;padding:5px 9px;border-radius:6px;font-size:13px;color:var(--fg)}
+.nav svg{width:15px;height:15px;flex:none;color:var(--accent)}
+.nav.on{background:rgba(0,0,0,.08);font-weight:500}
+.nav .badge{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--danger)}
+.navgrp{font-size:11px;font-weight:600;color:var(--fg3);padding:14px 9px 4px}
+.grow{flex:1}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.content{flex:1;padding:22px 26px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.banner{display:flex;align-items:center;gap:8px;margin:14px 26px 0;padding:8px 12px;border-radius:8px;background:rgba(255,149,0,.12);font-size:12px}
+.banner .dot{width:6px;height:6px;border-radius:50%;background:var(--attention)}
+.banner a{margin-left:auto;color:var(--accent);text-decoration:none;font-weight:500}
+
+/* ---------- controls ---------- */
+.pop{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:6px;background:var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 1px 1px rgba(0,0,0,.04);font-size:12px;white-space:nowrap}
+.pop::after{content:"";width:6px;height:6px;border-right:1.4px solid var(--fg2);border-bottom:1.4px solid var(--fg2);transform:rotate(45deg) translate(-2px,-2px);margin-left:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 1px 1px rgba(0,0,0,.04);font-size:12px;white-space:nowrap}
+.btn svg{width:13px;height:13px;color:var(--fg2)}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:none;font-weight:500}
+.tog{width:26px;height:15px;border-radius:8px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:1.5px;top:1.5px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.tog.off{background:rgba(0,0,0,.14)}.tog.off::after{right:auto;left:1.5px}
+.row{display:flex;align-items:center;gap:12px}
+.spacer{flex:1}
+.muted{color:var(--fg2)}
+.cap{font-size:11px;color:var(--fg2)}
+
+/* ---------- translate page ---------- */
+.lang{display:flex;align-items:center;gap:8px}
+.lang .arrow{color:var(--fg3)}
+.field{background:var(--card);border-radius:10px;box-shadow:0 0 0 .5px var(--hair);padding:14px 16px}
+.field.src{min-height:150px;color:var(--fg2);font-size:13px;position:relative}
+.field.src .hint{position:absolute;left:16px;bottom:12px;font-size:11px;color:var(--fg3)}
+.field.src .count{position:absolute;right:16px;bottom:12px;font-size:11px;color:var(--fg3)}
+.field.result{padding:12px 16px 4px}
+.result .meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--fg2);margin-bottom:6px}
+.result .meta .svc{display:flex;align-items:center;gap:5px;font-weight:500;color:var(--fg)}
+.logo{width:14px;height:14px;border-radius:4px;display:inline-grid;place-items:center;color:#fff;font-size:9px;font-weight:700}
+.reading{font-size:15px;font-weight:500;line-height:1.55}
+.acts{display:flex;gap:2px;margin-left:auto}
+.ib{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;color:var(--fg2)}
+.ib svg{width:13px;height:13px}
+.ib:hover,.ib.hov{background:var(--well);color:var(--fg)}
+.fold{display:flex;align-items:center;gap:8px;padding:9px 2px;border-top:.5px solid var(--hair);font-size:12px;color:var(--fg2)}
+.fold .peek{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2)}
+
+/* ---------- live page ---------- */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.srcCard{background:var(--card);border-radius:10px;box-shadow:0 0 0 .5px var(--hair);padding:16px}
+.srcCard .ico{width:30px;height:30px;border-radius:8px;background:rgba(10,132,255,.12);color:var(--accent);display:grid;place-items:center;margin-bottom:10px}
+.srcCard .ico svg{width:16px;height:16px}
+.srcCard b{font-size:13px;font-weight:600}
+.srcCard .desc{font-size:12px;color:var(--fg2);margin:2px 0 12px}
+.srcCard .uses{font-size:11px;color:var(--fg3);margin-top:10px}
+.secH{font-size:11px;font-weight:600;color:var(--fg3);margin:8px 0 0;letter-spacing:.02em}
+.list{background:var(--card);border-radius:10px;box-shadow:0 0 0 .5px var(--hair)}
+.li{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:.5px solid var(--hair)}
+.li:first-child{border-top:0}
+.li .t{font-weight:500}
+.li .s{font-size:11px;color:var(--fg2)}
+.chev{width:7px;height:7px;border-right:1.5px solid var(--fg3);border-top:1.5px solid var(--fg3);transform:rotate(45deg)}
+
+/* ---------- settings ---------- */
+.setsec{font-size:11px;font-weight:600;color:var(--fg3);margin:6px 0 6px 4px}
+.group{background:var(--card);border-radius:10px;box-shadow:0 0 0 .5px var(--hair)}
+.sr{display:flex;align-items:center;gap:12px;min-height:38px;padding:7px 14px;border-top:.5px solid var(--hair)}
+.sr:first-child{border-top:0}
+.sr .l{flex:1}
+.sr .l small{display:block;font-size:11px;color:var(--fg2)}
+.sr .detour{display:block;font-size:11px;color:var(--accent);margin-top:1px}
+.back{display:flex;align-items:center;gap:6px;padding:5px 9px;color:var(--fg2);font-size:12px;margin-bottom:6px}
+.back::before{content:"";width:6px;height:6px;border-left:1.5px solid var(--fg2);border-bottom:1.5px solid var(--fg2);transform:rotate(45deg)}
+
+/* ---------- desktop stage for overlays ---------- */
+.stage{border-radius:14px;overflow:hidden;position:relative;box-shadow:0 0 0 .5px rgba(0,0,0,.15)}
+.stage.desk{background:linear-gradient(160deg,#c9d3e3,#e8e3dc);padding:36px}
+.doc{background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:26px 30px;font-size:14px;line-height:1.7;color:#333;position:relative}
+.sel{background:rgba(10,132,255,.22);border-radius:2px}
+
+/* overlay material */
+.mat{background:var(--mat);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 0 0 .5px rgba(0,0,0,.12),var(--shadow)}
+
+/* translate popup */
+.popup{width:380px;border-radius:14px;overflow:hidden}
+.popup .head{display:flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 12px;border-bottom:.5px solid var(--hair);font-size:12px}
+.popup .dir{display:flex;align-items:center;gap:5px;font-weight:500;padding:3px 7px;border-radius:6px;background:var(--well)}
+.popup .dir::after{content:"";width:5px;height:5px;border-right:1.3px solid var(--fg2);border-bottom:1.3px solid var(--fg2);transform:rotate(45deg) translate(-1px,-1px);margin-left:2px}
+.popup .body{padding:12px 14px 4px}
+.popup .orig{font-size:13px;color:var(--fg2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.popup .foot{display:flex;align-items:center;gap:8px;padding:8px 0 10px;font-size:11px;color:var(--fg2)}
+
+/* quick pill */
+.input{background:#fff;border-radius:8px;box-shadow:0 0 0 .5px rgba(0,0,0,.18);padding:10px 12px;font-size:13px;width:300px;position:relative;min-height:40px}
+.pill{position:absolute;right:-6px;bottom:-30px;display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.spin{width:11px;height:11px;border-radius:50%;border:1.6px solid rgba(0,0,0,.15);border-top-color:var(--fg2)}
+.sweep{box-shadow:0 0 0 1.5px rgba(10,132,255,.85),var(--shadow)}
+.pill .k{font-size:10px;font-weight:500;padding:1px 4px;border-radius:3px;background:var(--well);color:var(--fg2)}
+
+/* dark surfaces */
+.stage.video{background:#000;height:260px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:34px}
+.stage.video::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,#3d5a73 0,#1b2633 55%,#0b0f14 100%)}
+.imm{position:relative;max-width:760px;background:rgba(0,0,0,.72);border-radius:12px;padding:12px 20px 14px;text-align:center}
+.imm .s{font-size:15px;color:rgba(255,255,255,.7);line-height:1.4}
+.imm .t{font-size:28px;font-weight:600;color:#fff;line-height:1.3;margin-top:2px}
+.imm .t .partial{color:rgba(255,255,255,.7)}
+.immBar{position:absolute;left:50%;transform:translateX(-50%);top:-38px;display:flex;align-items:center;gap:4px;padding:4px;border-radius:9px;background:rgba(30,30,32,.86);box-shadow:0 0 0 .5px rgba(255,255,255,.12)}
+.immBar .b{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:rgba(255,255,255,.7)}
+.immBar .b svg{width:12px;height:12px}
+.immBar .lbl{font-size:11px;color:rgba(255,255,255,.7);padding:0 6px 0 2px;display:flex;align-items:center;gap:6px}
+.livedot{width:6px;height:6px;border-radius:50%;background:var(--danger)}
+.immErr{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:rgba(255,255,255,.7);margin-top:6px}
+.immErr svg{width:13px;height:13px;color:var(--danger)}
+
+.capsule{display:inline-flex;align-items:center;gap:10px;height:40px;padding:0 16px 0 12px;border-radius:20px;background:rgba(0,0,0,.8);color:#fff;box-shadow:var(--shadow)}
+.capsule .mode{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center}
+.capsule .mode svg{width:12px;height:12px}
+.capsule .lvl{display:flex;align-items:center;gap:2px;height:16px}
+.capsule .lvl i{width:3px;border-radius:2px;background:#fff;display:block}
+.capsule .txt{font-size:13px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.capsule .txt span{direction:ltr;unicode-bidi:bidi-override}
+.capsule .tag{font-size:11px;color:rgba(255,255,255,.7)}
+.dock{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:420px;height:52px;border-radius:16px;background:rgba(255,255,255,.35);backdrop-filter:blur(20px);box-shadow:0 0 0 .5px rgba(255,255,255,.4)}
+
+/* selection bar */
+.bar{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:10px}
+.bar .pi{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:rgba(0,0,0,.78)}
+.bar .pi svg{width:15px;height:15px}
+.bar .pi.hov{background:rgba(0,0,0,.07)}
+.bar .sep{width:1px;height:16px;background:rgba(0,0,0,.14);margin:0 3px}
+.tip{position:absolute;font-size:11px;padding:3px 7px;border-radius:5px;background:rgba(40,40,42,.92);color:#fff;white-space:nowrap}
+
+/* foundation */
+.typeRow{display:grid;grid-template-columns:100px 70px 1fr;align-items:baseline;gap:12px;padding:8px 0;border-top:.5px solid var(--hair)}
+.typeRow:first-child{border-top:0}
+.typeRow code{font:11px ui-monospace,SFMono-Regular,monospace;color:var(--fg2)}
+.sw{display:flex;align-items:center;gap:10px;padding:7px 0}
+.sw i{width:22px;height:22px;border-radius:6px;display:block;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}
+.status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg2)}
+.status i{width:6px;height:6px;border-radius:50%;display:block}
+.err{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--danger)}
+.err svg{width:12px;height:12px}
+.err .retry{color:var(--accent);margin-left:6px}
+.block{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px;text-align:center}
+.block svg{width:22px;height:22px;color:var(--danger)}
+.panel{background:var(--card);border-radius:12px;box-shadow:0 0 0 .5px var(--hair);padding:16px 18px}
+.label{font-size:11px;color:var(--fg3);font-weight:600;margin-bottom:8px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-tr" viewBox="0 0 16 16"><path d="M2 3h7M5.5 1.5V3M4 3c0 3 2 5.5 4.5 6.5M7.5 3c-.5 2.5-2.5 5-5.5 6.5M8.5 14.5l3-7 3 7M9.6 12h3.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 16 16"><path d="M2 8h1M5 5v6M8 2.5v11M11 5v6M14 8h-1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-book" viewBox="0 0 16 16"><path d="M2.5 3c2-.8 3.8-.8 5.5.5 1.7-1.3 3.5-1.3 5.5-.5v10c-2-.8-3.8-.8-5.5.5-1.7-1.3-3.5-1.3-5.5-.5zM8 3.5v10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-film" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 6v4l3.5-2z" fill="currentColor"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 16 16"><rect x="3.5" y="3" width="9" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="6" y="1.5" width="4" height="3" rx="1" fill="#fff" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-shot" viewBox="0 0 16 16"><path d="M2 5V3a1 1 0 0 1 1-1h2M11 2h2a1 1 0 0 1 1 1v2M14 11v2a1 1 0 0 1-1 1h-2M5 14H3a1 1 0 0 1-1-1v-2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5.5 6.5h5M5.5 9.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 16 16"><path d="M4 1.5h5l3.5 3.5v9a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5zM9 1.5V5h3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-spk" viewBox="0 0 16 16"><path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="i-back" viewBox="0 0 16 16"><path d="M6 4L2.5 7.5 6 11M3 7.5h7a3.5 3.5 0 0 1 0 7H8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 16 16"><path d="M10 1.8l4.2 4.2-2.3.8-2.5 2.5.3 3.2-1.4 1.4-2.6-2.6L2.5 14.5M5.7 11.3L3 8.6l1.4-1.4 3.2.3 2.5-2.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 1.8L15 14H1z" fill="currentColor"/><path d="M8 6v3.6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".9" fill="#fff"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 16 16"><path d="M5 3v10M11 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-text" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 16 16"><path d="M8 1.5l1.4 4.1 4.1 1.4-4.1 1.4L8 12.5 6.6 8.4 2.5 7l4.1-1.4z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 16 16"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sum" viewBox="0 0 16 16"><path d="M12 3H4l4.5 5L4 13h8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-q" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.3 6.3a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".8" fill="currentColor"/></symbol>
+  <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="12.5" cy="8" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+ </defs>
+</svg>
+
+<div class="page">
+<h1>Korgino 主窗口与浮层 · 效果图</h1>
+<p class="lede">对应 <code>docs/adr/0072-one-main-window.md</code> 和 <code>docs/design/2026-11-09-main-window.md</code>。静态稿，尺寸按 1× 画。</p>
+
+<!-- ============ 1 翻译页 ============ -->
+<h2>① 主窗口 · 翻译页（默认页）</h2>
+<p class="note">900×620。缺权限时内容区顶部一条横条，一次只出最要紧的一条。原文框可输入、可粘贴、可拖文件；剪贴板、截图、文档是这一页的三个入口。第一家译文展开，其余折成一行。</p>
+<div class="win">
+ <div class="side">
+  <div class="lights"><i></i><i></i><i></i></div>
+  <div class="nav on"><svg><use href="#i-tr"/></svg>翻译</div>
+  <div class="nav"><svg><use href="#i-wave"/></svg>实时与会议</div>
+  <div class="nav"><svg><use href="#i-clock"/></svg>历史</div>
+  <div class="navgrp">更多</div>
+  <div class="nav"><svg><use href="#i-book"/></svg>词典</div>
+  <div class="nav"><svg><use href="#i-film"/></svg>媒体字幕</div>
+  <div class="nav"><svg><use href="#i-mic"/></svg>语音</div>
+  <div class="grow"></div>
+  <div class="nav"><svg><use href="#i-gear"/></svg>设置</div>
+ </div>
+ <div class="main">
+  <div class="banner"><span class="dot"></span>划词翻译需要辅助功能权限<a href="#">去授权</a></div>
+  <div class="content">
+   <div class="row">
+    <div class="lang"><span class="pop">自动检测</span><span class="arrow">→</span><span class="pop">简体中文</span></div>
+    <div class="spacer"></div>
+    <span class="btn"><svg><use href="#i-clip"/></svg>剪贴板</span>
+    <span class="btn"><svg><use href="#i-shot"/></svg>截图</span>
+    <span class="btn"><svg><use href="#i-doc"/></svg>文档…</span>
+   </div>
+   <div class="field src">
+    The European Commission said on Monday that it would open a formal investigation into whether the company's app store rules comply with the Digital Markets Act.
+    <span class="hint">输入、粘贴，或把文件拖进来 · ⌘↩ 翻译</span>
+    <span class="count">164</span>
+   </div>
+   <div class="field result">
+    <div class="meta">
+     <span class="svc"><span class="logo" style="background:#4285F4">G</span>Google</span>
+     <span class="acts"><span class="ib hov"><svg><use href="#i-spk"/></svg></span><span class="ib"><svg><use href="#i-copy"/></svg></span></span>
+    </div>
+    <div class="reading" style="margin-bottom:10px">欧盟委员会周一表示，将正式调查该公司的应用商店规则是否符合《数字市场法》。</div>
+    <div class="fold"><span class="logo" style="background:#0F2B46">D</span><b style="font-weight:500;color:var(--fg)">DeepL</b><span class="peek">欧盟委员会周一称，将对该公司应用商店规则是否符合《数字市场法》展开正式调查。</span><span class="chev" style="transform:rotate(135deg)"></span></div>
+    <div class="fold"><span class="logo" style="background:#D97757">C</span><b style="font-weight:500;color:var(--fg)">Claude</b><span class="peek">欧盟委员会周一宣布，将就该公司的应用商店规则是否符合《数字市场法》启动正式调查。</span><span class="chev" style="transform:rotate(135deg)"></span></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ 2 实时与会议 ============ -->
+<h2>② 主窗口 · 实时与会议页</h2>
+<p class="note">没在听时：两张开始卡加会议记录。卡下面一行写会用哪家识别和翻译，改在设置或开始之后。开始后这一页换成现有的实时字幕视图（多路识别、<code>0059</code> 面板不动）。侧栏这一项在听时右边出一个红点。</p>
+<div class="win" style="height:520px">
+ <div class="side">
+  <div class="lights"><i></i><i></i><i></i></div>
+  <div class="nav"><svg><use href="#i-tr"/></svg>翻译</div>
+  <div class="nav on"><svg><use href="#i-wave"/></svg>实时与会议</div>
+  <div class="nav"><svg><use href="#i-clock"/></svg>历史</div>
+  <div class="navgrp">更多</div>
+  <div class="nav"><svg><use href="#i-book"/></svg>词典</div>
+  <div class="nav"><svg><use href="#i-film"/></svg>媒体字幕</div>
+  <div class="nav"><svg><use href="#i-mic"/></svg>语音</div>
+  <div class="grow"></div>
+  <div class="nav"><svg><use href="#i-gear"/></svg>设置</div>
+ </div>
+ <div class="main">
+  <div class="content">
+   <div class="cards">
+    <div class="srcCard">
+     <div class="ico"><svg><use href="#i-spk"/></svg></div>
+     <b>系统声音</b>
+     <div class="desc">视频、网课、会议里对方的声音</div>
+     <span class="btn primary">开始</span>
+     <div class="uses">Apple 本地识别 · 译成简体中文（Google）</div>
+    </div>
+    <div class="srcCard">
+     <div class="ico"><svg><use href="#i-mic"/></svg></div>
+     <b>麦克风</b>
+     <div class="desc">自己和身边的人说的话</div>
+     <span class="btn primary">开始</span>
+     <div class="uses">Apple 本地识别 · 译成 English（Google）</div>
+    </div>
+   </div>
+   <div class="row"><span class="secH">会议记录</span><div class="spacer"></div><span class="cap">共 12 场</span></div>
+   <div class="list">
+    <div class="li"><div><div class="t">产品周会</div><div class="s">11月8日 14:02 · 42 分钟 · 系统声音 + 麦克风</div></div><div class="spacer"></div><span class="chev"></span></div>
+    <div class="li"><div><div class="t">Interview with Sarah</div><div class="s">11月6日 10:30 · 25 分钟 · 麦克风</div></div><div class="spacer"></div><span class="chev"></span></div>
+    <div class="li"><div><div class="t">WWDC Session 102</div><div class="s">11月4日 21:15 · 58 分钟 · 系统声音</div></div><div class="spacer"></div><span class="chev"></span></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ 3 设置 ============ -->
+<h2>③ 主窗口 · 设置 › 常用</h2>
+<p class="note">点侧栏「设置」后，侧栏换成设置目录。常用一页 12 行，其余七页在「高级」。高级里给某个功能另选了服务时，常用那一行下面出一行蓝字，点了跳过去。</p>
+<div class="win" style="height:700px">
+ <div class="side">
+  <div class="lights"><i></i><i></i><i></i></div>
+  <div class="back">返回</div>
+  <div class="nav on">常用</div>
+  <div class="nav">快捷键</div>
+  <div class="nav">账号与 Pro</div>
+  <div class="navgrp">高级</div>
+  <div class="nav">翻译服务与 AI</div>
+  <div class="nav">识别、朗读与 OCR</div>
+  <div class="nav">词典</div>
+  <div class="nav">划词插件</div>
+  <div class="nav">按应用设置</div>
+  <div class="nav">脱敏</div>
+  <div class="nav">网络与权限</div>
+ </div>
+ <div class="main">
+  <div class="content" style="gap:16px;padding-top:26px">
+   <div>
+    <div class="setsec">语言</div>
+    <div class="group">
+     <div class="sr"><div class="l">母语<small>用来读译文的语言</small></div><span class="pop">简体中文</span></div>
+     <div class="sr"><div class="l">目标语言<small>原文是母语时译成这种</small></div><span class="pop">English</span></div>
+    </div>
+   </div>
+   <div>
+    <div class="setsec">翻译</div>
+    <div class="group">
+     <div class="sr"><div class="l">翻译服务<span class="detour">截图翻译在高级里另选了 DeepL ›</span></div><span class="pop">Google（免费）</span></div>
+     <div class="sr"><div class="l">划词后显示插件条</div><span class="tog"></span></div>
+     <div class="sr"><div class="l">连按空格快捷翻译<small>在输入框里连按三下空格，把刚打的字换成译文</small></div><span class="tog"></span></div>
+    </div>
+   </div>
+   <div>
+    <div class="setsec">实时与会议</div>
+    <div class="group">
+     <div class="sr"><div class="l">识别</div><span class="pop">Apple 本地</span></div>
+     <div class="sr"><div class="l">翻译</div><span class="pop">Google（免费）</span></div>
+    </div>
+   </div>
+   <div>
+    <div class="setsec">外观与启动</div>
+    <div class="group">
+     <div class="sr"><div class="l">外观</div><span class="pop">跟随系统</span></div>
+     <div class="sr"><div class="l">浮层透明度</div><div style="width:150px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--accent) 78%,rgba(0,0,0,.12) 78%);position:relative"><i style="position:absolute;left:78%;top:-6px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 1px 3px rgba(0,0,0,.2)"></i></div></div>
+     <div class="sr"><div class="l">界面语言</div><span class="pop">跟随系统</span></div>
+     <div class="sr"><div class="l">登录时打开</div><span class="tog off"></span></div>
+     <div class="sr"><div class="l">关掉窗口后留在菜单栏<small>实时字幕在听时会继续听</small></div><span class="tog"></span></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ 4 翻译浮层 ============ -->
+<h2>④ 翻译浮层（划词翻译）</h2>
+<p class="note">左：现在的样子，原文灰底、译文一家一张白卡。右：新稿，一块面板，轻重靠字号和颜色；顶栏的方向本身就是目标语言选择；操作在每家译文下面一行，悬停这一家时变实；第二家起折成一行。</p>
+<div class="grid2">
+ <div class="stage desk" style="padding:28px">
+  <div class="cap" style="margin-bottom:10px;color:rgba(0,0,0,.5)">现在</div>
+  <div class="popup mat" style="width:100%">
+   <div class="head"><span style="font-weight:500">English → 简体中文</span><div class="spacer"></div><span class="pop" style="height:20px;font-size:11px">简体中文</span><span class="ib"><svg><use href="#i-pin"/></svg></span></div>
+   <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+    <div style="background:var(--well);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--fg2)">The Commission will open a formal investigation into whether the app store rules comply with the DMA.</div>
+    <div style="background:#fff;border-radius:10px;box-shadow:0 0 0 .5px var(--hair);padding:8px 10px"><div class="cap" style="margin-bottom:4px">Google</div><div class="reading">委员会将正式调查应用商店规则是否符合《数字市场法》。</div></div>
+    <div style="background:#fff;border-radius:10px;box-shadow:0 0 0 .5px var(--hair);padding:8px 10px"><div class="cap" style="margin-bottom:4px">DeepL</div><div class="reading">委员会将对应用商店规则是否符合 DMA 展开正式调查。</div></div>
+    <div style="background:#fff;border-radius:10px;box-shadow:0 0 0 .5px var(--hair);padding:8px 10px"><div class="cap" style="margin-bottom:4px">Claude</div><div class="reading">委员会将就应用商店规则是否符合《数字市场法》启动正式调查。</div></div>
+   </div>
+  </div>
+ </div>
+ <div class="stage desk" style="padding:28px">
+  <div class="cap" style="margin-bottom:10px;color:rgba(0,0,0,.5)">新稿</div>
+  <div class="popup mat">
+   <div class="head"><span class="dir">English → 简体中文</span><div class="spacer"></div><span class="ib"><svg><use href="#i-pin"/></svg></span><span class="ib"><svg><use href="#i-x"/></svg></span></div>
+   <div class="body">
+    <div class="orig">The Commission will open a formal investigation into whether the app store rules comply with the DMA.</div>
+    <div class="reading">委员会将正式调查应用商店规则是否符合《数字市场法》。</div>
+    <div class="foot"><span class="logo" style="background:#4285F4">G</span>Google<div class="spacer"></div><span class="ib hov"><svg><use href="#i-spk"/></svg></span><span class="ib hov"><svg><use href="#i-copy"/></svg></span><span class="ib hov"><svg><use href="#i-back"/></svg></span></div>
+    <div class="fold"><span class="logo" style="background:#0F2B46">D</span><b style="font-weight:500;color:var(--fg)">DeepL</b><span class="peek">委员会将对应用商店规则是否符合 DMA 展开正式调查。</span></div>
+    <div class="fold" style="padding-bottom:12px"><span class="logo" style="background:#D97757">C</span><b style="font-weight:500;color:var(--fg)">Claude</b><span class="peek">委员会将就应用商店规则是否符合《数字市场法》启动正式调查。</span></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ 5 划词插件条 ============ -->
+<h2>⑤ 划词插件条</h2>
+<p class="note">选区上方 8 磅。翻译固定第一个，一根分隔线后是插件；超过 6 个时第 6 格换成「⋯」。名字提示悬停 400 ms 后才出，划过不闪。</p>
+<div class="stage desk" style="padding:44px 60px 40px">
+ <div class="doc" style="max-width:640px;margin-top:20px">
+  <div style="position:absolute;left:196px;top:-8px">
+   <div class="bar mat">
+    <span class="pi"><svg><use href="#i-tr"/></svg></span>
+    <span class="sep"></span>
+    <span class="pi hov"><svg><use href="#i-pen"/></svg></span>
+    <span class="pi"><svg><use href="#i-sum"/></svg></span>
+    <span class="pi"><svg><use href="#i-q"/></svg></span>
+    <span class="pi"><svg><use href="#i-spark"/></svg></span>
+    <span class="pi"><svg><use href="#i-more"/></svg></span>
+   </div>
+   <span class="tip" style="left:44px;top:-26px">润色</span>
+  </div>
+  <p style="margin:14px 0 0">Over the past decade, <span class="sel">remote work has shifted from a perk to an expectation for many knowledge workers</span>, reshaping how companies think about offices, hiring, and culture.</p>
+ </div>
+</div>
+
+<!-- ============ 6 快捷翻译浮标 ============ -->
+<h2>⑥ 快捷翻译浮标</h2>
+<p class="note">贴输入框右下。一个胶囊三种状态。扫光只描在胶囊上，不再描整个输入框。</p>
+<div class="stage desk" style="padding:30px 40px 56px;display:flex;gap:44px">
+ <div><div class="cap" style="color:rgba(0,0,0,.5);margin-bottom:8px">翻译中</div>
+  <div class="input">明天下午三点开会可以吗<div class="pill mat sweep"><span class="spin"></span>翻译中</div></div></div>
+ <div><div class="cap" style="color:rgba(0,0,0,.5);margin-bottom:8px">已替换（2 秒后收起）</div>
+  <div class="input">Can we meet at 3 pm tomorrow?<div class="pill mat"><svg style="width:12px;height:12px;color:var(--ok)"><use href="#i-check"/></svg>已替换<span class="k">⌘Z</span><span class="muted" style="font-weight:400">撤销</span></div></div></div>
+ <div><div class="cap" style="color:rgba(0,0,0,.5);margin-bottom:8px">失败</div>
+  <div class="input">明天下午三点开会可以吗<div class="pill mat" style="color:var(--danger)"><svg style="width:12px;height:12px"><use href="#i-warn"/></svg><span style="font-weight:400">网络连不上</span><span style="color:var(--accent)">重试</span></div></div></div>
+</div>
+
+<!-- ============ 7 语音胶囊 ============ -->
+<h2>⑦ 语音胶囊</h2>
+<p class="note">和快捷翻译浮标拆开。屏幕底部居中，离 Dock 上沿 16 磅，深色。按住 Fn：模式图标、电平、识别出的字（太长从左边截）。松开：竖条换成转圈。</p>
+<div class="stage desk" style="height:240px;padding:0">
+ <div style="position:absolute;left:50%;bottom:88px;transform:translateX(-50%);display:flex;gap:24px">
+  <div class="capsule">
+   <span class="mode"><svg><use href="#i-tr"/></svg></span>
+   <span class="lvl"><i style="height:6px"></i><i style="height:12px"></i><i style="height:16px"></i><i style="height:9px"></i><i style="height:5px"></i></span>
+   <span class="txt"><span>我们下周把这个版本先发给内测用户看看反馈</span></span>
+  </div>
+  <div class="capsule">
+   <span class="mode"><svg><use href="#i-tr"/></svg></span>
+   <span class="spin" style="border-color:rgba(255,255,255,.25);border-top-color:#fff"></span>
+   <span class="tag">翻译中</span>
+  </div>
+ </div>
+ <div class="dock"></div>
+</div>
+
+<!-- ============ 8 沉浸字幕 ============ -->
+<h2>⑧ 沉浸字幕</h2>
+<p class="note">字号不变：译文 28 半粗白，原文 15 磅 70% 白。底 72% 黑加 12 磅圆角。悬停控制条在字幕框上方外侧，不压字，按钮 24×24，最左红点表示在听。正在出的字 70%，定下来 100%。失败不再整行变红。</p>
+<div style="display:flex;flex-direction:column;gap:20px">
+ <div class="stage video">
+  <div class="imm">
+   <div class="immBar">
+    <span class="lbl"><span class="livedot"></span>系统声音 · Google</span>
+    <span class="b"><svg><use href="#i-pause"/></svg></span>
+    <span class="b"><svg><use href="#i-text"/></svg></span>
+    <span class="b"><svg><use href="#i-x"/></svg></span>
+   </div>
+   <div class="s">So the first thing we did was rebuild the onboarding flow from scratch.</div>
+   <div class="t">所以我们做的第一件事，是<span class="partial">从头重做新手引导</span></div>
+  </div>
+ </div>
+ <div class="stage video">
+  <div class="imm">
+   <div class="s">and then measure how many people finish it on day one</div>
+   <div class="immErr"><svg><use href="#i-warn"/></svg>这句没译成 · Google 超时</div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ 9 基础 ============ -->
+<h2>⑨ 基础：字号、颜色、状态、错误</h2>
+<p class="note">全应用只用这七档字号，构建检查拦住 <code>.system(size:)</code>。颜色只用语义名。状态一个组件，错误两种。</p>
+<div class="grid2">
+ <div class="panel">
+  <div class="label">字号 · Theme.Type</div>
+  <div class="typeRow"><code>display</code><code>28 半粗</code><span style="font-size:28px;font-weight:600">沉浸字幕译文</span></div>
+  <div class="typeRow"><code>title</code><code>17 半粗</code><span style="font-size:17px;font-weight:600">页标题 · 词头</span></div>
+  <div class="typeRow"><code>reading</code><code>15 中等</code><span style="font-size:15px;font-weight:500">所有地方的译文</span></div>
+  <div class="typeRow"><code>body</code><code>13 常规</code><span style="font-size:13px">正文、设置行、原文</span></div>
+  <div class="typeRow"><code>label</code><code>12</code><span style="font-size:12px">控件、说明、错误</span></div>
+  <div class="typeRow"><code>caption</code><code>11</code><span style="font-size:11px;color:var(--fg2)">时间、服务名、次要信息</span></div>
+  <div class="typeRow"><code>micro</code><code>10 中等</code><span style="font-size:10px;font-weight:500;color:var(--fg2)">只给键帽 ⌘Z 和角标</span></div>
+ </div>
+ <div style="display:flex;flex-direction:column;gap:20px">
+  <div class="panel">
+   <div class="label">语义色</div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:16px">
+    <div class="sw"><i style="background:var(--accent)"></i><div><b style="font-weight:500">accent</b><div class="cap">主按钮、选中、开关</div></div></div>
+    <div class="sw"><i style="background:var(--danger)"></i><div><b style="font-weight:500">danger</b><div class="cap">失败</div></div></div>
+    <div class="sw"><i style="background:var(--attention)"></i><div><b style="font-weight:500">attention</b><div class="cap">缺密钥、缺权限</div></div></div>
+    <div class="sw"><i style="background:var(--ok)"></i><div><b style="font-weight:500">ok</b><div class="cap">已授权、测试成功</div></div></div>
+   </div>
+  </div>
+  <div class="panel">
+   <div class="label">StatusDot</div>
+   <div style="display:flex;gap:22px;flex-wrap:wrap">
+    <span class="status"><i style="background:var(--danger)"></i>在听 · 03:42</span>
+    <span class="status"><i style="background:var(--attention)"></i>未填密钥</span>
+    <span class="status"><i style="background:var(--ok)"></i>已授权</span>
+    <span class="status"><i style="background:var(--fg3)"></i>没开始</span>
+   </div>
+  </div>
+  <div class="panel">
+   <div class="label">ErrorLine · 行内 / 整块</div>
+   <div class="err"><svg><use href="#i-warn"/></svg>DeepL 密钥不对，返回 403<span class="retry">重试</span></div>
+   <div class="block" style="padding-bottom:4px">
+    <svg><use href="#i-warn"/></svg>
+    <div style="font-size:13px">没查到「serendipitous」</div>
+    <span class="btn">重试</span>
+   </div>
+  </div>
+ </div>
+</div>
+
+</div>
+</body>
+</html>
