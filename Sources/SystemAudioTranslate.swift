@@ -174,6 +174,88 @@ final class SystemAudioTranslateController: ObservableObject {
             ?? ASRLanguage(id: id)
     }
 
+    /// 听的时候不能改这一场听哪几路。两路都关也可以，开始按钮会拦住。
+    func setCapture(_ kind: SourceKind, _ on: Bool) {
+        guard !isActive, !isRequestingPermission else { return }
+        if kind == .system { captureSystem = on } else { captureMicrophone = on }
+    }
+
+    func setLocale(_ kind: SourceKind, _ id: String) {
+        guard !isActive else { return }
+        if kind == .system { asrLocaleID = id } else { micAsrLocaleID = id }
+    }
+
+    /// 卡上的「译成」在这一路还没有翻译时，给第一家加上。
+    func ensureTranslation(_ laneID: UUID, _ kind: SourceKind, _ lang: TargetLanguage) {
+        guard !isActive else { return }
+        rememberTarget(lang, for: kind)
+        guard let lane = lanes(kind).first(where: { $0.id == laneID }) else { return }
+        if let existing = lane.bindings.first(where: { !$0.isSource }) {
+            setBindingTarget(laneID, kind, existing.key, lang)
+            return
+        }
+        let candidates = AppConfig.shared.translateTargets(.live).map(\.id) + liveServiceChoices().map(\.id)
+        guard let id = candidates.first else { return }
+        editLane(laneID, kind) { $0.addBinding(LaneBinding(translateID: id, target: lang)) }
+        refreshLiveProviders()
+    }
+
+    func thresholdBinding(_ kind: SourceKind) -> Binding<Double> {
+        Binding(
+            get: { kind == .system ? self.systemSpeakerThreshold : self.micSpeakerThreshold },
+            set: { new in
+                if kind == .system { self.systemSpeakerThreshold = new } else { self.micSpeakerThreshold = new }
+            }
+        )
+    }
+
+    /// 卡头上的麦克风名。没选时写系统默认。
+    var micDeviceName: String {
+        if micDeviceUID.isEmpty { return L("系统默认") }
+        return MicInput.devices().first { $0.uid == micDeviceUID }?.name ?? L("已断开")
+    }
+
+    func laneTitle(_ lane: RecognitionLane) -> String {
+        AppConfig.shared.liveASRChoices().first { $0.id == lane.asrID }?.name ?? lane.asrID
+    }
+
+    /// 卡底那一行：会用哪家识别、哪家翻译。
+    func serviceLine(_ kind: SourceKind) -> String {
+        var engines: [String] = []
+        var services: [String] = []
+        for lane in lanes(kind) {
+            let name = laneTitle(lane)
+            if !engines.contains(name) { engines.append(name) }
+            for binding in lane.bindings where !binding.isSource {
+                let service = LaneBindingNames.service(binding.translateID)
+                if !services.contains(service) { services.append(service) }
+            }
+        }
+        if engines.isEmpty { engines = [L("识别")] }
+        if services.isEmpty { services = [L("不翻译")] }
+        return engines.joined(separator: " + ") + " · " + services.joined(separator: " · ")
+    }
+
+    /// 栏头上的方向：听什么，译成什么。
+    func directionLine(_ kind: SourceKind) -> String {
+        let source = asrLanguage(for: kind).title
+        var targets: [String] = []
+        for lane in lanes(kind) {
+            for binding in lane.bindings where !binding.isSource {
+                let title = binding.target.shortTitle
+                if !targets.contains(title) { targets.append(title) }
+            }
+        }
+        if targets.isEmpty { return source }
+        return "\(source) → \(targets.joined(separator: " / "))"
+    }
+
+    /// 笔记里点的那一句在哪一路，用来跳回字幕。
+    func noteLane(_ id: UUID) -> UUID? {
+        if let lane = combinedSegmentLane(id) { return lane }
+        return (systemSegments.first { $0.id == id } ?? micSegments.first { $0.id == id })?.laneID
+    }
+
     private static func savedLocale(key: String) -> String {
         if let saved = UserDefaults.standard.string(forKey: key), !saved.isEmpty { return saved }
         if key != "live.asrLocale",
@@ -418,7 +500,7 @@ final class SystemAudioTranslateController: ObservableObject {
     private var draftSource: [UUID: String] = [:]
     private var cursors: [UUID: CaptionCursor] = [:]
     /// Zero of the shared SRT clock. Set when listening actually begins.
-    private var sessionStartedAt: Date?
+    @Published private(set) var sessionStartedAt: Date?
     /// End time of the last committed segment on each recognition lane.
     private var laneSpokenUntil: [UUID: TimeInterval] = [:]
     /// When the line now being drafted on each lane was first heard.
