@@ -9,6 +9,7 @@ enum KIcon: String, CaseIterable, Identifiable {
     /// B1 后续：设计稿没提供，按同一规格自绘。
     case stop, star, starFill, retry, clear, folder, trash, save, export, stopFill
     case zoomIn, zoomOut, rotate, link, qr, open
+    case chevR, chevD, chevU, chevL
 
     var id: String { rawValue }
 
@@ -125,6 +126,14 @@ enum KIcon: String, CaseIterable, Identifiable {
         case .qr:
             return [.stroke(Self.rect(2, 2, 4.5, 4.5, 1), 1.2), .stroke(Self.rect(9.5, 2, 4.5, 4.5, 1), 1.2),
                     .stroke(Self.rect(2, 9.5, 4.5, 4.5, 1), 1.2), .stroke("M9.5 9.5h2M14 9.5v1M9.5 12v2M12 12h2v2", 1.2)]
+        case .chevR:
+            return [.stroke("M6 3.5L10.5 8 6 12.5", 1.6)]
+        case .chevD:
+            return [.stroke("M3.5 6L8 10.5 12.5 6", 1.6)]
+        case .chevU:
+            return [.stroke("M3.5 10L8 5.5 12.5 10", 1.6)]
+        case .chevL:
+            return [.stroke("M10 3.5L5.5 8 10 12.5", 1.6)]
         case .open:
             return [.stroke("M12.5 9v3.5a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1H7M9.5 2.5h4v4M13.5 2.5L7.5 8.5")]
         }

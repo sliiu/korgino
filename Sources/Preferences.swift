@@ -967,8 +967,7 @@ struct PreferencesPane: View {
                         Text(L("致谢"))
                             .font(Theme.TypeScale.body)
                             .foregroundStyle(.primary)
-                        Image(systemName: "chevron.right")
-                            .font(Theme.TypeScale.micro)
+                        KIconView(.chevR, size: 9)
                             .foregroundStyle(.tertiary)
                             .rotationEffect(.degrees(showThanks ? 90 : 0))
                         Spacer(minLength: 8)
@@ -1350,8 +1349,7 @@ struct PreferencesPane: View {
                     Text(entry.wrappedValue.kind == .regex ? L("正则") : L("按字面"))
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(Theme.TypeScale.micro)
+                    KIconView(.chevR, size: 9)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(open ? 90 : 0))
                     Toggle("", isOn: Binding(
@@ -2182,8 +2180,7 @@ struct PreferencesPane: View {
                 label()
                 if let expanded, let toggleExpand {
                     Button(action: toggleExpand) {
-                        Image(systemName: "chevron.right")
-                            .font(Theme.TypeScale.micro)
+                        KIconView(.chevR, size: 9)
                             .foregroundStyle(.tertiary)
                             .rotationEffect(.degrees(expanded ? 90 : 0))
                             .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: expanded)
@@ -3132,8 +3129,7 @@ struct PreferencesPane: View {
 
     private func expandChevron(expanded: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
-            Image(systemName: "chevron.right")
-                .font(Theme.TypeScale.micro)
+            KIconView(.chevR, size: 9)
                 .foregroundStyle(.tertiary)
                 .rotationEffect(.degrees(expanded ? 90 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: expanded)

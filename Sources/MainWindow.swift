@@ -1022,7 +1022,7 @@ private struct LiveSourceCard: View {
             Button(action: onToggleSetup) {
                 HStack(spacing: 3) {
                     Text(expanded ? L("收起设置") : L("设置"))
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    KIconView(expanded ? .chevU : .chevD, size: 10)
                 }
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(Theme.accent)
@@ -1663,7 +1663,7 @@ private struct LiveListenColumn: View {
             Button(action: onToggleSetup) {
                 HStack(spacing: 3) {
                     Text(setup ? L("收起设置") : L("设置"))
-                    Image(systemName: setup ? "chevron.up" : "chevron.down")
+                    KIconView(setup ? .chevU : .chevD, size: 10)
                 }
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(Theme.accent)
@@ -2026,8 +2026,7 @@ private struct MeetingRecordList: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(Theme.TypeScale.caption)
+                KIconView(.chevR, size: 10)
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 14)
