@@ -416,12 +416,9 @@ struct SpeakButton: View {
     var body: some View {
         let playing = speech.isSpeaking(tag: key)
         let notice = speech.notice(tag: key)
-        IconButton(
-            systemImage: playing ? "stop.circle" : "speaker.wave.2",
-            help: notice.isEmpty ? (playing ? L("停止朗读") : help) : notice,
-            tint: notice.isEmpty ? (playing ? .accentColor : nil) : .orange,
-            size: size
-        ) {
+        let helpText = notice.isEmpty ? (playing ? L("停止朗读") : help) : notice
+        let tint: Color? = notice.isEmpty ? (playing ? .accentColor : nil) : .orange
+        let toggle = {
             let plain = MarkdownTextUtil.plain(text).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !plain.isEmpty else { return }
             speech.toggle(
@@ -430,6 +427,14 @@ struct SpeakButton: View {
                 tag: key,
                 voiceID: voiceID
             )
+        }
+        Group {
+            if playing {
+                // 效果图没有「停止」图标，播放中沿用 SF Symbol。
+                IconButton(systemImage: "stop.circle", help: helpText, tint: tint, size: size, action: toggle)
+            } else {
+                IconButton(icon: .spk, help: helpText, tint: tint, size: size, action: toggle)
+            }
         }
         .contextMenu {
             if Pro.unlocked {

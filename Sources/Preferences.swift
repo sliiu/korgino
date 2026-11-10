@@ -3412,8 +3412,7 @@ struct AddProviderSheet: View {
                 .fontWeight(.semibold)
 
             HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .font(Theme.TypeScale.label)
+                KIconView(.search, size: 13)
                     .foregroundStyle(.tertiary)
                 TextField(L("搜索名称、说明或网址"), text: $query)
                     .textFieldStyle(.plain)
