@@ -84,9 +84,10 @@ final class MainWindowController {
             let host = NSHostingController(rootView: root)
             let w = NSWindow(contentViewController: host)
             w.title = "Korgino"
-            w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+            w.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
             w.titleVisibility = .hidden
             w.titlebarAppearsTransparent = true
+            w.toolbar = nil
             w.isReleasedWhenClosed = false
             w.setContentSize(NSSize(width: 900, height: 620))
             w.minSize = NSSize(width: 760, height: 520)
@@ -173,14 +174,17 @@ struct MainWindowView: View {
                 .frame(width: Theme.sidebarWidth)
                 .frame(maxHeight: .infinity)
                 .background(Theme.sidebarFill)
+                .ignoresSafeArea(.container, edges: .top)
             Rectangle()
                 .fill(Theme.hairline)
                 .frame(width: 0.5)
                 .frame(maxHeight: .infinity)
+                .ignoresSafeArea(.container, edges: .top)
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.windowFill)
         }
+        .background(WindowDragArea())
         .frame(minWidth: 760, minHeight: 520)
         .background(Theme.windowFill)
         .onChange(of: config.featureEnabled) { _, _ in keepPageVisible() }
@@ -2080,3 +2084,14 @@ private struct MeetingRecordSheet: View {
     }
 }
 
+
+
+/// 标题栏透明、内容铺到最上沿后，侧栏和页面顶部的空白仍可拖动窗口。
+private struct WindowDragArea: NSViewRepresentable {
+    private final class DragView: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+    }
+
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
