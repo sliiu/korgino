@@ -120,7 +120,7 @@ enum KIcon: String, CaseIterable, Identifiable {
         case .zoomOut:
             return [.stroke(Self.circle(7, 7, 4.5), 1.4), .stroke("M10.5 10.5L14 14", 1.4), .stroke("M5 7h4", 1.2)]
         case .rotate:
-            return [.stroke("M13.5 8a5.5 5.5 0 1 1-1.8-4.1M12.5 2v3.5H9"), .stroke(Self.rect(6, 6, 4, 4, 0.8), 1.2)]
+            return [.stroke("M13 8a5 5 0 1 1-1.6-3.7M12.6 2v3H9.6")]
         case .link:
             return [.stroke("M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.7.7M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.1 9.2a2.6 2.6 0 0 0 3.7 3.7l.7-.7")]
         case .qr:
