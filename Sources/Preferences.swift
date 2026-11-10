@@ -145,7 +145,7 @@ private enum ProviderSheet: String, Identifiable {
 
 /// 填写块里控件贴右的那一列。输入框、输入框加按钮、主机加端口都是这个宽。
 enum SettingsMetrics {
-    static let controlWidth: CGFloat = 300
+    static let controlWidth: CGFloat = SettingsChrome.controlWidth
 }
 
 private struct SettingsFieldWidthKey: EnvironmentKey {
@@ -159,17 +159,44 @@ extension EnvironmentValues {
     }
 }
 
-/// 填写块里的输入框：贴右，宽 300。说明文字跟在控件下面。
+/// 填写块里的输入框：贴右，宽 300。有标签时走左标签右控件；说明跟在控件下面。
 private struct SettingsField<Content: View>: View {
     @Environment(\.settingsFieldWidth) private var width
+    var title: String? = nil
+    var note: String? = nil
+    var showsDivider = true
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         if let width {
-            HStack {
-                Spacer(minLength: 12)
-                content()
-                    .frame(width: width)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .center, spacing: 8) {
+                    if let title {
+                        Text(title)
+                            .font(Theme.TypeScale.body)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Spacer(minLength: 0)
+                    }
+                    content()
+                        .frame(width: width, alignment: .trailing)
+                }
+                .frame(minHeight: SettingsChrome.rowMinHeight)
+                if let note, !note.isEmpty {
+                    Text(note)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: width, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.top, -4)
+                        .padding(.bottom, 8)
+                }
+            }
+            .overlay(alignment: .top) {
+                if showsDivider {
+                    Rectangle().fill(Theme.hairline).frame(height: 0.5)
+                }
             }
         } else {
             content()
@@ -1758,7 +1785,11 @@ struct PreferencesPane: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 7)
+        .frame(minHeight: SettingsChrome.rowMinHeight)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+        }
     }
 
     // MARK: - 识别、朗读与 OCR
@@ -1927,7 +1958,8 @@ struct PreferencesPane: View {
                 .controlSize(.small)
         }
         .padding(.horizontal, 14)
-        .frame(minHeight: 44)
+        .padding(.vertical, 7)
+        .frame(minHeight: SettingsChrome.rowMinHeight)
     }
 
     // MARK: - 词典
@@ -2074,7 +2106,7 @@ struct PreferencesPane: View {
 
     /// 一节一张圆角列表。节名空着就不画标题。
     private func settingsGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        SettingsGroup(title: title, content: content())
+        SettingsGroup(title: title, content: content)
     }
 
     /// 一行：标签左对齐，控件贴右。说明在标签下面。
@@ -2083,44 +2115,114 @@ struct PreferencesPane: View {
         detail: String? = nil,
         @ViewBuilder control: () -> Control
     ) -> some View {
-        SettingsRow(title: title, detail: detail, control: control())
+        SettingsRow(title: title, detail: detail, control: control)
     }
 
-    /// 填写块里的一行。控件宽 300，说明写在控件下面。
+    /// 填写块里的一行。左标签 13 磅，右控件宽 300，说明写在控件下面。
     private func fieldRow<Control: View>(
         _ title: String,
         note: String? = nil,
+        showsDivider: Bool = true,
         @ViewBuilder control: () -> Control
     ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(title)
-                .font(Theme.TypeScale.body)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            VStack(alignment: .trailing, spacing: 3) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(title)
+                    .font(Theme.TypeScale.body)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 control()
-                if let note, !note.isEmpty {
-                    Text(note)
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: SettingsMetrics.controlWidth, alignment: .leading)
-                }
+                    .frame(width: SettingsMetrics.controlWidth, alignment: .trailing)
+            }
+            .frame(minHeight: SettingsChrome.rowMinHeight)
+            if let note, !note.isEmpty {
+                Text(note)
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: SettingsMetrics.controlWidth, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.top, -4)
+                    .padding(.bottom, 8)
             }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 38)
+        .overlay(alignment: .top) {
+            if showsDivider {
+                Rectangle().fill(Theme.hairline).frame(height: 0.5)
+            }
+        }
     }
 
-    /// 点开一行之后，填写块就在这一行下面，浅一档底色。里面的输入框收到 300 宽、贴右。
+    /// 点开一行之后，填写块就在这一行下面，浅一档底色，左缩进到标题文字列。
     private func fillBlock<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             content()
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
+        .padding(.leading, SettingsChrome.expandLeading)
+        .padding(.trailing, SettingsChrome.expandTrailing)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.wellFill)
+        .background(Theme.expandFill)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+        }
         .environment(\.settingsFieldWidth, SettingsMetrics.controlWidth)
+    }
+
+    /// 服务行：左名称，右状态 / 默认 / 开关。展开时 chevron 跟在名称旁。
+    private func serviceRowChrome<
+        Label: View,
+        Trailing: View
+    >(
+        expanded: Bool? = nil,
+        toggleExpand: (() -> Void)? = nil,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            HStack(spacing: 6) {
+                label()
+                if let expanded, let toggleExpand {
+                    Button(action: toggleExpand) {
+                        Image(systemName: "chevron.right")
+                            .font(Theme.TypeScale.micro)
+                            .foregroundStyle(.tertiary)
+                            .rotationEffect(.degrees(expanded ? 90 : 0))
+                            .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: expanded)
+                            .frame(width: 12, height: 12)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(expanded ? L("收起") : L("展开"))
+                }
+            }
+            Spacer(minLength: 8)
+            trailing()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .frame(minHeight: SettingsChrome.rowMinHeight)
+        .contentShape(Rectangle())
+    }
+
+    private func serviceSwitch(
+        isOn: Binding<Bool>,
+        ready: Bool,
+        helpOn: String = L("停用"),
+        helpOff: String = L("启用"),
+        helpBlocked: String = L("填好密钥后可启用")
+    ) -> some View {
+        let on = isOn.wrappedValue
+        return Toggle("", isOn: Binding(
+            get: { isOn.wrappedValue },
+            set: { enabled in
+                if enabled && !ready { return }
+                isOn.wrappedValue = enabled
+            }
+        ))
+        .labelsHidden()
+        .toggleStyle(.switch)
+        .controlSize(.small)
+        .disabled(!ready && !on)
+        .help(ready ? (on ? helpOn : helpOff) : helpBlocked)
     }
 
     private func fieldNote(_ text: String) -> some View {
@@ -2215,41 +2317,64 @@ struct PreferencesPane: View {
         let on = config.isProviderOn(p)
         let open = openBuiltin.contains(p.rawValue)
         let ready = config.builtinReady(p)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                Toggle(isOn: Binding(
-                    get: { config.isProviderOn(p) },
-                    set: { enabled in
-                        if enabled && !ready { return }
-                        config.setProviderOn(p, enabled)
-                    }
-                )) {
-                    EmptyView()
-                }
-                .toggleStyle(CheckToggleStyle())
-                .disabled(!ready && !on)
-                .stopsRowTap(when: !ready && !on)
-                .help(ready ? (on ? L("停用") : L("启用")) : L("填好密钥后可启用"))
-
+        let expandable = needsProviderFields(p)
+        VStack(alignment: .leading, spacing: 0) {
+            serviceRowChrome(
+                expanded: expandable ? open : nil,
+                toggleExpand: expandable ? { toggleBuiltinOpen(p) } : nil
+            ) {
                 HStack(spacing: 6) {
                     ProviderIconView(provider: p, size: 13)
-                    Text(p.displayName)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(p.displayName)
+                            .font(Theme.TypeScale.body)
+                        if let detail = providerRowDetail(p) {
+                            Text(detail)
+                                .font(Theme.TypeScale.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
-
-                if !ready {
-                    MissingKeyLabel()
+            } trailing: {
+                HStack(spacing: 8) {
+                    if !ready {
+                        MissingKeyLabel()
+                    } else if on {
+                        StatusDot(.ok, L("已连接"))
+                    }
+                    serviceSwitch(
+                        isOn: Binding(
+                            get: { config.isProviderOn(p) },
+                            set: { config.setProviderOn(p, $0) }
+                        ),
+                        ready: ready
+                    )
                 }
-                Spacer(minLength: 8)
-                expandChevron(expanded: open) { toggleBuiltinOpen(p) }
             }
-            .rowTapToggle { toggleBuiltinOpen(p) }
-            if open {
+            .rowTapToggle { if expandable { toggleBuiltinOpen(p) } }
+            if open && expandable {
                 fillBlock {
                     providerFields(p)
                 }
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
+    }
+
+    private func needsProviderFields(_ p: ProviderID) -> Bool {
+        switch p {
+        case .googleFree, .mymemory: return false
+        default: return true
+        }
+    }
+
+    private func providerRowDetail(_ p: ProviderID) -> String? {
+        switch p {
+        case .googleFree: return L("无需密钥，用 Google 公开接口")
+        case .apple: return L("本机翻译，首次用某种语言时下载语言包")
+        case .mymemory: return L("无需密钥；有额度限制的公开接口")
+        default: return nil
+        }
     }
 
     private func toggleBuiltinOpen(_ p: ProviderID) {
@@ -2332,12 +2457,13 @@ struct PreferencesPane: View {
             HStack(spacing: 4) {
                 Text(title)
                     .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
+                    .fontWeight(.medium)
+                    .foregroundStyle(Theme.accent)
                     .lineLimit(1)
                 Button(action: remove) {
                     Image(systemName: "xmark")
                         .font(Theme.TypeScale.micro)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.accent.opacity(0.8))
                         .frame(width: 12, height: 12)
                 }
                 .buttonStyle(.plain)
@@ -2345,8 +2471,8 @@ struct PreferencesPane: View {
                 .allowsHitTesting(hover)
             }
             .padding(.horizontal, 8)
-            .frame(height: 22)
-            .background(Capsule().fill(Theme.wellFill))
+            .frame(height: 20)
+            .background(Capsule().fill(Theme.accent.opacity(0.14)))
             .fixedSize()
             .onHover { hover = $0 }
         }
@@ -2376,32 +2502,32 @@ struct PreferencesPane: View {
     private func providerFields(_ p: ProviderID) -> some View {
         switch p {
         case .googleFree:
-            fieldNote(L("无需密钥，用 Google 公开接口"))
+            EmptyView()
         case .googleCloud:
-            SettingsField {
-                SecureField("API Key", text: $config.googleCloudKey, prompt: Text(L("粘贴密钥")))
+            SettingsField(title: "API Key", showsDivider: false) {
+                SecureField("", text: $config.googleCloudKey, prompt: Text(L("粘贴密钥")))
                     .textFieldStyle(.roundedBorder)
             }
         case .deepl:
-            SettingsField {
-                SecureField("API Key", text: $config.deeplKey, prompt: Text(L("粘贴密钥")))
+            SettingsField(title: "API Key", showsDivider: false) {
+                SecureField("", text: $config.deeplKey, prompt: Text(L("粘贴密钥")))
                     .textFieldStyle(.roundedBorder)
             }
-            fieldRow(L("用 Free API (api-free.deepl.com)")) {
+            fieldRow(L("用 Free API（api-free.deepl.com）")) {
                 Toggle("", isOn: $config.deeplUseFreeAPI)
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
             }
         case .apple:
-            SettingsField {
-                HStack {
+            SettingsField(title: L("语言包"), showsDivider: false) {
+                HStack(spacing: 8) {
                     Text(applePackStatus)
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                    Spacer(minLength: 8)
-                    Button(L("下载语言包…")) {
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button(L("下载…")) {
                         AppleLangPack.presentDownloadPrompt(force: true)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             refreshApplePackStatus()
@@ -2410,57 +2536,54 @@ struct PreferencesPane: View {
                     .controlSize(.small)
                 }
             }
-            fieldNote(L("本机翻译，首次用某种语言对下载语言包"))
         case .microsoft:
-            SettingsField {
-                SecureField("API Key", text: $config.microsoftKey, prompt: Text(L("粘贴密钥")))
+            SettingsField(title: "API Key", showsDivider: false) {
+                SecureField("", text: $config.microsoftKey, prompt: Text(L("粘贴密钥")))
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                TextField(L("区域"), text: $config.microsoftRegion, prompt: Text("eastasia 或 global"))
+            SettingsField(title: L("区域")) {
+                TextField("", text: $config.microsoftRegion, prompt: Text("eastasia 或 global"))
                     .textFieldStyle(.roundedBorder)
             }
         case .baidu:
-            SettingsField {
-                TextField(L("百度 App ID"), text: $config.baiduAppID)
+            SettingsField(title: L("App ID"), showsDivider: false) {
+                TextField("", text: $config.baiduAppID)
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField(L("百度密钥"), text: $config.baiduSecret)
+            SettingsField(title: L("密钥")) {
+                SecureField("", text: $config.baiduSecret)
                     .textFieldStyle(.roundedBorder)
             }
         case .youdao:
-            SettingsField {
-                TextField(L("有道应用 ID"), text: $config.youdaoAppKey)
+            SettingsField(title: L("应用 ID"), showsDivider: false) {
+                TextField("", text: $config.youdaoAppKey)
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField(L("有道应用密钥"), text: $config.youdaoSecret)
+            SettingsField(title: L("应用密钥")) {
+                SecureField("", text: $config.youdaoSecret)
                     .textFieldStyle(.roundedBorder)
             }
         case .caiyun:
-            SettingsField {
-                SecureField(L("彩云 Token"), text: $config.caiyunToken)
+            SettingsField(title: L("Token"), showsDivider: false) {
+                SecureField("", text: $config.caiyunToken)
                     .textFieldStyle(.roundedBorder)
             }
         case .mymemory:
-            fieldNote(L("无需密钥；有额度限制的公开接口"))
+            EmptyView()
         case .libreTranslate:
-            SettingsField {
-                TextField(L("实例 URL"), text: $config.libreTranslateURL)
+            SettingsField(title: L("实例 URL"), showsDivider: false) {
+                TextField("", text: $config.libreTranslateURL)
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField(L("API Key（可选）"), text: $config.libreTranslateKey)
+            SettingsField(title: L("API Key（可选）"), note: L("可填自建或公共 LibreTranslate 实例")) {
+                SecureField("", text: $config.libreTranslateKey)
                     .textFieldStyle(.roundedBorder)
             }
-            fieldNote(L("可填自建或公共 LibreTranslate 实例"))
         case .lingva:
-            SettingsField {
-                TextField(L("实例 URL"), text: $config.lingvaURL)
+            SettingsField(title: L("实例 URL"), note: L("Google 前端镜像，无需密钥；实例不可用时可换地址"), showsDivider: false) {
+                TextField("", text: $config.lingvaURL)
                     .textFieldStyle(.roundedBorder)
             }
-            fieldNote(L("Google 前端镜像，无需密钥；实例不可用时可换地址"))
         }
     }
 
@@ -2468,33 +2591,40 @@ struct PreferencesPane: View {
     private func dictProviderRow(_ p: DictionaryProviderID) -> some View {
         let on = config.isDictOn(p)
         let ready = config.dictReady(p)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Toggle(isOn: Binding(
-                    get: { config.isDictOn(p) },
-                    set: { enabled in
-                        if enabled && !ready { return }
-                        config.setDictOn(p, enabled)
-                    }
-                )) {
-                    HStack(spacing: 6) {
-                        Image(systemName: p.systemImage)
-                            .font(Theme.TypeScale.body)
-                            .frame(width: 16)
-                        Text(p.displayName)
-                    }
+        let isDefault = config.dictProvider == p
+        let needsFields = p.translateProvider.map { !config.isProviderOn($0) && (on || !ready) } ?? false
+        VStack(alignment: .leading, spacing: 0) {
+            serviceRowChrome {
+                HStack(spacing: 6) {
+                    Image(systemName: p.systemImage)
+                        .font(Theme.TypeScale.body)
+                        .frame(width: 16)
+                    Text(p.displayName)
+                        .font(Theme.TypeScale.body)
                 }
-                .toggleStyle(CheckToggleStyle())
-                .disabled(!ready && !on)
-                .help(ready ? (on ? L("停用") : L("启用")) : L("填好密钥后可启用"))
-                if !ready {
-                    MissingKeyLabel()
+            } trailing: {
+                HStack(spacing: 8) {
+                    if isDefault {
+                        Text(L("默认"))
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !ready {
+                        MissingKeyLabel()
+                    }
+                    serviceSwitch(
+                        isOn: Binding(
+                            get: { config.isDictOn(p) },
+                            set: { config.setDictOn(p, $0) }
+                        ),
+                        ready: ready
+                    )
                 }
-                Spacer(minLength: 0)
             }
-            if let translate = p.translateProvider, !config.isProviderOn(translate), on || !ready {
-                providerFields(translate)
-                    .padding(.leading, 23)
+            if needsFields, let translate = p.translateProvider {
+                fillBlock {
+                    providerFields(translate)
+                }
             }
         }
     }
@@ -2505,44 +2635,41 @@ struct PreferencesPane: View {
         let open = openOCR.contains(p.rawValue)
         let expandable = p != .appleVision
         let ready = config.ocrReady(p)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                Toggle(isOn: Binding(
-                    get: { config.isOCROn(p) },
-                    set: { enabled in
-                        if enabled && !ready { return }
-                        config.setOCROn(p, enabled)
-                        if !enabled { openOCR.remove(p.rawValue) }
-                    }
-                )) {
-                    EmptyView()
-                }
-                .toggleStyle(CheckToggleStyle())
-                .disabled(!ready && !on)
-                .stopsRowTap(when: !ready && !on)
-                .help(ready ? (on ? L("停用") : L("启用")) : L("填好密钥后可启用"))
-
+        return VStack(alignment: .leading, spacing: 0) {
+            serviceRowChrome(
+                expanded: expandable ? open : nil,
+                toggleExpand: expandable ? { toggleOCROpen(p) } : nil
+            ) {
                 ocrRowLabel(p)
-
-                if on {
-                    if isDefault {
-                        Text(L("默认"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Button(L("设为默认")) { config.setOCRDefault(p) }
-                            .buttonStyle(.borderless)
-                            .controlSize(.small)
-                            .opacity(hoveredOCR == p.rawValue ? 1 : 0)
-                            .allowsHitTesting(hoveredOCR == p.rawValue)
+            } trailing: {
+                HStack(spacing: 8) {
+                    if on {
+                        if isDefault {
+                            Text(L("默认"))
+                                .font(Theme.TypeScale.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Button(L("设为默认")) { config.setOCRDefault(p) }
+                                .buttonStyle(.plain)
+                                .font(Theme.TypeScale.caption)
+                                .foregroundStyle(Theme.accent)
+                                .opacity(hoveredOCR == p.rawValue ? 1 : 0)
+                                .allowsHitTesting(hoveredOCR == p.rawValue)
+                        }
                     }
-                }
-                if !ready {
-                    MissingKeyLabel()
-                }
-                Spacer(minLength: 8)
-                if expandable {
-                    expandChevron(expanded: open) { toggleOCROpen(p) }
+                    if !ready {
+                        MissingKeyLabel()
+                    }
+                    serviceSwitch(
+                        isOn: Binding(
+                            get: { config.isOCROn(p) },
+                            set: { enabled in
+                                config.setOCROn(p, enabled)
+                                if !enabled { openOCR.remove(p.rawValue) }
+                            }
+                        ),
+                        ready: ready
+                    )
                 }
             }
             .rowTapToggle { if expandable { toggleOCROpen(p) } }
@@ -2577,56 +2704,56 @@ struct PreferencesPane: View {
         case .appleVision:
             EmptyView()
         case .baidu, .baiduAccurate:
-            syncKeysToggle($config.ocrBaiduSync)
-            SettingsField {
-                TextField(L("百度 App ID"), text: config.ocrBaiduSync ? $config.baiduAppID : $config.ocrBaiduAppID)
+            syncKeysToggle($config.ocrBaiduSync, title: L("和翻译服务里的百度用同一个密钥"), first: true)
+            SettingsField(title: L("App ID")) {
+                TextField("", text: config.ocrBaiduSync ? $config.baiduAppID : $config.ocrBaiduAppID)
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField(L("百度密钥"), text: config.ocrBaiduSync ? $config.baiduSecret : $config.ocrBaiduSecret)
+            SettingsField(title: L("密钥")) {
+                SecureField("", text: config.ocrBaiduSync ? $config.baiduSecret : $config.ocrBaiduSecret)
                     .textFieldStyle(.roundedBorder)
             }
         case .youdao:
-            syncKeysToggle($config.ocrYoudaoSync)
-            SettingsField {
-                TextField(L("有道应用 ID"), text: config.ocrYoudaoSync ? $config.youdaoAppKey : $config.ocrYoudaoAppKey)
+            syncKeysToggle($config.ocrYoudaoSync, title: L("和翻译服务里的有道用同一个密钥"), first: true)
+            SettingsField(title: L("应用 ID")) {
+                TextField("", text: config.ocrYoudaoSync ? $config.youdaoAppKey : $config.ocrYoudaoAppKey)
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField(L("有道应用密钥"), text: config.ocrYoudaoSync ? $config.youdaoSecret : $config.ocrYoudaoSecret)
+            SettingsField(title: L("应用密钥")) {
+                SecureField("", text: config.ocrYoudaoSync ? $config.youdaoSecret : $config.ocrYoudaoSecret)
                     .textFieldStyle(.roundedBorder)
             }
         case .tencent:
-            SettingsField {
-                TextField("SecretId", text: $config.tencentSecretID)
+            SettingsField(title: "SecretId", showsDivider: false) {
+                TextField("", text: $config.tencentSecretID)
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField("SecretKey", text: $config.tencentSecretKey)
+            SettingsField(title: "SecretKey") {
+                SecureField("", text: $config.tencentSecretKey)
                     .textFieldStyle(.roundedBorder)
             }
         case .googleVision:
-            syncKeysToggle($config.ocrGoogleSync)
-            SettingsField {
-                SecureField("API Key", text: config.ocrGoogleSync ? $config.googleCloudKey : $config.ocrGoogleKey, prompt: Text(L("粘贴密钥")))
+            syncKeysToggle($config.ocrGoogleSync, title: L("和翻译服务里的 Google 用同一个密钥"), first: true)
+            SettingsField(title: "API Key") {
+                SecureField("", text: config.ocrGoogleSync ? $config.googleCloudKey : $config.ocrGoogleKey, prompt: Text(L("粘贴密钥")))
                     .textFieldStyle(.roundedBorder)
             }
         case .azure:
-            SettingsField {
-                TextField(L("终结点"), text: $config.azureVisionEndpoint, prompt: Text("https://{resource}.cognitiveservices.azure.com"))
+            SettingsField(title: L("终结点"), showsDivider: false) {
+                TextField("", text: $config.azureVisionEndpoint, prompt: Text("https://{resource}.cognitiveservices.azure.com"))
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField(L("密钥"), text: $config.azureVisionKey)
+            SettingsField(title: L("密钥")) {
+                SecureField("", text: $config.azureVisionKey)
                     .textFieldStyle(.roundedBorder)
             }
         case .ocrSpace:
-            SettingsField {
-                SecureField("OCR.space API Key", text: $config.ocrSpaceKey)
+            SettingsField(title: "API Key", showsDivider: false) {
+                SecureField("", text: $config.ocrSpaceKey)
                     .textFieldStyle(.roundedBorder)
             }
         case .aiVision:
-            fieldRow(L("模型")) {
+            fieldRow(L("模型"), showsDivider: false) {
                 let profiles = config.aiProfiles.filter { config.isAIOn($0) }
                 MenuChip(
                     title: profiles.first { $0.id == config.ocrAIProfileID }?.name ?? L("自动（第一个）"),
@@ -2640,6 +2767,7 @@ struct PreferencesPane: View {
             }
         }
     }
+
 
     /// 同传这类预设的 id 是 `qwen-live`，图标挂在关联的翻译提供商上。
     private func asrIconPreset(_ profile: ASRProfile) -> String {
@@ -2660,39 +2788,47 @@ struct PreferencesPane: View {
         let on = config.asrProfiles.indices.contains(idx) && config.asrProfiles[idx].enabled
         let expanded = expandedASRIds.contains(profile.id)
         let ready = config.asrProfileReady(profile)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                Toggle(isOn: Binding(
-                    get: { config.asrProfiles.indices.contains(idx) && config.asrProfiles[idx].enabled },
-                    set: { enabled in
-                        if enabled && !ready { return }
-                        config.setASROn(at: idx, enabled)
-                    }
-                )) {
-                    EmptyView()
-                }
-                .toggleStyle(CheckToggleStyle())
-                .disabled(!ready && !on)
-                .stopsRowTap(when: !ready && !on)
-                .help(ready ? (on ? L("停用") : L("启用")) : L("填好密钥后可启用"))
-
+        return VStack(alignment: .leading, spacing: 0) {
+            serviceRowChrome(
+                expanded: expanded,
+                toggleExpand: { toggleASRExpanded(profile.id) }
+            ) {
                 HStack(spacing: 6) {
                     ProviderIconView(aiPreset: asrIconPreset(profile), name: profile.name, size: 13)
                     Text(profile.name.isEmpty ? L("未命名") : profile.name)
+                        .font(Theme.TypeScale.body)
                 }
-
-                Spacer(minLength: 8)
-
-                IconButton(systemImage: "trash", help: L("移除提供商")) {
-                    expandedASRIds.remove(profile.id)
-                    config.removeASR(at: idx)
+            } trailing: {
+                HStack(spacing: 8) {
+                    if !ready {
+                        MissingKeyLabel()
+                    } else if on {
+                        StatusDot(.ok, L("已连接"))
+                    }
+                    serviceSwitch(
+                        isOn: Binding(
+                            get: { config.asrProfiles.indices.contains(idx) && config.asrProfiles[idx].enabled },
+                            set: { config.setASROn(at: idx, $0) }
+                        ),
+                        ready: ready
+                    )
                 }
-                expandChevron(expanded: expanded) { toggleASRExpanded(profile.id) }
             }
             .rowTapToggle { toggleASRExpanded(profile.id) }
             if expanded {
                 fillBlock {
                     asrProfileFields(idx)
+                    HStack {
+                        Button(L("移除这家")) {
+                            expandedASRIds.remove(profile.id)
+                            config.removeASR(at: idx)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.label)
+                        .foregroundStyle(Theme.danger)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 8)
                 }
             }
         }
@@ -2719,20 +2855,20 @@ struct PreferencesPane: View {
     private func interpProfileFields(_ idx: Int, profile: ASRProfile, preset: ASRPresetDef?) -> some View {
         let canSync = !(preset?.aiPreset ?? "").isEmpty
         if canSync {
-            syncKeysToggle(asrSyncBinding(idx))
+            syncKeysToggle(asrSyncBinding(idx), first: true)
             if profile.syncAI { syncKeyNotice(aiPreset: preset?.aiPreset ?? "") }
         }
-        SettingsField {
-            TextField(L("连接地址"), text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "wss://"))
+        SettingsField(title: L("连接地址")) {
+            TextField("", text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "wss://"))
                 .textFieldStyle(.roundedBorder)
         }
         if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
-            SettingsField {
-                SecureField("API Key", text: asrKeyBinding(idx), prompt: Text(L("粘贴密钥")))
+            SettingsField(title: "API Key") {
+                SecureField("", text: asrKeyBinding(idx), prompt: Text(L("粘贴密钥")))
                     .textFieldStyle(.roundedBorder)
             }
         }
-        SettingsField {
+        SettingsField(title: L("模型")) {
             ModelComboBox(text: asrBinding(idx, \.model), items: preset?.models ?? [], placeholder: preset?.model ?? "")
                 .frame(height: 24)
         }
@@ -2758,7 +2894,7 @@ struct PreferencesPane: View {
         Text(preset?.interpWire == .qwen
              ? L("可以直接贴百炼控制台给的业务空间地址，会自动换成同传用的 WebSocket 地址。")
              : L("用 GA 版 Realtime 接口，按分钟计费。"))
-            .font(.caption)
+            .font(Theme.TypeScale.caption)
             .foregroundStyle(.secondary)
     }
 
@@ -2766,20 +2902,20 @@ struct PreferencesPane: View {
     private func whisperProfileFields(_ idx: Int, profile: ASRProfile, preset: ASRPresetDef?) -> some View {
         let canSync = !(preset?.aiPreset ?? "").isEmpty
         if canSync {
-            syncKeysToggle(asrSyncBinding(idx))
+            syncKeysToggle(asrSyncBinding(idx), first: true)
             if profile.syncAI { syncKeyNotice(aiPreset: preset?.aiPreset ?? "") }
         }
         if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
-            SettingsField {
-                TextField("Base URL", text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "https://api.example.com/v1"))
+            SettingsField(title: "Base URL") {
+                TextField("", text: asrBinding(idx, \.baseURL), prompt: Text(preset?.baseURL ?? "https://api.example.com/v1"))
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                SecureField((preset?.noKey ?? false) ? L("API Key（可选）") : "API Key", text: asrKeyBinding(idx))
+            SettingsField(title: (preset?.noKey ?? false) ? L("API Key（可选）") : "API Key") {
+                SecureField("", text: asrKeyBinding(idx))
                     .textFieldStyle(.roundedBorder)
             }
         }
-        SettingsField {
+        SettingsField(title: L("模型")) {
             ASRModelPicker(idx: idx)
                 .environmentObject(config)
         }
@@ -2829,39 +2965,45 @@ struct PreferencesPane: View {
         let on = config.ttsProfiles.indices.contains(idx) && config.ttsProfiles[idx].enabled
         let expanded = expandedTTSIds.contains(profile.id)
         let ready = config.ttsReady(profile)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                Toggle(isOn: Binding(
-                    get: { config.ttsProfiles.indices.contains(idx) && config.ttsProfiles[idx].enabled },
-                    set: { enabled in
-                        if enabled && !ready { return }
-                        config.setTTSOn(at: idx, enabled)
-                    }
-                )) {
-                    EmptyView()
-                }
-                .toggleStyle(CheckToggleStyle())
-                .disabled(!ready && !on)
-                .stopsRowTap(when: !ready && !on)
-                .help(ready ? (on ? L("停用") : L("启用")) : L("填好密钥后可启用"))
-
+        return VStack(alignment: .leading, spacing: 0) {
+            serviceRowChrome(
+                expanded: expanded,
+                toggleExpand: { toggleTTSExpanded(profile.id) }
+            ) {
                 HStack(spacing: 6) {
                     ProviderIconView(aiPreset: ttsIconPreset(profile), name: profile.name, size: 13)
                     Text(profile.name.isEmpty ? L("未命名") : profile.name)
+                        .font(Theme.TypeScale.body)
                 }
-
-                Spacer(minLength: 8)
-
-                IconButton(systemImage: "trash", help: L("移除提供商")) {
-                    expandedTTSIds.remove(profile.id)
-                    config.removeTTS(at: idx)
+            } trailing: {
+                HStack(spacing: 8) {
+                    if !ready {
+                        MissingKeyLabel()
+                    }
+                    serviceSwitch(
+                        isOn: Binding(
+                            get: { config.ttsProfiles.indices.contains(idx) && config.ttsProfiles[idx].enabled },
+                            set: { config.setTTSOn(at: idx, $0) }
+                        ),
+                        ready: ready
+                    )
                 }
-                expandChevron(expanded: expanded) { toggleTTSExpanded(profile.id) }
             }
             .rowTapToggle { toggleTTSExpanded(profile.id) }
             if expanded {
                 fillBlock {
                     ttsProfileFields(idx)
+                    HStack {
+                        Button(L("移除这家")) {
+                            expandedTTSIds.remove(profile.id)
+                            config.removeTTS(at: idx)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.label)
+                        .foregroundStyle(Theme.danger)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 8)
                 }
             }
         }
@@ -2879,11 +3021,11 @@ struct PreferencesPane: View {
         let wire = preset?.wire ?? .openai
         let canSync = !(preset?.aiPreset ?? "").isEmpty
         if canSync {
-            syncKeysToggle(ttsSyncBinding(idx))
+            syncKeysToggle(ttsSyncBinding(idx), first: true)
             if profile.syncAI { syncKeyNotice(aiPreset: preset?.aiPreset ?? "") }
         }
         if !borrowsKey(profile.syncAI, aiPreset: preset?.aiPreset ?? "") {
-            SettingsField {
+            SettingsField(title: wire == .azure ? L("区域") : "Base URL", showsDivider: canSync) {
                 if wire == .azure {
                     ModelComboBox(
                         text: ttsBinding(idx, \.baseURL),
@@ -2896,13 +3038,13 @@ struct PreferencesPane: View {
                         .textFieldStyle(.roundedBorder)
                 }
             }
-            SettingsField {
-                SecureField((preset?.noKey ?? false) ? L("API Key（可选）") : "API Key", text: ttsKeyBinding(idx))
+            SettingsField(title: (preset?.noKey ?? false) ? L("API Key（可选）") : "API Key") {
+                SecureField("", text: ttsKeyBinding(idx))
                     .textFieldStyle(.roundedBorder)
             }
         }
         if wire != .azure {
-            SettingsField {
+            SettingsField(title: wire == .deepgram ? L("音色") : L("模型")) {
                 ModelComboBox(
                     text: ttsBinding(idx, \.model),
                     items: preset?.models ?? [],
@@ -2913,9 +3055,9 @@ struct PreferencesPane: View {
         }
         if wire != .deepgram {
             if preset?.namedVoices == true {
-                SettingsField {
+                SettingsField(title: L("音色")) {
                     HStack(spacing: 8) {
-                        TextField(L("音色"), text: ttsBinding(idx, \.voice))
+                        TextField("", text: ttsBinding(idx, \.voice))
                             .textFieldStyle(.roundedBorder)
                         Menu(L("预设")) {
                             ForEach(preset?.voices ?? []) { voice in
@@ -2931,7 +3073,7 @@ struct PreferencesPane: View {
                     }
                 }
             } else if !(preset?.voices ?? []).isEmpty || !profile.voice.isEmpty {
-                SettingsField {
+                SettingsField(title: L("音色")) {
                     ModelComboBox(
                         text: ttsBinding(idx, \.voice),
                         items: preset?.voices.map(\.id) ?? [],
@@ -2943,7 +3085,7 @@ struct PreferencesPane: View {
         }
         if let note = preset?.note, !note.isEmpty {
             Text(note)
-                .font(.caption)
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -3018,15 +3160,18 @@ struct PreferencesPane: View {
                     Text(L("没找到同一家的翻译提供商，先用下面填的 Key。"))
                 }
             }
-            .font(.caption)
+            .font(Theme.TypeScale.caption)
             .foregroundStyle(.secondary)
         }
     }
 
-    private func syncKeysToggle(_ isOn: Binding<Bool>) -> some View {
-        Toggle(L("同步翻译密钥"), isOn: isOn)
-            .toggleStyle(.checkbox)
-            .controlSize(.small)
+    private func syncKeysToggle(_ isOn: Binding<Bool>, title: String = L("同步翻译密钥"), first: Bool = false) -> some View {
+        fieldRow(title, showsDivider: !first) {
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
     }
 
     @ViewBuilder
@@ -3034,41 +3179,33 @@ struct PreferencesPane: View {
         let expanded = expandedAIIds.contains(profile.id)
         let on = config.isAIOn(profile)
         let ready = config.aiReady(profile)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                Toggle(isOn: Binding(
-                    get: { config.isAIOn(profile) },
-                    set: { enabled in
-                        if enabled && !ready { return }
-                        config.setAIOn(at: idx, enabled)
-                    }
-                )) {
-                    EmptyView()
-                }
-                .toggleStyle(CheckToggleStyle())
-                .disabled(!ready && !on)
-                .stopsRowTap(when: !ready && !on)
-                .help(ready ? (on ? L("停用") : L("启用")) : L("填好密钥后可启用"))
-
+        VStack(alignment: .leading, spacing: 0) {
+            serviceRowChrome(
+                expanded: expanded,
+                toggleExpand: { toggleAIExpanded(profile.id) }
+            ) {
                 HStack(spacing: 6) {
                     ProviderIconView(aiPreset: profile.preset, name: profile.name, size: 13)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(profile.name.isEmpty ? L("未命名") : profile.name)
-                        if !profile.preset.isEmpty, let pr = AIPresetDef.find(profile.preset) {
-                            Text(pr.kind.sectionTitle + (pr.note.isEmpty ? "" : " · \(pr.note)"))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                    Text(profile.name.isEmpty ? L("未命名") : profile.name)
+                        .font(Theme.TypeScale.body)
+                }
+            } trailing: {
+                HStack(spacing: 8) {
+                    if !ready {
+                        MissingKeyLabel()
+                    } else if !profile.model.isEmpty {
+                        StatusDot(.ok, profile.model)
+                    } else if on {
+                        StatusDot(.ok, L("已连接"))
                     }
+                    serviceSwitch(
+                        isOn: Binding(
+                            get: { config.isAIOn(profile) },
+                            set: { config.setAIOn(at: idx, $0) }
+                        ),
+                        ready: ready
+                    )
                 }
-
-                Spacer(minLength: 8)
-
-                IconButton(systemImage: "trash", help: L("移除提供商")) {
-                    expandedAIIds.remove(profile.id)
-                    config.removeAI(at: idx)
-                }
-                expandChevron(expanded: expanded) { toggleAIExpanded(profile.id) }
             }
             .rowTapToggle { toggleAIExpanded(profile.id) }
 
@@ -3081,11 +3218,10 @@ struct PreferencesPane: View {
                             config.removeAI(at: idx)
                         }
                         .buttonStyle(.plain)
-                        .font(Theme.TypeScale.body)
+                        .font(Theme.TypeScale.label)
                         .foregroundStyle(Theme.danger)
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 }
             }
@@ -3100,42 +3236,44 @@ struct PreferencesPane: View {
     private func aiEditor(idx: Int) -> some View {
         let profile = config.aiProfiles.indices.contains(idx) ? config.aiProfiles[idx] : AIProfile.makeDefault(name: "")
         let preset = AIPresetDef.find(profile.preset)
-        return VStack(alignment: .leading, spacing: 8) {
-            SettingsField {
-                TextField(L("名称"), text: binding(idx, \.name))
+        return VStack(alignment: .leading, spacing: 0) {
+            SettingsField(title: L("名称"), showsDivider: false) {
+                TextField("", text: binding(idx, \.name))
                     .textFieldStyle(.roundedBorder)
             }
-            SettingsField {
-                TextField("Base URL", text: binding(idx, \.baseURL), prompt: Text("https://api.example.com/v1"))
+            SettingsField(title: "Base URL") {
+                TextField("", text: binding(idx, \.baseURL), prompt: Text("https://api.example.com/v1"))
                     .textFieldStyle(.roundedBorder)
             }
             if !(preset?.noKey ?? false) {
-                SettingsField {
-                    SecureField("API Key", text: aiKeyBinding(idx), prompt: Text(L("粘贴密钥")))
+                SettingsField(title: "API Key") {
+                    SecureField("", text: aiKeyBinding(idx), prompt: Text(L("粘贴密钥")))
                         .textFieldStyle(.roundedBorder)
                 }
             } else {
-                fieldNote(L("本地服务通常无需密钥；设了鉴权再填。"))
-                SettingsField {
-                    SecureField(L("API Key（可选）"), text: aiKeyBinding(idx))
+                SettingsField(title: L("API Key（可选）"), note: L("本地服务通常无需密钥；设了鉴权再填。")) {
+                    SecureField("", text: aiKeyBinding(idx))
                         .textFieldStyle(.roundedBorder)
                 }
             }
-            SettingsField {
+            SettingsField(title: L("模型")) {
                 AIModelPicker(idx: idx)
                     .environmentObject(config)
             }
-            SettingsField {
-                TextField(L("系统提示"), text: binding(idx, \.systemPrompt), axis: .vertical)
+            SettingsField(title: L("系统提示")) {
+                TextField("", text: binding(idx, \.systemPrompt), prompt: Text(L("可空")), axis: .vertical)
                     .lineLimit(2...4)
                     .textFieldStyle(.roundedBorder)
             }
             if let urlStr = preset?.keysURL, !urlStr.isEmpty, let url = URL(string: urlStr) {
                 HStack {
                     Spacer(minLength: 0)
-                    Button(L("获取 API Key…")) { NSWorkspace.shared.open(url) }
-                        .controlSize(.small)
+                    Button(L("怎么拿密钥 ↗")) { NSWorkspace.shared.open(url) }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.label)
+                        .foregroundStyle(Theme.accent)
                 }
+                .padding(.bottom, 8)
             }
         }
     }
@@ -3221,7 +3359,7 @@ struct PreferencesPane: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(L("无结果"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -3250,102 +3388,154 @@ struct AddProviderSheet: View {
     @Binding var isPresented: Bool
     var onPick: (AIPresetDef) -> Void
     @State private var query = ""
+    @State private var filter: Filter = .all
+    @State private var selected: AIPresetDef?
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(L("添加提供商"))
-                    .font(Theme.TypeScale.reading).fontWeight(.semibold)
-                Spacer()
-                Button(L("取消")) { isPresented = false }
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
-
-            SearchField(text: $query, prompt: L("搜索名称、说明或 URL"))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 6)
-
-            if grouped.isEmpty {
-                ContentUnavailableView.search(text: query)
-                    .frame(maxHeight: .infinity)
-            } else {
-                List {
-                    ForEach(grouped, id: \.kind) { group in
-                        Section(group.kind.sectionTitle) {
-                            ForEach(group.items) { p in
-                                presetRow(p)
-                            }
-                        }
-                    }
-                }
-                .listStyle(.inset)
-                .scrollContentBackground(.hidden)
+    private enum Filter: String, CaseIterable, Identifiable {
+        case all, noKey, china, abroad, local
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .all: return L("全部")
+            case .noKey: return L("无需 Key")
+            case .china: return L("国内")
+            case .abroad: return L("国外")
+            case .local: return L("本机")
             }
         }
-        .frame(width: 460, height: 520)
-        .controlSize(.small)
     }
 
-    private func presetRow(_ p: AIPresetDef) -> some View {
-        Button {
-            onPick(p)
-            isPresented = false
-        } label: {
-            HStack(alignment: .center, spacing: 10) {
-                ProviderIconView(aiPreset: p.id, name: p.name, size: 15)
-                    .frame(width: 28, height: 28)
-                    .well(radius: 7)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(p.name)
-                            .font(Theme.TypeScale.body).fontWeight(.medium)
-                        if p.noKey {
-                            Text(L("无需 Key"))
-                                .font(Theme.TypeScale.micro)
-                                .foregroundStyle(Theme.ok)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(Theme.ok.opacity(0.12)))
-                        }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L("添加 AI 提供商"))
+                .font(Theme.TypeScale.reading)
+                .fontWeight(.semibold)
+
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(.tertiary)
+                TextField(L("搜索名称、说明或网址"), text: $query)
+                    .textFieldStyle(.plain)
+                    .font(Theme.TypeScale.body)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.wellFill))
+
+            HStack(spacing: 6) {
+                ForEach(Filter.allCases) { item in
+                    Button {
+                        filter = item
+                    } label: {
+                        Text(item.title)
                     }
-                    if !p.note.isEmpty {
-                        Text(p.note)
-                            .font(Theme.TypeScale.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    if !p.baseURL.isEmpty {
-                        Text(p.baseURL)
-                            .font(Theme.TypeScale.micro.monospaced())
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
+                    .buttonStyle(ChipButtonStyle(selected: filter == item))
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.vertical, 3)
-            .contentShape(Rectangle())
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(filtered) { p in
+                        Button {
+                            selected = p
+                        } label: {
+                            HStack(spacing: 10) {
+                                ProviderIconView(aiPreset: p.id, name: p.name, size: 15)
+                                    .frame(width: 22, height: 22)
+                                Text(p.name)
+                                    .font(Theme.TypeScale.body)
+                                    .foregroundStyle(.primary)
+                                Spacer(minLength: 8)
+                                Text(hostLabel(p))
+                                    .font(Theme.TypeScale.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .frame(minHeight: SettingsChrome.rowMinHeight)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(selected?.id == p.id ? Theme.accent.opacity(0.12) : Color.clear)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                        .fill(Theme.cardFill)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                        .strokeBorder(Theme.hairline, lineWidth: 0.5)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            }
+
+            HStack {
+                Spacer(minLength: 0)
+                PageButton(title: L("取消")) { isPresented = false }
+                PageButton(title: L("添加"), primary: true) {
+                    guard let selected else { return }
+                    onPick(selected)
+                    isPresented = false
+                }
+                .disabled(selected == nil)
+                .opacity(selected == nil ? 0.45 : 1)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(18)
+        .frame(width: 460, height: 520)
+        .controlSize(.small)
+        .onAppear {
+            if selected == nil { selected = filtered.first }
+        }
+        .onChange(of: filter) { _, _ in
+            if let selected, filtered.contains(where: { $0.id == selected.id }) { return }
+            self.selected = filtered.first
+        }
+        .onChange(of: query) { _, _ in
+            if let selected, filtered.contains(where: { $0.id == selected.id }) { return }
+            self.selected = filtered.first
+        }
     }
 
-    private var grouped: [(kind: AIPresetKind, items: [AIPresetDef])] {
+    private var filtered: [AIPresetDef] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let avail = config.availablePresets().filter { p in
-            q.isEmpty || [p.name, p.note, p.baseURL, p.id].contains { $0.localizedCaseInsensitiveContains(q) }
+        return config.availablePresets().filter { p in
+            let matchesQuery = q.isEmpty || [p.name, p.note, p.baseURL, p.id].contains { $0.localizedCaseInsensitiveContains(q) }
+            guard matchesQuery else { return false }
+            switch filter {
+            case .all: return true
+            case .noKey: return p.noKey
+            case .local: return p.kind == .local
+            case .china: return isChina(p)
+            case .abroad: return p.kind != .local && !isChina(p)
+            }
         }
-        var out: [(AIPresetKind, [AIPresetDef])] = []
-        for kind in [AIPresetKind.vendor, .relay, .local] {
-            let items = avail.filter { $0.kind == kind }
-            if !items.isEmpty { out.append((kind, items)) }
+    }
+
+    private func isChina(_ p: AIPresetDef) -> Bool {
+        let host = p.baseURL.lowercased()
+        if host.contains(".cn") || host.contains("aliyuncs") || host.contains("bigmodel") || host.contains("moonshot.cn") || host.contains("deepseek.com") || host.contains("volces") || host.contains("baichuan") || host.contains("minimaxi") || host.contains("siliconflow.cn") {
+            return true
         }
-        return out
+        return ["deepseek", "moonshot", "zhipu", "qwen", "doubao", "baichuan", "minimax", "yi", "stepfun", "siliconflow"].contains(where: { p.id.hasPrefix($0) })
+    }
+
+    private func hostLabel(_ p: AIPresetDef) -> String {
+        if p.kind == .local || p.noKey && p.baseURL.isEmpty { return L("本机 · 无需 Key") }
+        if p.baseURL.isEmpty { return L("自己填地址") }
+        if let host = URL(string: p.baseURL)?.host { return host }
+        return p.baseURL
     }
 }
+
 
 /// Model field: auto-detect via `/models`, ComboBox dropdown + free text, refresh + cache.
 struct AIModelPicker: View {
@@ -3387,7 +3577,7 @@ struct AIModelPicker: View {
             }
             if !errorText.isEmpty {
                 Text(errorText)
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(Theme.attention)
                     .lineLimit(2)
             } else if !models.isEmpty {
@@ -3663,7 +3853,7 @@ struct ASRModelPicker: View {
             }
             if !errorText.isEmpty {
                 Text(errorText)
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(Theme.attention)
                     .lineLimit(2)
             } else if !models.isEmpty {

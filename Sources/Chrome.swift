@@ -182,10 +182,29 @@ struct PermissionBanner: View {
     }
 }
 
+/// 设置页度量。对着 docs/design/mockups/2026-11-09-main-window.html。
+enum SettingsChrome {
+    static let controlWidth: CGFloat = 300
+    static let rowMinHeight: CGFloat = 38
+    /// 填写块左缩进：和行标题文字同一列（图标之后）。
+    static let expandLeading: CGFloat = 36
+    static let expandTrailing: CGFloat = 14
+}
+
 /// 一节一张白卡。节名 11 磅半粗、三级色。行最小高 38，内边距 7 / 14，行间 0.5 磅细线。
 struct SettingsGroup<Content: View>: View {
     var title: String
     var content: Content
+
+    init(title: String, content: Content) {
+        self.title = title
+        self.content = content
+    }
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -217,6 +236,30 @@ struct SettingsRow<Control: View>: View {
     var detail: String? = nil
     var showsDivider = true
     var control: Control
+
+    init(
+        title: String,
+        detail: String? = nil,
+        showsDivider: Bool = true,
+        control: Control
+    ) {
+        self.title = title
+        self.detail = detail
+        self.showsDivider = showsDivider
+        self.control = control
+    }
+
+    init(
+        title: String,
+        detail: String? = nil,
+        showsDivider: Bool = true,
+        @ViewBuilder control: () -> Control
+    ) {
+        self.title = title
+        self.detail = detail
+        self.showsDivider = showsDivider
+        self.control = control()
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {

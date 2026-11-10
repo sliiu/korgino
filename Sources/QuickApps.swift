@@ -7,18 +7,36 @@ struct QuickAppsSection: View {
     @State private var expanded: Set<String> = []
 
     var body: some View {
-        Section {
-            let apps = visibleApps()
-            if apps.isEmpty {
-                Text(L("还没有单独配置的应用"))
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            SettingsGroup(title: "") {
+                let apps = visibleApps()
+                if apps.isEmpty {
+                    Text(L("还没有单独配置的应用"))
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: SettingsChrome.rowMinHeight)
+                }
+                ForEach(apps, id: \.bundleID) { app in
+                    appCard(app)
+                }
+                Button {
+                    addApps()
+                } label: {
+                    Text(L("＋ 添加应用…"))
+                        .font(Theme.TypeScale.body)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: SettingsChrome.rowMinHeight)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
-            ForEach(apps, id: \.bundleID) { app in
-                appCard(app)
-            }
-            Button(L("添加应用…")) { addApps() }
-        } footer: {
             Text(L("三条开关各自管各自：关掉的触发在这个应用里不动，划词插件跟划词一起。默认提供商和下面几项留空就跟随设置里各页自己的默认。"))
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, -4)
         }
     }
 
@@ -56,91 +74,83 @@ struct QuickAppsSection: View {
 
     private func appCard(_ app: AppRow) -> some View {
         let open = expanded.contains(app.bundleID)
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Button {
-                    if open { expanded.remove(app.bundleID) } else { expanded.insert(app.bundleID) }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chevron.right")
-                            .font(Theme.TypeScale.micro)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                if open { expanded.remove(app.bundleID) } else { expanded.insert(app.bundleID) }
+            } label: {
+                HStack(spacing: 8) {
+                    if let icon = app.icon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 18, height: 18)
+                    } else {
+                        Image(systemName: "app.dashed")
+                            .frame(width: 18, height: 18)
                             .foregroundStyle(.secondary)
-                            .rotationEffect(.degrees(open ? 90 : 0))
-                            .frame(width: 10)
-                        if let icon = app.icon {
-                            Image(nsImage: icon)
-                                .resizable()
-                                .frame(width: 18, height: 18)
-                        } else {
-                            Image(systemName: "app.dashed")
-                                .frame(width: 18, height: 18)
-                                .foregroundStyle(.secondary)
-                        }
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(app.name)
-                                .lineLimit(1)
-                            if let note = statusNote(app) {
-                                Text(note)
-                                    .font(Theme.TypeScale.micro)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
                     }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                Spacer(minLength: 8)
-                IconButton(systemImage: "minus.circle", help: L("移出"), size: 12) {
-                    config.quickAppRules.removeAll { $0.bundleID == app.bundleID }
-                    for trigger in AppTrigger.allCases {
-                        config.setAppOn(trigger, bundleID: app.bundleID, true)
+                    Text(app.name)
+                        .font(Theme.TypeScale.body)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.right")
+                        .font(Theme.TypeScale.micro)
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(open ? 90 : 0))
+                    Spacer(minLength: 8)
+                    if let note = statusNote(app) {
+                        Text(note)
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    expanded.remove(app.bundleID)
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .frame(minHeight: SettingsChrome.rowMinHeight)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Theme.hairline).frame(height: 0.5)
             }
             if open {
-                VStack(alignment: .leading, spacing: 6) {
-                    groupHeader(L("开关"))
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(AppTrigger.allCases) { trigger in
                         triggerRow(app.bundleID, trigger)
                     }
-                    groupHeader(L("默认提供商"), separated: true)
                     targetRow(app.bundleID, L("划词"), L("跟随「翻译」页"), \.select)
                     targetRow(app.bundleID, L("快捷翻译"), L("跟随「翻译」页"), \.quick)
-                    targetRow(app.bundleID, L("语音"), L("跟随「语音与字幕」页"), \.voice)
-                    groupHeader(L("其他"), separated: true)
+                    targetRow(app.bundleID, L("语音"), L("跟随语音页"), \.voice)
                     languageRow(app.bundleID)
                     voiceModeRow(app.bundleID)
                     pluginsRow(app.bundleID)
+                    HStack {
+                        Button(L("移出这个应用")) {
+                            config.quickAppRules.removeAll { $0.bundleID == app.bundleID }
+                            for trigger in AppTrigger.allCases {
+                                config.setAppOn(trigger, bundleID: app.bundleID, true)
+                            }
+                            expanded.remove(app.bundleID)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.label)
+                        .foregroundStyle(Theme.danger)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 8)
                 }
-                .padding(.top, 6)
-                .padding(.leading, 21)
-                .padding(.trailing, 6)
+                .padding(.leading, SettingsChrome.expandLeading)
+                .padding(.trailing, SettingsChrome.expandTrailing)
+                .background(Theme.expandFill)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Theme.hairline).frame(height: 0.5)
+                }
             }
-        }
-        .padding(.vertical, 1)
-    }
-
-    /// 展开区里的分组小标题。第二组起在标题上方加一条细分割线。
-    private func groupHeader(_ title: String, separated: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if separated {
-                Rectangle()
-                    .fill(Theme.hairline)
-                    .frame(height: 0.5)
-                    .padding(.top, 6)
-                    .padding(.bottom, 2)
-            }
-            Text(title)
-                .font(Theme.TypeScale.caption).fontWeight(.semibold)
-                .foregroundStyle(.secondary)
         }
     }
 
     /// 一条触发模式自己的开关。
     private func triggerRow(_ bundleID: String, _ trigger: AppTrigger) -> some View {
-        LabeledContent {
+        SettingsRow(title: trigger.title) {
             Toggle("", isOn: Binding(
                 get: { config.isAppOn(trigger, bundleID: bundleID) },
                 set: { config.setAppOn(trigger, bundleID: bundleID, $0) }
@@ -148,8 +158,6 @@ struct QuickAppsSection: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.small)
-        } label: {
-            Text(trigger.title)
         }
     }
 
@@ -175,7 +183,7 @@ struct QuickAppsSection: View {
             && rule.voiceMode.isEmpty && rule.language.isEmpty && rule.plugins.isEmpty
     }
 
-    /// 展开区每一行都是左边标签、右边控件贴边，跟表单里其他行一个排法。
+    /// 展开区每一行都是左边标签、右边控件贴边。
     private func targetRow(
         _ bundleID: String,
         _ title: String,
@@ -184,7 +192,7 @@ struct QuickAppsSection: View {
     ) -> some View {
         let target = binding(bundleID, keyPath)
         let providers = config.catalogTargets()
-        return LabeledContent {
+        return SettingsRow(title: title) {
             HStack(spacing: 6) {
                 Picker(title, selection: Binding(
                     get: { target.wrappedValue.providerID },
@@ -217,16 +225,15 @@ struct QuickAppsSection: View {
                         items: ModelChoices.models(for: profile, current: nil),
                         placeholder: profile.model.isEmpty ? L("跟随设置里的模型") : profile.model
                     )
-                    .frame(width: 170)
+                    .frame(width: 140)
                 }
             }
-        } label: {
-            Text(title)
+            .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
         }
     }
 
     private func voiceModeRow(_ bundleID: String) -> some View {
-        LabeledContent {
+        SettingsRow(title: L("语音模式")) {
             Picker(L("语音模式"), selection: binding(bundleID, \.voiceMode)) {
                 Text(L("跟随语音页")).tag("")
                 ForEach(VoiceMode.allCases) { m in
@@ -235,13 +242,12 @@ struct QuickAppsSection: View {
             }
             .labelsHidden()
             .fixedSize()
-        } label: {
-            Text(L("语音模式"))
+            .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
         }
     }
 
     private func languageRow(_ bundleID: String) -> some View {
-        LabeledContent {
+        SettingsRow(title: L("应用目标语言")) {
             Picker(L("应用目标语言"), selection: binding(bundleID, \.language)) {
                 Text(L("跟随默认")).tag("")
                 Text(L("跟随语音页的目标语言")).tag(QuickAppRule.followVoice)
@@ -251,16 +257,15 @@ struct QuickAppsSection: View {
             }
             .labelsHidden()
             .fixedSize()
-        } label: {
-            Text(L("应用目标语言"))
+            .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
         }
     }
 
     /// 划词插件：跟随插件页的勾选、这个应用里不弹、或者只弹勾上的这几个。
     private func pluginsRow(_ bundleID: String) -> some View {
         let mode = pluginModeBinding(bundleID)
-        return VStack(alignment: .leading, spacing: 6) {
-            LabeledContent {
+        return VStack(alignment: .leading, spacing: 0) {
+            SettingsRow(title: L("启用的插件"), showsDivider: mode.wrappedValue == QuickAppRule.pluginsCustom) {
                 Picker(L("启用的插件"), selection: mode) {
                     Text(L("跟随默认")).tag("")
                     Text(L("不配置")).tag(QuickAppRule.pluginsNone)
@@ -268,12 +273,16 @@ struct QuickAppsSection: View {
                 }
                 .labelsHidden()
                 .fixedSize()
-            } label: {
-                Text(L("启用的插件"))
+                .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
             }
             if mode.wrappedValue == QuickAppRule.pluginsCustom {
                 pluginChips(bundleID)
-                    .padding(.leading, 2)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(Theme.hairline).frame(height: 0.5)
+                    }
             }
         }
     }

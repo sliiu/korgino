@@ -18,6 +18,8 @@ enum Theme {
     static let panelShadowY: CGFloat = 4
     static let cardFill = Color(nsColor: dynamic(light: 0xFFFFFF, dark: 0x2A2A2F))
     static let wellFill = Color.primary.opacity(0.045)
+    /// 设置填写块底。效果图黑 1.8%。
+    static let expandFill = Color.primary.opacity(0.018)
     static let windowFill = Color(nsColor: dynamic(light: 0xF4F4F6, dark: 0x1C1C20))
 
     /// 七档字号。全应用用 `.font(Theme.TypeScale.reading)` 这种写法，不再直接写 `.system(size:)`。
