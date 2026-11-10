@@ -10,6 +10,7 @@ enum KIcon: String, CaseIterable, Identifiable {
     case stop, star, starFill, retry, clear, folder, trash, save, export, stopFill
     case zoomIn, zoomOut, rotate, link, qr, open
     case chevR, chevD, chevU, chevL
+    case arrowUp, arrowDown, swapV, docUp, downloadCircle
 
     var id: String { rawValue }
 
@@ -134,6 +135,17 @@ enum KIcon: String, CaseIterable, Identifiable {
             return [.stroke("M3.5 10L8 5.5 12.5 10", 1.6)]
         case .chevL:
             return [.stroke("M10 3.5L5.5 8 10 12.5", 1.6)]
+        case .arrowUp:
+            return [.stroke("M8 13V3M4 7l4-4 4 4", 1.5)]
+        case .arrowDown:
+            return [.stroke("M8 3v10M4 9l4 4 4-4", 1.5)]
+        case .swapV:
+            return [.stroke("M5 13V3M2.5 5.5L5 3l2.5 2.5M11 3v10M8.5 10.5L11 13l2.5-2.5")]
+        case .docUp:
+            return [.stroke("M4 1.5h5l3.5 3.5v9a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5zM9 1.5V5h3.5"),
+                    .stroke("M8 12V8M6 9.8L8 8l2 1.8")]
+        case .downloadCircle:
+            return [.stroke(Self.circle(8, 8, 6)), .stroke("M8 4.8v5.4M5.8 8.2L8 10.4l2.2-2.2")]
         case .open:
             return [.stroke("M12.5 9v3.5a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1H7M9.5 2.5h4v4M13.5 2.5L7.5 8.5")]
         }

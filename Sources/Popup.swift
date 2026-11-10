@@ -1204,7 +1204,7 @@ private struct OCRShotPanel: View {
                     angle = (angle + 90).truncatingRemainder(dividingBy: 360)
                 }
                 IconButton(
-                    systemImage: "arrow.counterclockwise",
+                    icon: .back,
                     help: L("复位"),
                     tint: (zoom == 1 && angle == 0 && offset == .zero) ? nil : .accentColor,
                     size: 11
@@ -2760,9 +2760,11 @@ private struct PopupFollowUpBar: View {
                     .help(L("停止生成"))
                 } else {
                     Button(action: { if canSend { onSend() } }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(Theme.TypeScale.title)
-                            .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                        ZStack {
+                            Circle().fill(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                            KIconView(.arrowUp, size: 12).foregroundStyle(.white)
+                        }
+                        .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
                     .disabled(!canSend)

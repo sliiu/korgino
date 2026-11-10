@@ -163,7 +163,7 @@ struct LaneCaptionScroller<Content: View>: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(L("回到最新"))
-                            Image(systemName: "arrow.down")
+                            KIconView(.arrowDown, size: 11)
                         }
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.primary)

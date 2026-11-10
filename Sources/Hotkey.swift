@@ -115,7 +115,7 @@ struct HotkeyRecorderButton<Accessory: View>: View {
                         }
                     }
                 )
-                IconButton(systemImage: "arrow.uturn.backward", help: String(format: L("恢复默认（%@）"), String(describing: action.default.display))) {
+                IconButton(icon: .back, help: String(format: L("恢复默认（%@）"), String(describing: action.default.display))) {
                     let d = action.default
                     spec = d
                     onChange(d)
