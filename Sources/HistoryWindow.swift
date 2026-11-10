@@ -129,7 +129,7 @@ struct HistoryFavoritesView: View {
             HStack(spacing: 6) {
                 SearchField(text: $query, prompt: L("搜索原文、译文、应用或文件"))
                 IconButton(
-                    systemImage: "trash",
+                    icon: .trash,
                     help: model.pane == .history ? L("清空历史") : L("清空收藏")
                 ) {
                     if model.pane == .history { model.clearHistory() }

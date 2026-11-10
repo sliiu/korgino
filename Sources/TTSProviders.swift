@@ -430,8 +430,7 @@ struct SpeakButton: View {
         }
         Group {
             if playing {
-                // 效果图没有「停止」图标，播放中沿用 SF Symbol。
-                IconButton(systemImage: "stop.circle", help: helpText, tint: tint, size: size, action: toggle)
+                IconButton(icon: .stop, help: helpText, tint: tint, size: size, action: toggle)
             } else {
                 IconButton(icon: .spk, help: helpText, tint: tint, size: size, action: toggle)
             }

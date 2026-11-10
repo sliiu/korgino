@@ -6,6 +6,9 @@ import SwiftUI
 enum KIcon: String, CaseIterable, Identifiable {
     case tr, wave, clock, book, film, mic, gear, clip, shot, doc, spk, copy, back
     case pin, x, warn, pause, text, spark, pen, sum, q, more, search, check
+    /// B1 后续：设计稿没提供，按同一规格自绘。
+    case stop, star, starFill, retry, clear, folder, trash, save, export, stopFill
+    case zoomIn, zoomOut, rotate, link, qr, open
 
     var id: String { rawValue }
 
@@ -91,8 +94,43 @@ enum KIcon: String, CaseIterable, Identifiable {
             return [.stroke(Self.circle(7, 7, 4.5), 1.4), .stroke("M10.5 10.5L14 14", 1.4)]
         case .check:
             return [.stroke("M3.5 8.5l3 3 6-7", 1.6)]
+        case .stop:
+            return [.stroke(Self.circle(8, 8, 6)), .fill(Self.rect(5.8, 5.8, 4.4, 4.4, 0.8))]
+        case .star:
+            return [.stroke(Self.starPath)]
+        case .starFill:
+            return [.fill(Self.starPath), .stroke(Self.starPath)]
+        case .retry:
+            return [.stroke("M13 8a5 5 0 1 1-1.5-3.5M12.5 2.5v3h-3")]
+        case .clear:
+            return [.fill(Self.circle(8, 8, 6.5)), .eraseStroke("M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4", 1.4)]
+        case .folder:
+            return [.stroke("M2 4.5a1 1 0 0 1 1-1h3l1.5 1.5H13a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z")]
+        case .trash:
+            return [.stroke("M2.5 4h11M6 4V2.5h4V4M4 4l.6 8.6a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9L12 4M6.8 7v4M9.2 7v4")]
+        case .save:
+            return [.stroke("M8 2v8M5 7.3l3 2.9 3-2.9M2.5 9.5v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3")]
+        case .export:
+            return [.stroke("M8 10V2M5 4.7L8 1.8l3 2.9M2.5 9.5v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3")]
+        case .stopFill:
+            return [.fill(Self.rect(3.5, 3.5, 9, 9, 2))]
+        case .zoomIn:
+            return [.stroke(Self.circle(7, 7, 4.5), 1.4), .stroke("M10.5 10.5L14 14", 1.4), .stroke("M5 7h4M7 5v4", 1.2)]
+        case .zoomOut:
+            return [.stroke(Self.circle(7, 7, 4.5), 1.4), .stroke("M10.5 10.5L14 14", 1.4), .stroke("M5 7h4", 1.2)]
+        case .rotate:
+            return [.stroke("M13.5 8a5.5 5.5 0 1 1-1.8-4.1M12.5 2v3.5H9"), .stroke(Self.rect(6, 6, 4, 4, 0.8), 1.2)]
+        case .link:
+            return [.stroke("M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.7.7M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.1 9.2a2.6 2.6 0 0 0 3.7 3.7l.7-.7")]
+        case .qr:
+            return [.stroke(Self.rect(2, 2, 4.5, 4.5, 1), 1.2), .stroke(Self.rect(9.5, 2, 4.5, 4.5, 1), 1.2),
+                    .stroke(Self.rect(2, 9.5, 4.5, 4.5, 1), 1.2), .stroke("M9.5 9.5h2M14 9.5v1M9.5 12v2M12 12h2v2", 1.2)]
+        case .open:
+            return [.stroke("M12.5 9v3.5a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1H7M9.5 2.5h4v4M13.5 2.5L7.5 8.5")]
         }
     }
+
+    private static let starPath = "M8 1.8l2 4.2 4.5.6-3.3 3.1.8 4.5L8 12l-4 2.2.8-4.5L1.5 6.6 6 6z"
 
     private static func circle(_ cx: Double, _ cy: Double, _ r: Double) -> String {
         "M\(cx - r) \(cy)a\(r) \(r) 0 1 0 \(2 * r) 0a\(r) \(r) 0 1 0 \(-2 * r) 0z"

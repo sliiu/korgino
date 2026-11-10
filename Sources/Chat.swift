@@ -539,7 +539,7 @@ struct TranslationChatView: View {
             Spacer()
             modelPicker
             if !session.messages.isEmpty {
-                IconButton(systemImage: "trash", help: L("清空对话"), size: 11) { session.clearHistory() }
+                IconButton(icon: .trash, help: L("清空对话"), size: 11) { session.clearHistory() }
                     .disabled(session.isSending)
             }
         }

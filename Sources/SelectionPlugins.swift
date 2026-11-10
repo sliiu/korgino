@@ -959,8 +959,7 @@ struct SelectionPluginBarView: View {
                     model.query = ""
                     model.queryChanged()
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(Theme.TypeScale.caption)
+                    KIconView(.clear, size: 12)
                         .foregroundStyle(Color.primary.opacity(0.4))
                 }
                 .buttonStyle(.plain)

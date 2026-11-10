@@ -126,7 +126,7 @@ struct SearchField: View {
                 Button {
                     text = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                    KIconView(.clear, size: 13).foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
             }

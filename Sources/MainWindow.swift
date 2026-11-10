@@ -1510,8 +1510,7 @@ private struct LiveListeningView: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(Theme.TypeScale.glyph)
+                KIconView(.export, size: 13)
                     .foregroundStyle(Color.secondary)
                 Text(L("导出…"))
                     .font(Theme.TypeScale.label)
@@ -1830,7 +1829,7 @@ private struct LiveListenColumn: View {
             IconButton(icon: .spk, help: speech.notice.isEmpty ? L("朗读原文") : speech.notice) {
                 model.speak(seg.source, kind: .source, source: kind, lane: seg.laneID, speaker: seg.speaker)
             }
-            IconButton(systemImage: "trash", help: L("删除")) {
+            IconButton(icon: .trash, help: L("删除")) {
                 if editingID == seg.id { editingID = nil }
                 model.deleteSegment(id: seg.id, kind: kind)
             }
