@@ -1965,7 +1965,7 @@ struct MediaCaptionsView: View {
             case .waiting:
                 EmptyView()
             case .running:
-                IconButton(systemImage: "stop.fill", help: L("停止"), size: 11) {
+                IconButton(icon: .stopFill, help: L("停止"), size: 11) {
                     model.stop(job.id)
                 }
             case .waitingForTranslation:
@@ -1976,18 +1976,18 @@ struct MediaCaptionsView: View {
                     .help(L("正在等翻译"))
             case .finished:
                 if job.savedURL != nil {
-                    IconButton(systemImage: "folder", help: L("在访达中显示"), size: 11) {
+                    IconButton(icon: .folder, help: L("在访达中显示"), size: 11) {
                         model.revealSaved(job.id)
                     }
                 }
                 if !job.segments.isEmpty {
-                    IconButton(systemImage: "square.and.arrow.down", help: L("导出"), size: 11) {
+                    IconButton(icon: .save, help: L("导出"), size: 11) {
                         model.saveCopy(job.id)
                     }
                 }
             }
             if job.phase != .waitingForTranslation && job.phase != .running {
-                IconButton(systemImage: "trash", help: L("移除"), size: 11) {
+                IconButton(icon: .trash, help: L("移除"), size: 11) {
                     model.clear(job.id)
                 }
             }

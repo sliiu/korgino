@@ -701,7 +701,7 @@ struct PopupView: View {
                 SpeakButton(text: model.source, help: L("朗读原文"), tag: "popup.source")
                     .disabled(model.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 IconButton(
-                    systemImage: "arrow.clockwise",
+                    icon: .retry,
                     help: model.targetPending
                         ? L("按新的目标语言重新翻译")
                         : L("用编辑后的原文再次翻译"),
@@ -1085,8 +1085,7 @@ struct PopupView: View {
 
     private func providerChevron(open: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
-            Image(systemName: "chevron.right")
-                .font(Theme.TypeScale.micro)
+            KIconView(.chevR, size: 9)
                 .foregroundStyle(.tertiary)
                 .rotationEffect(.degrees(open ? 90 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
@@ -1108,7 +1107,7 @@ struct PopupView: View {
         // Touch bump so view refreshes after toggle.
         let _ = model.favoriteBump
         return IconButton(
-            systemImage: starred ? "star.fill" : "star",
+            icon: starred ? .starFill : .star,
             help: starred ? L("取消收藏（可在「历史和收藏 › 收藏」查看）") : L("收藏译文（可在「历史和收藏 › 收藏」查看）"),
             tint: starred ? .yellow : nil,
             size: 11
@@ -1195,13 +1194,13 @@ private struct OCRShotPanel: View {
                 offset: $offset
             )
             HStack(spacing: 0) {
-                IconButton(systemImage: "minus.magnifyingglass", help: L("缩小"), size: 11) {
+                IconButton(icon: .zoomOut, help: L("缩小"), size: 11) {
                     zoom = max(0.5, zoom / 1.25)
                 }
-                IconButton(systemImage: "plus.magnifyingglass", help: L("放大"), size: 11) {
+                IconButton(icon: .zoomIn, help: L("放大"), size: 11) {
                     zoom = min(12, zoom * 1.25)
                 }
-                IconButton(systemImage: "rotate.right", help: L("旋转 90°"), size: 11) {
+                IconButton(icon: .rotate, help: L("旋转 90°"), size: 11) {
                     angle = (angle + 90).truncatingRemainder(dividingBy: 360)
                 }
                 IconButton(

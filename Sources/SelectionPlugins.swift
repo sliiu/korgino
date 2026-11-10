@@ -959,8 +959,7 @@ struct SelectionPluginBarView: View {
                     model.query = ""
                     model.queryChanged()
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(Theme.TypeScale.caption)
+                    KIconView(.clear, size: 12)
                         .foregroundStyle(Color.primary.opacity(0.4))
                 }
                 .buttonStyle(.plain)
@@ -1715,8 +1714,7 @@ private struct SelectionPluginSheet: View {
                     HStack(spacing: 6) {
                         StoredSymbol(name: symbol, size: 16, font: Theme.TypeScale.reading)
                             .frame(width: 20, height: 20)
-                        Image(systemName: "chevron.down")
-                            .font(Theme.TypeScale.micro)
+                        KIconView(.chevD, size: 9)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 8)

@@ -1228,7 +1228,7 @@ struct FileTranslateView: View {
     /// 嵌在翻译页里时没有窗口工具栏，同一排按钮放在视图顶上。
     private var embeddedBar: some View {
         HStack(spacing: 2) {
-            IconButton(systemImage: "folder", help: L("选择文件…"), size: 12) {
+            IconButton(icon: .folder, help: L("选择文件…"), size: 12) {
                 model.chooseFile()
             }
             .disabled(model.isRunning)
@@ -1255,7 +1255,7 @@ struct FileTranslateView: View {
             ) { model.syncScroll.toggle() }
             .disabled(!model.scrollSyncAvailable)
             if model.isRunning {
-                IconButton(systemImage: "stop.fill", help: L("取消"), size: 12) {
+                IconButton(icon: .stopFill, help: L("取消"), size: 12) {
                     model.cancel()
                 }
             } else {
@@ -1283,7 +1283,7 @@ struct FileTranslateView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            IconButton(systemImage: "folder", help: L("选择文件…"), size: 12) {
+            IconButton(icon: .folder, help: L("选择文件…"), size: 12) {
                 model.chooseFile()
             }
             .disabled(model.isRunning)
@@ -1321,7 +1321,7 @@ struct FileTranslateView: View {
         .korgiHideToolbarBackground()
         ToolbarItem(placement: .primaryAction) {
             if model.isRunning {
-                IconButton(systemImage: "stop.fill", help: L("取消"), size: 12) {
+                IconButton(icon: .stopFill, help: L("取消"), size: 12) {
                     model.cancel()
                 }
             } else {
@@ -1671,7 +1671,7 @@ struct FileTranslateView: View {
                     ProBadge(help: L("继续对话需要 Pro"))
                 }
                 IconButton(
-                    systemImage: starred ? "star.fill" : "star",
+                    icon: starred ? .starFill : .star,
                     help: L("收藏译文（历史和收藏 › 收藏）"),
                     tint: starred ? .yellow : nil
                 ) {
@@ -1692,7 +1692,7 @@ struct FileTranslateView: View {
                     }
                     model.favoriteBump &+= 1
                 }
-                IconButton(systemImage: "square.and.arrow.down", help: L("另存为… ⌘S")) {
+                IconButton(icon: .save, help: L("另存为… ⌘S")) {
                     model.saveTranslated()
                 }
                 .keyboardShortcut("s", modifiers: [.command])

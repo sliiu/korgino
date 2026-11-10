@@ -86,8 +86,7 @@ struct DetectedLinksBar: View {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(links) { link in
                     HStack(spacing: 8) {
-                        Image(systemName: link.kind == .qr ? "qrcode" : "link")
-                            .font(Theme.TypeScale.caption).fontWeight(.medium)
+                        KIconView(link.kind == .qr ? .qr : .link, size: 13)
                             .foregroundStyle(Color.accentColor)
                             .frame(width: 16)
                         Text(link.label)
@@ -97,7 +96,7 @@ struct DetectedLinksBar: View {
                             .textSelection(.enabled)
                         Spacer(minLength: 0)
                         if link.url.scheme != "qr-payload" {
-                            IconButton(systemImage: "arrow.up.right.square", help: L("打开"), size: 11) {
+                            IconButton(icon: .open, help: L("打开"), size: 11) {
                                 LinkQRDetector.open(link)
                             }
                         }

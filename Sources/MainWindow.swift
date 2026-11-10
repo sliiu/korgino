@@ -1022,7 +1022,7 @@ private struct LiveSourceCard: View {
             Button(action: onToggleSetup) {
                 HStack(spacing: 3) {
                     Text(expanded ? L("收起设置") : L("设置"))
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    KIconView(expanded ? .chevU : .chevD, size: 10)
                 }
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(Theme.accent)
@@ -1510,8 +1510,7 @@ private struct LiveListeningView: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(Theme.TypeScale.glyph)
+                KIconView(.export, size: 13)
                     .foregroundStyle(Color.secondary)
                 Text(L("导出…"))
                     .font(Theme.TypeScale.label)
@@ -1664,7 +1663,7 @@ private struct LiveListenColumn: View {
             Button(action: onToggleSetup) {
                 HStack(spacing: 3) {
                     Text(setup ? L("收起设置") : L("设置"))
-                    Image(systemName: setup ? "chevron.up" : "chevron.down")
+                    KIconView(setup ? .chevU : .chevD, size: 10)
                 }
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(Theme.accent)
@@ -1830,7 +1829,7 @@ private struct LiveListenColumn: View {
             IconButton(icon: .spk, help: speech.notice.isEmpty ? L("朗读原文") : speech.notice) {
                 model.speak(seg.source, kind: .source, source: kind, lane: seg.laneID, speaker: seg.speaker)
             }
-            IconButton(systemImage: "trash", help: L("删除")) {
+            IconButton(icon: .trash, help: L("删除")) {
                 if editingID == seg.id { editingID = nil }
                 model.deleteSegment(id: seg.id, kind: kind)
             }
@@ -2027,8 +2026,7 @@ private struct MeetingRecordList: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(Theme.TypeScale.caption)
+                KIconView(.chevR, size: 10)
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 14)

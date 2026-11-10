@@ -134,7 +134,7 @@ struct HistoryFavoritesView: View {
                     fontSize: 12
                 )
                 IconButton(
-                    systemImage: "trash",
+                    icon: .trash,
                     help: model.pane == .history ? L("清空历史") : L("清空收藏")
                 ) {
                     if model.pane == .history { model.clearHistory() }

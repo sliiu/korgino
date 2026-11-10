@@ -74,7 +74,7 @@ struct SessionNoteCard: View {
                         .foregroundStyle(.secondary)
                 }
                 if let onRewrite, !writing {
-                    IconButton(systemImage: "arrow.clockwise", help: L("重写"), size: 11, action: onRewrite)
+                    IconButton(icon: .retry, help: L("重写"), size: 11, action: onRewrite)
                 }
                 if page != nil {
                     IconButton(icon: copied ? .check : .copy, help: L("复制"), size: 11) {
