@@ -168,14 +168,21 @@ struct MainWindowView: View {
     var body: some View {
         let _ = config.appLanguage
         let _ = model.epoch
-        NavigationSplitView {
+        HStack(spacing: 0) {
             sidebar
-        } detail: {
+                .frame(width: Theme.sidebarWidth)
+                .frame(maxHeight: .infinity)
+                .background(Theme.sidebarFill)
+            Rectangle()
+                .fill(Theme.hairline)
+                .frame(width: 0.5)
+                .frame(maxHeight: .infinity)
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.windowFill)
         }
-        .navigationSplitViewColumnWidth(min: 180, ideal: 180, max: 180)
         .frame(minWidth: 760, minHeight: 520)
+        .background(Theme.windowFill)
         .onChange(of: config.featureEnabled) { _, _ in keepPageVisible() }
         .onChange(of: config.dictateEnabled) { _, _ in keepPageVisible() }
     }
@@ -201,53 +208,39 @@ struct MainWindowView: View {
     }
 
     private var pagesSidebar: some View {
-        VStack(spacing: 0) {
-            List(selection: $model.page) {
-                ForEach(primary) { page in
+        VStack(alignment: .leading, spacing: 1) {
+            ForEach(primary) { page in
+                row(page)
+            }
+            if !more.isEmpty {
+                SidebarGroupLabel(title: L("更多"))
+                ForEach(more) { page in
                     row(page)
                 }
-                if !more.isEmpty {
-                    Section(L("更多")) {
-                        ForEach(more) { page in
-                            row(page)
-                        }
-                    }
-                }
             }
-            .listStyle(.sidebar)
-            Divider()
-            Button {
-                model.openSettings(.common)
-            } label: {
-                Label(L("设置"), systemImage: "gearshape")
-                    .font(.body)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            Spacer(minLength: 8)
+            row(settings: true)
         }
+        .padding(.horizontal, 10)
+        .padding(.top, 36)
+        .padding(.bottom, 10)
     }
 
     private func row(_ page: MainPage) -> some View {
-        Label {
-            HStack(spacing: 6) {
-                Text(page.title)
-                if page == .live, listening {
-                    Circle()
-                        .fill(Theme.live)
-                        .frame(width: 6, height: 6)
-                        .accessibilityLabel(L("正在听"))
-                }
-            }
-        } icon: {
-            Image(systemName: page.symbol)
+        SidebarRow(
+            title: page.title,
+            systemImage: page.symbol,
+            selected: model.page == page,
+            badge: page == .live && listening
+        ) {
+            model.page = page
         }
-        .font(.body)
-        .tag(page)
+    }
+
+    private func row(settings: Bool) -> some View {
+        SidebarRow(title: L("设置"), systemImage: "gearshape", selected: false) {
+            model.openSettings(.common)
+        }
     }
 
     private var primary: [MainPage] {
@@ -324,20 +317,25 @@ private struct TranslatePage: View {
     }
 
     private var compose: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             if let banner = model.banner {
                 PermissionBanner(text: banner.text) {
                     model.authorize(banner.pane)
                 }
+                .padding(.horizontal, 26)
+                .padding(.top, 14)
             }
-            toolbar
-            sourceCard
-            if model.hasResults {
-                results
+            VStack(alignment: .leading, spacing: 14) {
+                toolbar
+                sourceCard
+                if model.hasResults {
+                    results
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, 26)
+            .padding(.vertical, 22)
         }
-        .padding(20)
         .onAppear {
             model.refreshPermissions()
             consumePending()
@@ -374,91 +372,66 @@ private struct TranslatePage: View {
     }
 
     private var languageMenus: some View {
-        HStack(spacing: 6) {
-            Menu {
-                Button(L("自动检测")) { model.sourceLanguage = .auto }
-                Divider()
-                ForEach(TargetLanguage.specific) { language in
-                    Button(language.menuTitle) { model.sourceLanguage = language }
-                }
-            } label: {
-                menuLabel(model.sourceLanguage == .auto ? L("自动检测") : model.sourceLanguage.menuTitle)
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            Image(systemName: "arrow.right")
-                .font(Theme.TypeScale.caption)
+        HStack(spacing: 8) {
+            MenuChip(
+                title: model.sourceLanguage == .auto ? L("自动检测") : model.sourceLanguage.menuTitle,
+                options: sourceChoices,
+                label: { $0 == .auto ? L("自动检测") : $0.menuTitle },
+                isSelected: { $0 == model.sourceLanguage },
+                select: { model.sourceLanguage = $0 }
+            )
+            Text("→")
+                .font(Theme.TypeScale.body)
                 .foregroundStyle(.tertiary)
-            Menu {
-                ForEach(TargetLanguage.specific) { language in
-                    Button(language.menuTitle) { model.targetLanguage = language }
-                }
-            } label: {
-                menuLabel(model.targetLanguage.menuTitle)
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
+            MenuChip(
+                title: model.targetLanguage.menuTitle,
+                options: TargetLanguage.specific,
+                label: { $0.menuTitle },
+                isSelected: { $0 == model.targetLanguage },
+                select: { model.targetLanguage = $0 }
+            )
         }
     }
 
-    private func menuLabel(_ title: String) -> some View {
-        HStack(spacing: 4) {
-            Text(title)
-                .font(Theme.TypeScale.label)
-                .foregroundStyle(.primary)
-            Image(systemName: "chevron.down")
-                .font(Theme.TypeScale.micro)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Theme.cardFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .strokeBorder(Theme.hairline, lineWidth: 0.5)
-        )
+    private var sourceChoices: [TargetLanguage] {
+        [.auto] + TargetLanguage.specific
     }
 
     private func pageButton(_ symbol: String, _ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(Theme.TypeScale.label)
-                .labelStyle(.titleAndIcon)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .disabled(!enabled)
+        PageButton(title: title, systemImage: symbol, action: action)
+            .disabled(!enabled)
     }
 
     private var sourceCard: some View {
-        ZStack(alignment: .topLeading) {
-            TextEditor(text: $model.source)
-                .font(Theme.TypeScale.body)
-                .scrollContentBackground(.hidden)
-                .padding(8)
-                .frame(maxWidth: .infinity, minHeight: 150)
-            if model.source.isEmpty {
-                Text(L("输入、粘贴，或把文件拖进来 · ⌘↩ 翻译"))
+        PageCard(minHeight: 150, padding: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0), content:
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $model.source)
                     .font(Theme.TypeScale.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 16)
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                    .padding(.bottom, 28)
+                    .frame(maxWidth: .infinity, minHeight: 150)
+                if model.source.isEmpty {
+                    Text(L("输入、粘贴，或把文件拖进来 · ⌘↩ 翻译"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.leading, 16)
+                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Text("\(model.source.count)")
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
                     .allowsHitTesting(false)
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            Text("\(model.source.count)")
-                .font(Theme.TypeScale.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .allowsHitTesting(false)
-        }
-        .card()
+        )
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             guard config.isFeatureEnabled(.file) else { return false }
             return files.handleEmbeddedDrop(providers: providers)
@@ -476,22 +449,25 @@ private struct TranslatePage: View {
     }
 
     private var results: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(Array(model.outcomes.enumerated()), id: \.element.id) { index, outcome in
-                if index == model.expandedIndex {
-                    TranslateResultCard(
-                        outcome: outcome,
+        PageCard(padding: EdgeInsets(top: 12, leading: 16, bottom: 0, trailing: 16), content:
+            VStack(alignment: .leading, spacing: 0) {
+                if model.outcomes.indices.contains(model.expandedIndex) {
+                    TranslateResultBody(
+                        outcome: model.outcomes[model.expandedIndex],
                         targets: model.switchableTargets,
                         speechCode: model.speechCode,
                         onPick: { model.useProvider($0) }
                     )
-                } else {
-                    TranslateFoldRow(outcome: outcome) {
-                        model.expand(outcome.id)
+                }
+                ForEach(Array(model.outcomes.enumerated()), id: \.element.id) { index, outcome in
+                    if index != model.expandedIndex {
+                        TranslateFoldRow(outcome: outcome) {
+                            model.expand(outcome.id)
+                        }
                     }
                 }
             }
-        }
+        )
     }
 }
 
@@ -522,36 +498,8 @@ private struct TranslateFilePane: View {
     }
 }
 
-/// 缺权限时内容区顶部的一条。一次只出最要紧的那条。
-private struct PermissionBanner: View {
-    let text: String
-    let authorize: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Theme.attention)
-                .frame(width: 6, height: 6)
-            Text(text)
-                .font(Theme.TypeScale.label)
-                .foregroundStyle(.primary)
-            Spacer(minLength: 8)
-            Button(L("去授权"), action: authorize)
-                .buttonStyle(.borderless)
-                .font(Theme.TypeScale.label)
-                .foregroundStyle(Theme.accent)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Theme.attention.opacity(0.12))
-        )
-    }
-}
-
-/// 展开的那一家：服务名可切、朗读、复制，下面是译文。
-private struct TranslateResultCard: View {
+/// 展开的那一家：服务名可切、朗读、复制，下面是译文。卡本身由翻译页包一层。
+private struct TranslateResultBody: View {
     let outcome: ProviderOutcome
     let targets: [TranslateTarget]
     let speechCode: String?
@@ -559,33 +507,16 @@ private struct TranslateResultCard: View {
     @State private var copiedID: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Menu {
-                    ForEach(targets) { target in
-                        Button {
-                            onPick(target.id)
-                        } label: {
-                            if target.id == outcome.id {
-                                Label(target.displayName, systemImage: "checkmark")
-                            } else {
-                                Text(target.displayName)
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        ProviderIconView(outcomeID: outcome.id, name: outcome.name, size: 12)
-                        Text(outcome.name)
-                            .font(Theme.TypeScale.caption)
-                            .foregroundStyle(.primary)
-                        Image(systemName: "chevron.down")
-                            .font(Theme.TypeScale.micro)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+                ProviderIconView(outcomeID: outcome.id, name: outcome.name, size: 14)
+                MenuChip(
+                    title: outcome.name,
+                    options: targets.map(\.id),
+                    label: { id in targets.first { $0.id == id }?.displayName ?? id },
+                    isSelected: { $0 == outcome.id },
+                    select: { onPick($0) }
+                )
                 .disabled(targets.count < 2)
                 Spacer(minLength: 8)
                 if let text = outcome.text, !outcome.loading {
@@ -594,10 +525,9 @@ private struct TranslateResultCard: View {
                 }
             }
             bodyContent
+                .padding(.bottom, 10)
         }
-        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .card()
     }
 
     @ViewBuilder
@@ -627,7 +557,7 @@ private struct TranslateFoldRow: View {
     var body: some View {
         Button(action: expand) {
             HStack(spacing: 8) {
-                ProviderIconView(outcomeID: outcome.id, name: outcome.name, size: 12)
+                ProviderIconView(outcomeID: outcome.id, name: outcome.name, size: 14)
                 Text(outcome.name)
                     .font(Theme.TypeScale.labelMedium)
                     .foregroundStyle(.primary)
@@ -635,17 +565,16 @@ private struct TranslateFoldRow: View {
                     .layoutPriority(1)
                 peek
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.down")
-                    .font(Theme.TypeScale.micro)
-                    .foregroundStyle(.tertiary)
+                ChromeChevron(color: Color.primary.opacity(0.32))
             }
-            .padding(.horizontal, 12)
             .padding(.vertical, 9)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
+            .overlay(alignment: .top) {
+                Rectangle().fill(Theme.hairline).frame(height: 0.5)
+            }
         }
         .buttonStyle(.plain)
-        .card()
     }
 
     @ViewBuilder
@@ -973,15 +902,21 @@ private struct LiveMeetingPage: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button(startTitle) { begin() }
-                .buttonStyle(.borderedProminent)
+            PageButton(title: startTitle, primary: true) { begin() }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!ready)
                 .help(ready ? L("打开的几路一起开始，记成同一场会议记录") : L("先打开一路"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .card(radius: 12)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(Theme.hairline, lineWidth: 0.5)
+        )
     }
 
     private var sessionLine: String {
@@ -1036,24 +971,25 @@ private struct LiveSourceCard: View {
             .opacity(on ? 1 : 0.4)
             .allowsHitTesting(on)
         }
-        .padding(14)
+        .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .card(radius: 14)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.cardFill)
+        )
         .overlay {
-            if expanded {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.accentColor.opacity(0.55), lineWidth: 1)
-            }
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(expanded ? Theme.accent.opacity(0.45) : Theme.hairline, lineWidth: expanded ? 1.5 : 0.5)
         }
     }
 
     private var header: some View {
         HStack(spacing: 8) {
             Image(systemName: kind == .system ? "speaker.wave.2.fill" : "mic.fill")
-                .font(Theme.TypeScale.body)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.accentColor.opacity(0.12)))
+                .font(Theme.TypeScale.reading)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 26, height: 26)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.accent.opacity(0.12)))
             Text(kind.title)
                 .font(Theme.TypeScale.body).fontWeight(.semibold)
             if kind == .microphone {
@@ -1110,15 +1046,14 @@ private struct LiveLocaleMenu: View {
     var kind: SystemAudioTranslateController.SourceKind
 
     var body: some View {
-        Menu {
-            ForEach(ASRLanguage.available(apple: model.laneUsesSystemSpeech(kind))) { lang in
-                Button(lang.title) { model.setLocale(kind, lang.id) }
-            }
-        } label: {
-            menuLabel(model.asrLanguage(for: kind).title)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        let choices = ASRLanguage.available(apple: model.laneUsesSystemSpeech(kind))
+        MenuChip(
+            title: model.asrLanguage(for: kind).title,
+            options: choices.map(\.id),
+            label: { id in choices.first { $0.id == id }?.title ?? id },
+            isSelected: { $0 == model.asrLanguage(for: kind).id },
+            select: { model.setLocale(kind, $0) }
+        )
         .disabled(model.isActive || model.isRequestingPermission)
     }
 }
@@ -1132,39 +1067,26 @@ private struct LiveTargetMenu: View {
     private var binding: LaneBinding? { lane?.bindings.first { !$0.isSource } }
 
     var body: some View {
-        Menu {
-            if let lane, let binding {
-                ForEach(model.bindingLanguages(lane, binding)) { lang in
-                    Button(lang.shortTitle) {
-                        model.setBindingTarget(lane.id, kind, binding.key, lang)
-                    }
-                }
-            } else if let lane {
-                ForEach(TargetLanguage.specific) { lang in
-                    Button(lang.shortTitle) { model.ensureTranslation(lane.id, kind, lang) }
+        let languages: [TargetLanguage] = {
+            if let lane, let binding { return model.bindingLanguages(lane, binding) }
+            if lane != nil { return TargetLanguage.specific }
+            return []
+        }()
+        MenuChip(
+            title: binding?.target.shortTitle ?? L("不翻译"),
+            options: languages,
+            label: { $0.shortTitle },
+            isSelected: { $0 == binding?.target },
+            select: { lang in
+                if let lane, let binding {
+                    model.setBindingTarget(lane.id, kind, binding.key, lang)
+                } else if let lane {
+                    model.ensureTranslation(lane.id, kind, lang)
                 }
             }
-        } label: {
-            menuLabel(binding?.target.shortTitle ?? L("不翻译"))
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        )
         .disabled(model.isActive || model.isRequestingPermission || lane == nil)
     }
-}
-
-private func menuLabel(_ title: String) -> some View {
-    HStack(spacing: 4) {
-        Text(title)
-            .font(Theme.TypeScale.body)
-            .lineLimit(1)
-        Image(systemName: "chevron.up.chevron.down")
-            .font(Theme.TypeScale.micro)
-            .foregroundStyle(.secondary)
-    }
-    .padding(.horizontal, 10)
-    .padding(.vertical, 4)
-    .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.06)))
 }
 
 /// 卡片里展开的设置：识别与翻译，再加分说话人、录音、译音送到。
@@ -1878,7 +1800,7 @@ private struct LiveListenColumn: View {
                 HStack(alignment: .top, spacing: 6) {
                     Text(text)
                         .font(Theme.TypeScale.reading)
-                        .foregroundStyle(first ? Color.primary : Color.secondary)
+                        .foregroundStyle(Color.primary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     IconButton(systemImage: "speaker.wave.2", help: speech.notice.isEmpty ? L("朗读译文") : speech.notice, action: speak)

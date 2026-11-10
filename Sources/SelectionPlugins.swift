@@ -886,13 +886,14 @@ struct SelectionPluginBarView: View {
                 }
             }
         }
-        .padding(.horizontal, 5)
+        .padding(3)
         .frame(height: 34)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
-            Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
+        .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
     }
 
     /// 放大镜点开后就地变成的搜索框。输入的是全部插件，不限于条上那几个。
@@ -1048,13 +1049,14 @@ struct SelectionPluginBarView: View {
     private func iconButton(symbol: String, id: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(Theme.TypeScale.labelMedium)
+                .font(Theme.TypeScale.reading)
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
                 .background(
-                    Circle().fill(Color.primary.opacity(model.hovered == id ? 0.16 : 0.0001))
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Color.primary.opacity(model.hovered == id ? 0.07 : 0))
                 )
-                .foregroundStyle(Color.primary.opacity(0.92))
+                .foregroundStyle(Color.primary.opacity(0.78))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

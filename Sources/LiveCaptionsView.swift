@@ -222,17 +222,21 @@ struct ImmersiveCaptionOverlay: View {
         let _ = lang.appLanguage
         let stack = VStack(spacing: 6) {
             chrome
-                .padding(.horizontal, 8)
-                .frame(height: 24)
+                .padding(4)
                 .background(
-                    Capsule(style: .continuous)
-                        .fill(Color.black.opacity(hovering ? 0.72 : 0))
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Color(white: 30 / 255).opacity(hovering ? 0.86 : 0))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .strokeBorder(Color.white.opacity(hovering ? 0.12 : 0), lineWidth: 0.5)
+                        )
                 )
                 .opacity(hovering ? 1 : 0)
                 .accessibilityHidden(!hovering)
             captionBlock
                 .padding(.horizontal, 20)
-                .padding(.vertical, 10)
+                .padding(.top, 12)
+                .padding(.bottom, 14)
                 .frame(maxWidth: .infinity)
                 .background(capsuleBackground)
         }

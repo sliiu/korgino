@@ -181,22 +181,11 @@ struct PopupView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: fillsWindow ? .infinity : nil, alignment: .topLeading)
         .background { panelGlass }
-        .clipShape(panelShape)
         .overlay {
             panelShape.strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
         }
-        .overlay {
-            panelShape
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.42), Color.clear],
-                        startPoint: .top,
-                        endPoint: UnitPoint(x: 0.5, y: 0.42)
-                    ),
-                    lineWidth: 0.75
-                )
-                .allowsHitTesting(false)
-        }
+        .clipShape(panelShape)
+        .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
         .controlSize(.small)
         .onChange(of: chat.messages.count) { _, _ in
             DispatchQueue.main.async { onRelayout() }
@@ -268,42 +257,47 @@ struct PopupView: View {
         .clipped()
     }
 
+    private struct DirectionChoice: Hashable {
+        enum Kind: Hashable { case target, source }
+        var kind: Kind
+        var language: TargetLanguage
+        var title: String
+    }
+
     /// 顶栏方向本身就是目标语言选择。原文语言留在同一个菜单里，不再另放一个下拉。
-    private var directionMenu: some View {
-        Menu {
-            Picker(L("目标语言"), selection: $model.targetLanguage) {
-                ForEach(TargetLanguage.specific) { lang in
-                    Text(lang.shortTitle).tag(lang)
-                }
+    private var popupDirectionChoices: [DirectionChoice] {
+        let targets = TargetLanguage.specific.map {
+            DirectionChoice(kind: .target, language: $0, title: $0.shortTitle)
+        }
+        let sources = [DirectionChoice(kind: .source, language: .auto, title: L("自动检测"))]
+            + TargetLanguage.specific.map {
+                DirectionChoice(kind: .source, language: $0, title: $0.shortTitle)
             }
-            .pickerStyle(.inline)
-            .labelsHidden()
-            Divider()
-            Picker(L("原文语言"), selection: Binding(
-                get: { model.sourceLanguage },
-                set: { newValue in
-                    guard newValue != model.sourceLanguage else { return }
-                    model.sourceLanguage = newValue
+        return targets + sources
+    }
+
+    private var directionMenu: some View {
+        MenuChip(
+            title: "\(sourceLabel) → \(targetLabel)",
+            options: popupDirectionChoices,
+            label: { $0.title },
+            isSelected: { choice in
+                switch choice.kind {
+                case .target: return choice.language == model.targetLanguage
+                case .source: return choice.language == model.sourceLanguage
+                }
+            },
+            select: { choice in
+                switch choice.kind {
+                case .target:
+                    model.targetLanguage = choice.language
+                case .source:
+                    guard choice.language != model.sourceLanguage else { return }
+                    model.sourceLanguage = choice.language
                     if canRetranslate && !model.pendingFirstTranslate { onRetranslate() }
                 }
-            )) {
-                Text(L("自动检测")).tag(TargetLanguage.auto)
-                Divider()
-                ForEach(TargetLanguage.specific) { lang in
-                    Text(lang.shortTitle).tag(lang)
-                }
             }
-            .pickerStyle(.inline)
-            .labelsHidden()
-        } label: {
-            Text("\(sourceLabel) → \(targetLabel)")
-                .font(Theme.TypeScale.label)
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.visible)
-        .fixedSize()
+        )
         .disabled(model.loading)
         .help(model.targetPending
             ? L("目标语言已改，点原文旁的重新翻译生效")
@@ -2070,7 +2064,7 @@ final class PopupController {
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isMovable = true
         panel.isMovableByWindowBackground = false

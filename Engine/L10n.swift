@@ -4,7 +4,7 @@ extension Notification.Name {
     static let korgiLanguageDidChange = Notification.Name("Korgino.languageDidChange")
 }
 
-enum AppLanguage: String, CaseIterable, Identifiable {
+enum AppLanguage: String, CaseIterable, Identifiable, Hashable {
     case system
     case zhHans, zhHant, en, ja, ko, fr, de, es, ru, pt, it, vi, th, id, ar, hi, tr, nl, pl, sv
     var id: String { rawValue }
