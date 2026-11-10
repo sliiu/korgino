@@ -127,8 +127,7 @@ private struct ApplePrepareView: View {
         let _ = lang.appLanguage
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "arrow.down.circle")
-                    .font(Theme.TypeScale.display)
+                KIconView(.downloadCircle, size: 30)
                     .foregroundStyle(Color.accentColor)
                 Text(status)
                     .font(Theme.TypeScale.body)

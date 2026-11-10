@@ -1085,9 +1085,9 @@ struct PopupView: View {
 
     private func providerChevron(open: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
-            KIconView(.chevR, size: 9)
+            KIconView(.chevD, size: 9)
                 .foregroundStyle(.tertiary)
-                .rotationEffect(.degrees(open ? 90 : 0))
+                .rotationEffect(.degrees(open ? 180 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
@@ -1204,7 +1204,7 @@ private struct OCRShotPanel: View {
                     angle = (angle + 90).truncatingRemainder(dividingBy: 360)
                 }
                 IconButton(
-                    systemImage: "arrow.counterclockwise",
+                    icon: .back,
                     help: L("复位"),
                     tint: (zoom == 1 && angle == 0 && offset == .zero) ? nil : .accentColor,
                     size: 11
@@ -2760,9 +2760,11 @@ private struct PopupFollowUpBar: View {
                     .help(L("停止生成"))
                 } else {
                     Button(action: { if canSend { onSend() } }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(Theme.TypeScale.title)
-                            .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                        ZStack {
+                            Circle().fill(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                            KIconView(.arrowUp, size: 12).foregroundStyle(.white)
+                        }
+                        .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
                     .disabled(!canSend)

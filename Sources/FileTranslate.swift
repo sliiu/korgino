@@ -1248,7 +1248,7 @@ struct FileTranslateView: View {
             ) { model.directVision.toggle() }
             .disabled(!model.canDirectVision || model.isRunning)
             IconButton(
-                systemImage: "arrow.up.arrow.down",
+                icon: .swapV,
                 help: L("同步原文与译文滚动位置"),
                 tint: model.syncScroll && model.scrollSyncAvailable ? .accentColor : nil,
                 size: 12
@@ -1262,11 +1262,10 @@ struct FileTranslateView: View {
                 Button {
                     model.startTranslate()
                 } label: {
-                    Label(
-                        model.hasTranslation ? L("重新翻译") : L("翻译"),
-                        systemImage: model.hasTranslation ? "arrow.clockwise" : "translate"
-                    )
-                    .labelStyle(.titleAndIcon)
+                    HStack(spacing: 5) {
+                        KIconView(model.hasTranslation ? .retry : .tr, size: 13)
+                        Text(model.hasTranslation ? L("重新翻译") : L("翻译"))
+                    }
                     .font(Theme.TypeScale.label)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1311,7 +1310,7 @@ struct FileTranslateView: View {
         .korgiHideToolbarBackground()
         ToolbarItem(placement: .primaryAction) {
             IconButton(
-                systemImage: "arrow.up.arrow.down",
+                icon: .swapV,
                 help: L("同步原文与译文滚动位置"),
                 tint: model.syncScroll && model.scrollSyncAvailable ? .accentColor : nil,
                 size: 12
@@ -1358,8 +1357,7 @@ struct FileTranslateView: View {
                     )
 
                 VStack(spacing: 12) {
-                    Image(systemName: "doc.badge.arrow.up")
-                        .font(Theme.TypeScale.display)
+                    KIconView(.docUp, size: 30)
                         .foregroundStyle(model.isDropTargeted ? Color.accentColor : Color.secondary)
                     Text(L("拖入文件"))
                         .font(Theme.TypeScale.reading).fontWeight(.semibold)

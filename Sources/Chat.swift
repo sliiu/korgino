@@ -798,8 +798,7 @@ struct TranslationChatView: View {
                                 onWriteBack(msg.id, msg.content)
                             } label: {
                                 HStack(spacing: 3) {
-                                    Image(systemName: "arrow.uturn.backward")
-                                        .font(Theme.TypeScale.caption)
+                                    KIconView(.back, size: 13)
                                     Text(L("写回"))
                                         .font(Theme.TypeScale.caption)
                                 }
@@ -852,9 +851,11 @@ struct TranslationChatView: View {
                 Button {
                     session.send()
                 } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(Theme.TypeScale.title)
-                        .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                    ZStack {
+                        Circle().fill(canSend ? Color.accentColor : Color.secondary.opacity(0.4))
+                        KIconView(.arrowUp, size: 12).foregroundStyle(.white)
+                    }
+                    .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend)

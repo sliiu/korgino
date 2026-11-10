@@ -485,9 +485,11 @@ private struct TranslateFilePane: View {
                 Button {
                     files.leaveEmbedded()
                 } label: {
-                    Label(L("返回"), systemImage: "chevron.left")
-                        .font(Theme.TypeScale.label)
-                        .labelStyle(.titleAndIcon)
+                    HStack(spacing: 6) {
+                        KIconView(.chevL, size: 10)
+                        Text(L("返回"))
+                            .font(Theme.TypeScale.label)
+                    }
                 }
                 .buttonStyle(.borderless)
                 Spacer()
