@@ -299,8 +299,7 @@ struct QuickAppsSection: View {
                     updateRule(bundleID) { $0.pluginIDs = ids }
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: plugin.symbol)
-                            .font(Theme.TypeScale.micro)
+                        StoredSymbol(name: plugin.symbol, size: 11, font: Theme.TypeScale.micro)
                         Text(plugin.title)
                             .font(Theme.TypeScale.caption)
                     }

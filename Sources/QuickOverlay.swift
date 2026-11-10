@@ -458,8 +458,7 @@ private struct VoiceCapsuleView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: model.mode.symbol)
-                .font(Theme.TypeScale.caption)
+            KIconView(model.mode.icon, size: 12)
                 .foregroundStyle(Theme.onDark.primary)
                 .frame(width: 22, height: 22)
                 .background(Circle().fill(Theme.onDark.primary.opacity(0.14)))
@@ -480,8 +479,7 @@ private struct VoiceCapsuleView: View {
         case .listening:
             VoiceLevelBars(level: model.level, reduceMotion: reduceMotion)
         case .failed:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(Theme.TypeScale.caption)
+            KIconView(.warn, size: 12)
                 .foregroundStyle(Theme.danger)
         default:
             ProgressView()
@@ -538,11 +536,11 @@ private struct VoiceLevelBars: View {
 
 extension VoiceMode {
     /// 胶囊左边那一枚。识别、翻译、传译各一个。
-    var symbol: String {
+    var icon: KIcon {
         switch self {
-        case .recognize: return "mic"
-        case .translate: return "character.bubble"
-        case .interpret: return "waveform"
+        case .recognize: return .mic
+        case .translate: return .tr
+        case .interpret: return .wave
         }
     }
 }

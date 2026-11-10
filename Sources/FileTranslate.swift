@@ -1429,8 +1429,7 @@ struct FileTranslateView: View {
                     if page.loading {
                         ProgressView().controlSize(.mini)
                     } else if page.error != nil && page.text == nil {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(Theme.TypeScale.micro)
+                        KIconView(.warn, size: 11)
                             .foregroundStyle(Theme.danger)
                     } else {
                         ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11)
@@ -1453,8 +1452,7 @@ struct FileTranslateView: View {
                 Button {
                     model.closePage(page.id)
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(Theme.TypeScale.micro)
+                    KIconView(.x, size: 10)
                         .foregroundStyle(.secondary)
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())

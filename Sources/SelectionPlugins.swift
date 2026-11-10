@@ -13,11 +13,11 @@ import SwiftUI
 /// - 脚本：在 JavaScriptCore 里跑，划词内容就是 `text` 变量，脚本的返回值就是结果。不上网，不花钱。
 /// - AI：把提示词和划词交给一家 AI。
 struct SelectionPlugin: Identifiable, Codable, Equatable, Sendable {
-    enum Kind { case translate, script, ai }
+    enum Kind { case translate, dictionary, script, ai }
 
     var id: String
     var title: String
-    /// SF Symbol 名。
+    /// 图标名：自绘图标存 `kicon.xxx`（见 KIcon.storageName），其余是 SF Symbol 名。
     var symbol: String
     /// AI 插件用的提示词。脚本里可以留空。
     var prompt: String
@@ -26,11 +26,14 @@ struct SelectionPlugin: Identifiable, Codable, Equatable, Sendable {
     /// 有脚本就跑脚本，比 `prompt` 优先。
     var script: String?
     var enabled: Bool
+    /// 查词：走词典，不问 AI。老配置里没有这个字段，当 false。
+    var dictionary: Bool? = nil
     /// 自己改过名字或提示词。没有的内置项，标题和提示词跟着界面语言走。
     var edited: Bool?
 
     var kind: Kind {
         if isTranslate { return .translate }
+        if dictionary == true { return .dictionary }
         if !(script ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return .script }
         return .ai
     }
@@ -42,54 +45,76 @@ struct SelectionPlugin: Identifiable, Codable, Equatable, Sendable {
     /// 一次划词最多送出去的字数。太长的不弹条，也不悄悄截断。
     static let sourceLimit = 8000
 
+    /// 默认集合照效果图 ⑤ / ③h：前 5 个在条上，翻译是普通插件，排在「以下收进「⋯」」之后。
     static let builtin: [SelectionPlugin] = [
         SelectionPlugin(
-            id: translateID,
-            title: L("翻译"),
-            symbol: "character.bubble",
-            prompt: "",
-            isTranslate: true,
+            id: "polish",
+            title: L("润色"),
+            symbol: KIcon.pen.storageName,
+            prompt: "把这段文字改得更通顺、更准确，保持原来的语言、语气和格式。只给出改好的文字，不要解释。",
+            isTranslate: false,
+            enabled: true
+        ),
+        SelectionPlugin(
+            id: "summarize",
+            title: L("总结"),
+            symbol: KIcon.sum.storageName,
+            prompt: "用三句话总结这段文字，用原文的语言。",
+            isTranslate: false,
             enabled: true
         ),
         SelectionPlugin(
             id: "explain",
             title: L("解释"),
-            symbol: "questionmark.circle",
+            symbol: KIcon.q.storageName,
             prompt: "用原文的语言解释这段文字：它讲的是什么，有没有专有名词、典故或需要背景才能懂的地方。简明扼要。",
             isTranslate: false,
-            enabled: false
+            enabled: true
         ),
         SelectionPlugin(
-            id: "polish",
-            title: L("润色"),
-            symbol: "wand.and.sparkles",
-            prompt: "把这段文字改得更通顺、更准确，保持原来的语言、语气和格式。只给出改好的文字，不要解释。",
+            id: "rewrite",
+            title: L("改写"),
+            symbol: KIcon.spark.storageName,
+            prompt: "把下面这段文字换个说法，意思不变，更自然。只输出改写后的文字。",
             isTranslate: false,
-            enabled: false
+            enabled: true
         ),
         SelectionPlugin(
-            id: "summarize",
-            title: L("总结"),
-            symbol: "text.alignleft",
-            prompt: "用三句话总结这段文字，用原文的语言。",
+            id: lookupID,
+            title: L("查词"),
+            symbol: KIcon.book.storageName,
+            prompt: "",
             isTranslate: false,
-            enabled: false
+            enabled: true,
+            dictionary: true
         ),
         SelectionPlugin(
-            id: "number-lines",
-            title: L("编号"),
-            symbol: "list.number",
-            prompt: L("给每一行加上行号"),
-            isTranslate: false,
-            script: "return text.split('\\n').map(function (line, i) {\n  return (i + 1) + '. ' + line\n}).join('\\n')",
-            enabled: false
+            id: translateID,
+            title: L("翻译"),
+            symbol: KIcon.tr.storageName,
+            prompt: "",
+            isTranslate: true,
+            enabled: true
         ),
     ]
+
+    static let lookupID = "lookup"
+
+    /// 旧版内置项的图标和「编号」脚本。升级时没动过的才换。
+    static let legacyBuiltinSymbols: [String: String] = [
+        "translate": "character.bubble",
+        "explain": "questionmark.circle",
+        "polish": "wand.and.sparkles",
+        "summarize": "text.alignleft",
+    ]
+    static let legacyNumberLinesID = "number-lines"
+    static let legacyNumberLinesScript = "return text.split('\\n').map(function (line, i) {\n  return (i + 1) + '. ' + line\n}).join('\\n')"
 
     /// 一句话说完这个插件做什么，设置页用。
     var summary: String {
         switch kind {
         case .translate: return L("用翻译供应商给出译文")
+        case .dictionary: return L("在词典里查这个词")
         case .script: return L("跑一段脚本，返回什么就显示什么")
         case .ai: return prompt
         }
@@ -267,13 +292,33 @@ final class SelectionPluginStore: ObservableObject {
         }
         // 新版本加的内置插件，老用户表里没有就补进去；用户删掉的不补。
         // 标题和提示词每次启动都按当前界面语言重取，停用状态留着。
-        var merged = saved.map { $0.relocalized() }
+        var merged = saved.compactMap { Self.migrated($0) }.map { $0.relocalized() }
         for builtin in SelectionPlugin.builtin
         where !merged.contains(where: { $0.id == builtin.id }) && !removed.contains(builtin.id) {
-            merged.append(builtin)
+            // 老用户的表里补进来的新内置项先不勾，免得条上凭空多出几个。
+            var added = builtin
+            added.enabled = false
+            merged.append(added)
         }
         plugins = merged
         save()
+    }
+
+    /// 存量配置升到新版内置表：没动过的内置项换成自绘图标，没动过也没勾的「编号」收掉。
+    /// 自己改过的、自己选的图标（SF Symbol 名）原样保留，显示时仍按 SF Symbol 画。
+    private static func migrated(_ plugin: SelectionPlugin) -> SelectionPlugin? {
+        if plugin.id == SelectionPlugin.legacyNumberLinesID,
+           plugin.edited != true, !plugin.enabled,
+           plugin.script == SelectionPlugin.legacyNumberLinesScript {
+            return nil
+        }
+        guard plugin.edited != true,
+              let old = SelectionPlugin.legacyBuiltinSymbols[plugin.id],
+              plugin.symbol == old,
+              let base = SelectionPlugin.builtin.first(where: { $0.id == plugin.id }) else { return plugin }
+        var next = plugin
+        next.symbol = base.symbol
+        return next
     }
 
     private func save() {
@@ -868,7 +913,7 @@ struct SelectionPluginBarView: View {
             if model.mode == .search {
                 searchField
             } else {
-                iconButton(symbol: "magnifyingglass", id: SelectionPluginBarModel.searchID, label: L("搜索插件")) {
+                iconButton(symbol: KIcon.search.storageName, id: SelectionPluginBarModel.searchID, label: L("搜索插件")) {
                     model.openSearch()
                 }
             }
@@ -879,7 +924,7 @@ struct SelectionPluginBarView: View {
                 }
             }
             divider
-            iconButton(symbol: "ellipsis", id: SelectionPluginBarModel.moreID, label: L("更多插件")) {
+            iconButton(symbol: KIcon.more.storageName, id: SelectionPluginBarModel.moreID, label: L("更多插件")) {
                 if model.mode == .menu {
                     model.closeSearch()
                 } else {
@@ -900,8 +945,7 @@ struct SelectionPluginBarView: View {
     /// 放大镜点开后就地变成的搜索框。输入的是全部插件，不限于条上那几个。
     private var searchField: some View {
         HStack(spacing: 4) {
-            Image(systemName: "magnifyingglass")
-                .font(Theme.TypeScale.caption)
+            KIconView(.search, size: 12)
                 .foregroundStyle(Color.primary.opacity(0.55))
             TextField(L("搜索全部插件"), text: $model.query)
                 .textFieldStyle(.plain)
@@ -976,8 +1020,7 @@ struct SelectionPluginBarView: View {
     /// 「⋯」打开后顶上默认就是搜索框，和放大镜同一个功能。
     private var menuSearch: some View {
         HStack(spacing: 4) {
-            Image(systemName: "magnifyingglass")
-                .font(Theme.TypeScale.caption)
+            KIconView(.search, size: 12)
                 .foregroundStyle(Color.primary.opacity(0.55))
             TextField(L("搜索全部插件"), text: $model.query)
                 .textFieldStyle(.plain)
@@ -1007,8 +1050,7 @@ struct SelectionPluginBarView: View {
                         model.pick(row.plugin)
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: row.plugin.symbol)
-                                .font(Theme.TypeScale.label)
+                            StoredSymbol(name: row.plugin.symbol, size: 14, font: Theme.TypeScale.label)
                                 .frame(width: 16)
                             Text(row.plugin.title)
                                 .font(Theme.TypeScale.label)
@@ -1049,8 +1091,7 @@ struct SelectionPluginBarView: View {
 
     private func iconButton(symbol: String, id: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(Theme.TypeScale.reading)
+            StoredSymbol(name: symbol, size: 16, font: Theme.TypeScale.reading)
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
                 .background(
@@ -1331,6 +1372,21 @@ enum SelectionPluginRunner {
     static func run(_ plugin: SelectionPlugin, source: String, slot: WriteBackSlot, app: NSRunningApplication?) {
         guard let delegate = AppDelegate.shared else { return }
         switch plugin.kind {
+        case .dictionary:
+            // 查词：先照翻译浮层走，译完（或查到）后释义区自动展开。
+            delegate.panelTask?.cancel()
+            delegate.panelTask = Task { @MainActor in
+                delegate.popup.opensDictionaryOnce = true
+                await delegate.run(
+                    source,
+                    kind: "select",
+                    writeBack: slot,
+                    appName: app?.localizedName,
+                    bundleID: app?.bundleIdentifier
+                )
+                delegate.popup.opensDictionaryOnce = false
+            }
+            return
         case .translate:
             delegate.panelTask?.cancel()
             delegate.panelTask = Task { @MainActor in
@@ -1559,8 +1615,7 @@ struct SelectionPluginSettingsSection: View {
             .toggleStyle(.checkbox)
             .controlSize(.small)
 
-            Image(systemName: plugin.symbol)
-                .font(Theme.TypeScale.body)
+            StoredSymbol(name: plugin.symbol, size: 14, font: Theme.TypeScale.body)
                 .foregroundStyle(.secondary)
                 .frame(width: 15)
             Text(plugin.title)
@@ -1575,7 +1630,7 @@ struct SelectionPluginSettingsSection: View {
                 .buttonStyle(.plain)
                 .font(Theme.TypeScale.label)
                 .foregroundStyle(Theme.accent)
-                .disabled(plugin.isTranslate)
+                .disabled(plugin.isTranslate || plugin.kind == .dictionary)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
@@ -1658,8 +1713,7 @@ private struct SelectionPluginSheet: View {
                     showSymbols.toggle()
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: symbol)
-                            .font(Theme.TypeScale.reading)
+                        StoredSymbol(name: symbol, size: 16, font: Theme.TypeScale.reading)
                             .frame(width: 20, height: 20)
                         Image(systemName: "chevron.down")
                             .font(Theme.TypeScale.micro)
@@ -1939,6 +1993,7 @@ private struct SymbolPicker: View {
     /// 分组。用计算属性而不是 static let，切换语言后标题才会跟着变。
     private var groups: [(String, [String])] {
         [
+            (L("划词图标"), KIcon.pluginPicks.map(\.storageName)),
             (L("翻译与语言"), [
                 "character.bubble", "text.bubble", "globe", "character.book.closed",
                 "book.closed", "quote.bubble", "bubble.left.and.bubble.right",
@@ -2005,8 +2060,7 @@ private struct SymbolPicker: View {
             selection = name
             done()
         } label: {
-            Image(systemName: name)
-                .font(Theme.TypeScale.reading)
+            StoredSymbol(name: name, size: 16, font: Theme.TypeScale.reading)
                 .frame(width: 30, height: 30)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
@@ -2016,6 +2070,6 @@ private struct SymbolPicker: View {
                 .contentShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
-        .help(name)
+        .help(KIcon(storageName: name)?.rawValue ?? name)
     }
 }

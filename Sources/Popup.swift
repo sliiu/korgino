@@ -228,21 +228,13 @@ struct PopupView: View {
                 directionMenu
                 Spacer(minLength: 8)
                 IconButton(
-                    systemImage: "character.book.closed",
-                    help: model.dictExpanded ? L("收起释义") : L("查词"),
-                    tint: model.dictExpanded ? .accentColor : nil
-                ) {
-                    model.dictExpanded.toggle()
-                    onRelayout()
-                }
-                IconButton(
-                    systemImage: model.pinned ? "pin.fill" : "pin",
+                    icon: .pin,
                     help: model.pinned ? L("取消固定（点击外部可关闭）") : L("固定窗口（点击外部不关闭）"),
                     tint: model.pinned ? .accentColor : nil,
                     action: onTogglePin
                 )
                 IconButton(
-                    systemImage: "xmark",
+                    icon: .x,
                     help: L("关闭窗口"),
                     action: { AppDelegate.shared?.popup.dismiss() }
                 )
@@ -384,8 +376,7 @@ struct PopupView: View {
                         Button {
                             onCloseTab(tab.id)
                         } label: {
-                            Image(systemName: "xmark")
-                                .font(Theme.TypeScale.micro)
+                            KIconView(.x, size: 10)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22, height: 22)
                                 .contentShape(Rectangle())
@@ -652,6 +643,7 @@ struct PopupView: View {
             ocrGroupList
             if !model.pendingFirstTranslate, model.globalError == nil {
                 addProviderRow
+                dictionaryEntryRow
             }
         }
         // 与 sourceWell 同列：效果图 body 左右 14。
@@ -866,8 +858,7 @@ struct PopupView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                 } else if o.error != nil {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(Theme.TypeScale.caption)
+                    KIconView(.warn, size: 13)
                         .foregroundStyle(Theme.danger)
                 }
                 Spacer(minLength: 4)
@@ -886,7 +877,7 @@ struct PopupView: View {
                 toggleProvider(o.id, open: open)
             } label: {
                 HStack(spacing: 6) {
-                    ProviderIconView(outcomeID: o.id, name: o.name, size: 13)
+                    ProviderIconView(outcomeID: o.id, name: o.name, size: 14)
                     Text(o.name)
                         .font(Theme.TypeScale.caption).fontWeight(.semibold)
                         .foregroundStyle(.secondary)
@@ -908,6 +899,30 @@ struct PopupView: View {
             if model.outcomes.count > 1 {
                 providerChevron(open: true) { toggleProvider(o.id, open: true) }
             }
+        }
+    }
+
+    /// 顶栏不再放「查词」按钮，展开释义的入口在译文列表最下面。展开后由词典区自己的收起控件管。
+    @ViewBuilder
+    private var dictionaryEntryRow: some View {
+        if !model.dictExpanded {
+            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+            Button {
+                model.dictExpanded = true
+                onRelayout()
+            } label: {
+                HStack(spacing: 6) {
+                    KIconView(.book, size: 13)
+                    Text(L("查词"))
+                        .font(Theme.TypeScale.label)
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("查词"))
         }
     }
 
@@ -1137,8 +1152,7 @@ struct PopupView: View {
                 onWriteBack(id, text)
             } label: {
                 HStack(spacing: 3) {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(Theme.TypeScale.caption)
+                    KIconView(.back, size: 13)
                     Text(L("写回"))
                         .font(Theme.TypeScale.caption)
                 }
@@ -1758,6 +1772,8 @@ final class PopupController {
     }
 
     private var dictTask: Task<Void, Never>?
+    /// 「查词」划词插件触发的这一次：释义区自动展开，不看「翻译短词后展开释义」。
+    var opensDictionaryOnce = false
 
     /// Dictionary for source and/or translation. Prefers a Latin short lemma (Free Dictionary),
     /// otherwise the first lookup-candidate among source then translation.
@@ -1781,7 +1797,7 @@ final class PopupController {
         let userHidThis = !model.dictExpanded && model.dictQuery == q && model.dictAutoQuery == q
         model.dictQuery = q
         model.dictAutoQuery = q
-        if !userHidThis, AppConfig.shared.dictAutoOpen || model.dictExpanded {
+        if !userHidThis, AppConfig.shared.dictAutoOpen || model.dictExpanded || opensDictionaryOnce {
             model.dictExpanded = true
         }
         dictTask?.cancel()
