@@ -128,6 +128,11 @@ struct HistoryFavoritesView: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 SearchField(text: $query, prompt: L("搜索原文、译文、应用或文件"))
+                PillSegmented(
+                    selection: $model.pane,
+                    options: HistoryModel.Pane.allCases.map { ($0, $0.title) },
+                    fontSize: 12
+                )
                 IconButton(
                     systemImage: "trash",
                     help: model.pane == .history ? L("清空历史") : L("清空收藏")
@@ -151,16 +156,6 @@ struct HistoryFavoritesView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 420, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                PillSegmented(
-                    selection: $model.pane,
-                    options: HistoryModel.Pane.allCases.map { ($0, $0.title) },
-                    fontSize: 12
-                )
-            }
-            .korgiHideToolbarBackground()
-        }
         .onAppear { model.reload() }
         .onReceive(NotificationCenter.default.publisher(for: Pro.changed)) { _ in model.reload() }
         .onChange(of: model.pane) { _, _ in model.reload() }
