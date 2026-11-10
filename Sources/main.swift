@@ -115,10 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
 
-        if !AXIsProcessTrusted() {
-            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            _ = AXIsProcessTrustedWithOptions(opts)
-        }
+        // 不再在启动时弹系统辅助功能框。首次打开由引导的授权步说明，可以跳过。
         // 常规应用：从启动台、Finder 打开时要看得到窗口。
         // 没看过引导就先出引导；看过了但授权还没齐、也没勾「不再提醒」，只再出授权那一步。
         if Onboarding.shouldPresent {

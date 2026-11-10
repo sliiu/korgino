@@ -393,7 +393,6 @@ struct ImmersiveCaptionOverlay: View {
             .foregroundStyle(color)
             .multilineTextAlignment(.center)
             .lineLimit(limit)
-            .minimumScaleFactor(0.78)
             .frame(maxWidth: CaptionBudget.lineWidth)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -407,9 +406,34 @@ struct ImmersiveCaptionOverlay: View {
 
 /// Receives audio and video dropped on the live-captions window.
 final class LiveCaptionHost: NSHostingView<AnyView> {
+    /// While a microphone permission sheet is on screen, drop `mouseMoved` here.
+    /// Forwarding it into SwiftUI hits `assumeIsolated` from a nested event loop
+    /// whose main-executor pointer is invalid (SIGBUS at 0x800000000).
+    /// The flag stays up through the next turn of the main queue: the sheet queues
+    /// mouse moves before `requestAccess` returns, and those must not reach SwiftUI either.
+    static var swallowMouseMoved = false
+
+    /// Covers the system sheet and the mouse moves it leaves queued behind it.
+    static func whileMicrophonePrompt<T>(_ body: () async -> T) async -> T {
+        swallowMouseMoved = true
+        let value = await body()
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            DispatchQueue.main.async {
+                swallowMouseMoved = false
+                cont.resume()
+            }
+        }
+        return value
+    }
+
     required init(rootView: AnyView) {
         super.init(rootView: rootView)
         registerForDraggedTypes([.fileURL])
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        if Self.swallowMouseMoved { return }
+        super.mouseMoved(with: event)
     }
 
     @available(*, unavailable)
