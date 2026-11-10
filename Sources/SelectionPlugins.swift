@@ -857,8 +857,9 @@ struct SelectionPluginBarView: View {
             .frame(maxWidth: SelectionPluginBar.labelMaxWidth)
             .frame(height: 20)
             .background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+            .overlay(Capsule().strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5))
+            // 浮层统一阴影：黑 18%，半径 12，y 4。
+            .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
             .allowsHitTesting(false)
     }
 
@@ -891,7 +892,7 @@ struct SelectionPluginBarView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+                .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         )
         .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
     }
@@ -934,9 +935,9 @@ struct SelectionPluginBarView: View {
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                    .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
             )
-            .shadow(color: .black.opacity(0.16), radius: 8, y: 3)
+            .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
     }
 
     private var menu: some View {
@@ -967,9 +968,9 @@ struct SelectionPluginBarView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.16), radius: 8, y: 3)
+        .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
     }
 
     /// 「⋯」打开后顶上默认就是搜索框，和放大镜同一个功能。

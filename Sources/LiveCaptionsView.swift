@@ -220,7 +220,8 @@ struct ImmersiveCaptionOverlay: View {
 
     var body: some View {
         let _ = lang.appLanguage
-        let stack = VStack(spacing: 6) {
+        // 效果图悬停条在字幕上方外侧（`.immBar` top -38），约 8 磅空隙。
+        let stack = VStack(spacing: 8) {
             chrome
                 .padding(4)
                 .background(
@@ -240,7 +241,7 @@ struct ImmersiveCaptionOverlay: View {
                 .frame(maxWidth: .infinity)
                 .background(capsuleBackground)
         }
-        .padding(.top, 6)
+        .padding(.top, 4)
         .frame(minWidth: 200)
         .contentShape(Rectangle())
         .onHover { inside in
