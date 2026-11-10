@@ -53,32 +53,26 @@ struct VoiceSettingsBody: View {
 
             SettingsGroups.group(L("听")) {
                 SettingsGroups.row(L("识别")) {
-                    Menu {
-                        Button(L("自动（第一个可用）")) { config.dictateEngineID = "" }
-                        ForEach(config.liveASRChoices()) { choice in
-                            Button(choice.name) { config.dictateEngineID = choice.id }
-                        }
-                    } label: {
-                        let name = config.dictateEngineID.isEmpty
+                    let choices = config.liveASRChoices()
+                    MenuChip(
+                        title: config.dictateEngineID.isEmpty
                             ? L("自动（第一个可用）")
-                            : (config.liveASRChoices().first { $0.id == config.dictateEngineID }?.name ?? L("自动（第一个可用）"))
-                        SettingsGroups.menuLabel(name)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                            : (choices.first { $0.id == config.dictateEngineID }?.name ?? L("自动（第一个可用）")),
+                        options: [""] + choices.map(\.id),
+                        label: { id in id.isEmpty ? L("自动（第一个可用）") : (choices.first { $0.id == id }?.name ?? id) },
+                        isSelected: { $0 == config.dictateEngineID },
+                        select: { config.dictateEngineID = $0 }
+                    )
                 }
                 SettingsGroups.row(L("识别语言")) {
-                    Menu {
-                        ForEach(ASRLanguage.available(apple: config.isSystemASR(dictateEngine))) { lang in
-                            Button(lang.title) { config.dictateLocaleID = lang.id }
-                        }
-                    } label: {
-                        let title = ASRLanguage.available(apple: config.isSystemASR(dictateEngine))
-                            .first { $0.id == config.dictateLocaleID }?.title ?? L("跟随系统")
-                        SettingsGroups.menuLabel(title)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let languages = ASRLanguage.available(apple: config.isSystemASR(dictateEngine))
+                    MenuChip(
+                        title: languages.first { $0.id == config.dictateLocaleID }?.title ?? L("跟随系统"),
+                        options: languages.map(\.id),
+                        label: { id in languages.first { $0.id == id }?.title ?? id },
+                        isSelected: { $0 == config.dictateLocaleID },
+                        select: { config.dictateLocaleID = $0 }
+                    )
                 }
                 SettingsGroups.row(L("麦克风")) {
                     dictateInputMenu
@@ -86,34 +80,29 @@ struct VoiceSettingsBody: View {
             }
             SettingsGroups.group(L("译")) {
                 SettingsGroups.row(L("译成")) {
-                    Menu {
-                        Button(L("跟随设置里的目标语言")) { config.dictateTargetLanguage = .auto }
-                        ForEach(TargetLanguage.specific) { lang in
-                            Button(lang.menuTitle) { config.dictateTargetLanguage = lang }
-                        }
-                    } label: {
-                        SettingsGroups.menuLabel(config.dictateTargetLanguage == .auto
-                                  ? L("跟随设置里的目标语言")
-                                  : config.dictateTargetLanguage.menuTitle)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let languages = [TargetLanguage.auto] + TargetLanguage.specific
+                    MenuChip(
+                        title: config.dictateTargetLanguage == .auto
+                            ? L("跟随设置里的目标语言")
+                            : config.dictateTargetLanguage.menuTitle,
+                        options: languages,
+                        label: { $0 == .auto ? L("跟随设置里的目标语言") : $0.menuTitle },
+                        isSelected: { $0 == config.dictateTargetLanguage },
+                        select: { config.dictateTargetLanguage = $0 }
+                    )
                 }
                 SettingsGroups.row(L("翻译服务")) {
-                    Menu {
-                        ForEach(config.catalogTargets()) { target in
-                            Button(target.displayName) {
-                                config.setTranslateIDs([target.id], .dictate)
-                            }
-                        }
-                    } label: {
-                        let id = config.storedTranslateIDs(.dictate).first ?? ""
-                        SettingsGroups.menuLabel(config.catalogTargets().first { $0.id == id }?.displayName
-                                  ?? config.catalogTargets().first?.displayName
-                                  ?? L("Google (免费)"))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let targets = config.catalogTargets()
+                    let id = config.storedTranslateIDs(.dictate).first ?? ""
+                    MenuChip(
+                        title: targets.first { $0.id == id }?.displayName
+                            ?? targets.first?.displayName
+                            ?? L("Google (免费)"),
+                        options: targets.map(\.id),
+                        label: { choice in targets.first { $0.id == choice }?.displayName ?? choice },
+                        isSelected: { $0 == id },
+                        select: { config.setTranslateIDs([$0], .dictate) }
+                    )
                 }
             }
             SettingsGroups.group(L("润色")) {
@@ -216,22 +205,17 @@ struct VoiceSettingsBody: View {
 
     private var dictateInputMenu: some View {
         let devices = MicInput.devices()
-        return Menu {
-            Button(L("系统默认")) { config.dictateInputUID = "" }
-            ForEach(devices) { device in
-                Button(device.name) { config.dictateInputUID = device.uid }
-            }
-            if !config.dictateInputUID.isEmpty, !devices.contains(where: { $0.uid == config.dictateInputUID }) {
-                Button(L("已断开")) {}
-                    .disabled(true)
-            }
-        } label: {
-            let name = devices.first { $0.uid == config.dictateInputUID }?.name
-                ?? (config.dictateInputUID.isEmpty ? L("系统默认") : L("已断开"))
-            SettingsGroups.menuLabel(name)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        let name = devices.first { $0.uid == config.dictateInputUID }?.name
+            ?? (config.dictateInputUID.isEmpty ? L("系统默认") : L("已断开"))
+        return MenuChip(
+            title: name,
+            options: [""] + devices.map(\.uid),
+            label: { uid in
+                uid.isEmpty ? L("系统默认") : (devices.first { $0.uid == uid }?.name ?? L("已断开"))
+            },
+            isSelected: { $0 == config.dictateInputUID },
+            select: { config.dictateInputUID = $0 }
+        )
     }
 
     private func voiceHotkeyRow(_ action: HotkeyAction, spec: Binding<HotkeySpec>) -> some View {
@@ -251,26 +235,7 @@ struct VoiceSettingsBody: View {
 /// 设置页那一套圆角列表。语音页挪到主窗口后还用同一套，不另写一份行。
 enum SettingsGroups {
     static func group<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !title.isEmpty {
-                Text(title)
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 12)
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                content()
-            }
-            .background(
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .fill(Theme.cardFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .strokeBorder(Theme.hairline, lineWidth: 0.5)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-        }
+        SettingsGroup(title: title, content: content())
     }
 
     static func row<Control: View>(
@@ -278,26 +243,7 @@ enum SettingsGroups {
         detail: String? = nil,
         @ViewBuilder control: () -> Control
     ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(Theme.TypeScale.body)
-                    .foregroundStyle(.primary)
-                if let detail, !detail.isEmpty {
-                    Text(detail)
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            Spacer(minLength: 12)
-            control()
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 38)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.leading, 14)
-        }
+        SettingsRow(title: title, detail: detail, control: control())
     }
 
     static func field<Control: View>(_ title: String, @ViewBuilder control: () -> Control) -> some View {
@@ -313,13 +259,22 @@ enum SettingsGroups {
     }
 
     static func menuLabel(_ text: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             Text(text)
-                .font(Theme.TypeScale.body)
+                .font(Theme.TypeScale.label)
                 .foregroundStyle(.primary)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(Theme.TypeScale.micro)
-                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            ChromeChevron()
         }
+        .padding(.horizontal, 8)
+        .frame(height: 24)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Theme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
+        )
     }
 }

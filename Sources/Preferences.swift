@@ -384,75 +384,40 @@ private enum SVGMark {
     }
 }
 
-/// 侧栏一项。选中是浅灰底，不带图标，跟效果图一致。
-private struct SettingsRailButton: View {
-    let title: String
-    let selected: Bool
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(Theme.TypeScale.body)
-                .fontWeight(selected ? .medium : .regular)
-                .foregroundStyle(selected ? Color.primary : Color.primary.opacity(0.85))
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(selected ? Color.primary.opacity(0.08) : (hover ? Color.primary.opacity(0.04) : .clear))
-                )
-                .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .onHover { hover = $0 }
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
 /// 主窗口侧栏换成设置目录：返回、常用三页、高级七页。点返回回到之前的页。
 struct SettingsSidebar: View {
     @Binding var tab: PreferencesTab
     var onBack: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) {
             Button(action: onBack) {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(Theme.TypeScale.caption)
+                HStack(spacing: 6) {
+                    ChromeChevron()
+                        .rotationEffect(.degrees(90))
                     Text(L("返回"))
-                        .font(Theme.TypeScale.body)
+                        .font(Theme.TypeScale.label)
                 }
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .padding(.top, 28)
-            .padding(.bottom, 8)
+            .padding(.bottom, 6)
             .help(L("回到之前的页"))
 
             ForEach(PreferencesTab.primary) { item in
-                SettingsRailButton(title: item.title, selected: tab == item) {
+                SidebarRow(title: item.title, selected: tab == item) {
                     tab = item
                 }
             }
 
-            Text(L("高级"))
-                .font(Theme.TypeScale.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .padding(.top, 14)
-                .padding(.bottom, 2)
+            SidebarGroupLabel(title: L("高级"))
 
             ForEach(PreferencesTab.advanced) { item in
-                SettingsRailButton(title: item.title, selected: tab == item) {
+                SidebarRow(title: item.title, selected: tab == item) {
                     tab = item
                 }
             }
@@ -460,9 +425,10 @@ struct SettingsSidebar: View {
             Spacer(minLength: 8)
         }
         .padding(.horizontal, 10)
-        .padding(.bottom, 12)
+        .padding(.top, 36)
+        .padding(.bottom, 10)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.55))
+        .background(Theme.sidebarFill)
     }
 }
 
@@ -678,42 +644,36 @@ struct PreferencesPane: View {
             }
             settingsGroup(L("实时与会议")) {
                 settingsRow(L("识别")) {
-                    Menu {
-                        ForEach(config.liveASRChoices()) { choice in
-                            Button(choice.name) { config.setDefaultAsr(choice.id, live: true) }
-                        }
-                    } label: {
-                        let id = config.resolvedLiveAsr()
-                        menuLabel(config.liveASRChoices().first { $0.id == id }?.name ?? L("Apple 语音分析"))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let choices = config.liveASRChoices()
+                    let id = config.resolvedLiveAsr()
+                    MenuChip(
+                        title: choices.first { $0.id == id }?.name ?? L("Apple 语音分析"),
+                        options: choices.map(\.id),
+                        label: { choice in choices.first { $0.id == choice }?.name ?? choice },
+                        isSelected: { $0 == id },
+                        select: { config.setDefaultAsr($0, live: true) }
+                    )
                 }
                 settingsRow(L("翻译")) {
-                    Menu {
-                        ForEach(config.catalogTargets()) { target in
-                            Button(target.displayName) {
-                                config.setTranslateIDs([target.id], .live)
-                            }
-                        }
-                    } label: {
-                        menuLabel(liveTranslateName)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let targets = config.catalogTargets()
+                    MenuChip(
+                        title: liveTranslateName,
+                        options: targets.map(\.id),
+                        label: { id in targets.first { $0.id == id }?.displayName ?? id },
+                        isSelected: { $0 == config.storedTranslateIDs(.live).first },
+                        select: { config.setTranslateIDs([$0], .live) }
+                    )
                 }
             }
             settingsGroup(L("外观与启动")) {
                 settingsRow(L("外观")) {
-                    Menu {
-                        ForEach(AppearanceMode.allCases) { mode in
-                            Button(mode.title) { config.appearance = mode }
-                        }
-                    } label: {
-                        menuLabel(config.appearance.title)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    MenuChip(
+                        title: config.appearance.title,
+                        options: AppearanceMode.allCases,
+                        label: { $0.title },
+                        isSelected: { $0 == config.appearance },
+                        select: { config.appearance = $0 }
+                    )
                 }
                 settingsRow(L("浮层透明度")) {
                     Slider(value: $config.panelOpacity, in: 0.35...1)
@@ -721,15 +681,13 @@ struct PreferencesPane: View {
                         .controlSize(.small)
                 }
                 settingsRow(L("界面语言")) {
-                    Menu {
-                        ForEach(AppLanguage.allCases) { lang in
-                            Button(lang.title) { config.appLanguage = lang }
-                        }
-                    } label: {
-                        menuLabel(config.appLanguage.title)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    MenuChip(
+                        title: config.appLanguage.title,
+                        options: AppLanguage.allCases,
+                        label: { $0.title },
+                        isSelected: { $0 == config.appLanguage },
+                        select: { config.appLanguage = $0 }
+                    )
                 }
                 settingsRow(L("登录时打开")) {
                     Toggle("", isOn: launchAtLoginBinding)
@@ -761,15 +719,15 @@ struct PreferencesPane: View {
 
     /// 常用那一行写进划词、剪贴板、截图、文件各自名单的第一家。
     private var commonServiceMenu: some View {
-        Menu {
-            ForEach(config.catalogTargets()) { target in
-                Button(target.displayName) { setCommonService(target.id) }
-            }
-        } label: {
-            menuLabel(commonServiceName)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        let targets = config.catalogTargets()
+        let current = config.storedTranslateIDs(.select).first
+        return MenuChip(
+            title: commonServiceName,
+            options: targets.map(\.id),
+            label: { id in targets.first { $0.id == id }?.displayName ?? id },
+            isSelected: { $0 == current },
+            select: { setCommonService($0) }
+        )
     }
 
     private var commonServiceName: String {
@@ -814,15 +772,13 @@ struct PreferencesPane: View {
     }
 
     private func languageMenu(selection: Binding<TargetLanguage>) -> some View {
-        Menu {
-            ForEach(TargetLanguage.specific) { lang in
-                Button(lang.menuTitle) { selection.wrappedValue = lang }
-            }
-        } label: {
-            menuLabel(selection.wrappedValue.menuTitle)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        MenuChip(
+            title: selection.wrappedValue.menuTitle,
+            options: TargetLanguage.specific,
+            label: { $0.menuTitle },
+            isSelected: { $0 == selection.wrappedValue },
+            select: { selection.wrappedValue = $0 }
+        )
     }
 
     private var launchAtLoginBinding: Binding<Bool> {
@@ -1698,21 +1654,21 @@ struct PreferencesPane: View {
                         .controlSize(.small)
                 }
                 settingsRow(L("文件翻译用的模型")) {
-                    Menu {
-                        Button(L("自动（第一个可用）")) { config.fileAIProfileID = "" }
-                        ForEach(config.aiProfiles.filter { config.isAIOn($0) }) { p in
-                            Button(config.isPaused("ai:\(p.id)")
-                                   ? String(format: L("%@（已暂停，先用第一个可用的）"), p.name)
-                                   : p.name) {
-                                config.fileAIProfileID = p.id
-                            }
-                        }
-                    } label: {
-                        let current = config.aiProfiles.first { $0.id == config.fileAIProfileID && config.isAIOn($0) }
-                        menuLabel(current?.name ?? L("自动（第一个可用）"))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let profiles = config.aiProfiles.filter { config.isAIOn($0) }
+                    let current = profiles.first { $0.id == config.fileAIProfileID }
+                    MenuChip(
+                        title: current?.name ?? L("自动（第一个可用）"),
+                        options: [""] + profiles.map(\.id),
+                        label: { id in
+                            guard !id.isEmpty else { return L("自动（第一个可用）") }
+                            guard let profile = profiles.first(where: { $0.id == id }) else { return id }
+                            return config.isPaused("ai:\(profile.id)")
+                                ? String(format: L("%@（已暂停，先用第一个可用的）"), profile.name)
+                                : profile.name
+                        },
+                        isSelected: { $0 == config.fileAIProfileID },
+                        select: { config.fileAIProfileID = $0 }
+                    )
                 }
                 settingsRow(L("扫描件整页交给视觉模型"), detail: L("数字版 PDF 仍抽文字。看不了图的模型会退回识别。")) {
                     Toggle("", isOn: $file.directVision)
@@ -1853,30 +1809,28 @@ struct PreferencesPane: View {
 
             settingsGroup(L("媒体字幕")) {
                 settingsRow(L("默认识别")) {
-                    Menu {
-                        ForEach(config.mediaASRChoices()) { choice in
-                            Button(choice.name) { config.setDefaultAsr(choice.id, live: false) }
-                        }
-                    } label: {
-                        let id = config.resolvedMediaAsr()
-                        menuLabel(config.mediaASRChoices().first { $0.id == id }?.name ?? L("Apple 语音分析"))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let choices = config.mediaASRChoices()
+                    let id = config.resolvedMediaAsr()
+                    MenuChip(
+                        title: choices.first { $0.id == id }?.name ?? L("Apple 语音分析"),
+                        options: choices.map(\.id),
+                        label: { choice in choices.first { $0.id == choice }?.name ?? choice },
+                        isSelected: { $0 == id },
+                        select: { config.setDefaultAsr($0, live: false) }
+                    )
                 }
                 settingsRow(L("默认翻译")) {
-                    Menu {
-                        ForEach(config.catalogTargets()) { target in
-                            Button(target.displayName) { config.setTranslateIDs([target.id], .media) }
-                        }
-                    } label: {
-                        let id = config.storedTranslateIDs(.media).first ?? ""
-                        menuLabel(config.catalogTargets().first { $0.id == id }?.displayName
-                                  ?? config.catalogTargets().first?.displayName
-                                  ?? L("Google (免费)"))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                    let targets = config.catalogTargets()
+                    let id = config.storedTranslateIDs(.media).first ?? ""
+                    MenuChip(
+                        title: targets.first { $0.id == id }?.displayName
+                            ?? targets.first?.displayName
+                            ?? L("Google (免费)"),
+                        options: targets.map(\.id),
+                        label: { choice in targets.first { $0.id == choice }?.displayName ?? choice },
+                        isSelected: { $0 == id },
+                        select: { config.setTranslateIDs([$0], .media) }
+                    )
                 }
                 settingsRow(L("同时处理几份"), detail: L("同时在识别或等翻译的音视频，还没开始和已经落盘的不算")) {
                     HStack(spacing: 8) {
@@ -1893,16 +1847,14 @@ struct PreferencesPane: View {
             settingsGroup(L("朗读")) {
                 if config.enabledTTSChoices().count > 1 {
                     settingsRow(L("用来朗读")) {
-                        Menu {
-                            ForEach(config.enabledTTSChoices()) { choice in
-                                Button(choice.name) { config.ttsSelection = choice.id }
-                            }
-                        } label: {
-                            menuLabel(config.enabledTTSChoices().first { $0.id == config.ttsSelection }?.name
-                                      ?? L("Apple 系统声音"))
-                        }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
+                        let choices = config.enabledTTSChoices()
+                        MenuChip(
+                            title: choices.first { $0.id == config.ttsSelection }?.name ?? L("Apple 系统声音"),
+                            options: choices.map(\.id),
+                            label: { id in choices.first { $0.id == id }?.name ?? id },
+                            isSelected: { $0 == config.ttsSelection },
+                            select: { config.ttsSelection = $0 }
+                        )
                     }
                 }
                 settingsRow(L("Apple 系统声音")) {
@@ -2122,26 +2074,7 @@ struct PreferencesPane: View {
 
     /// 一节一张圆角列表。节名空着就不画标题。
     private func settingsGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !title.isEmpty {
-                Text(title)
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 12)
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                content()
-            }
-            .background(
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .fill(Theme.cardFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .strokeBorder(Theme.hairline, lineWidth: 0.5)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-        }
+        SettingsGroup(title: title, content: content())
     }
 
     /// 一行：标签左对齐，控件贴右。说明在标签下面。
@@ -2150,26 +2083,7 @@ struct PreferencesPane: View {
         detail: String? = nil,
         @ViewBuilder control: () -> Control
     ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(Theme.TypeScale.body)
-                    .foregroundStyle(.primary)
-                if let detail, !detail.isEmpty {
-                    Text(detail)
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            Spacer(minLength: 12)
-            control()
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 38)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.leading, 14)
-        }
+        SettingsRow(title: title, detail: detail, control: control())
     }
 
     /// 填写块里的一行。控件宽 300，说明写在控件下面。
@@ -2217,10 +2131,23 @@ struct PreferencesPane: View {
     }
 
     private func menuLabel(_ title: String) -> some View {
-        Text(title)
-            .font(Theme.TypeScale.body)
-            .foregroundStyle(.primary)
-            .lineLimit(1)
+        HStack(spacing: 5) {
+            Text(title)
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            ChromeChevron()
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 24)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Theme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
+        )
     }
 
     /// 高级里某功能另选了服务。点了跳到那一页。
@@ -2700,17 +2627,16 @@ struct PreferencesPane: View {
             }
         case .aiVision:
             fieldRow(L("模型")) {
-                Menu {
-                    Button(L("自动（第一个）")) { config.ocrAIProfileID = "" }
-                    ForEach(config.aiProfiles.filter { config.isAIOn($0) }) { ai in
-                        Button(ai.name) { config.ocrAIProfileID = ai.id }
-                    }
-                } label: {
-                    let name = config.aiProfiles.first { $0.id == config.ocrAIProfileID }?.name ?? L("自动（第一个）")
-                    menuLabel(name)
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+                let profiles = config.aiProfiles.filter { config.isAIOn($0) }
+                MenuChip(
+                    title: profiles.first { $0.id == config.ocrAIProfileID }?.name ?? L("自动（第一个）"),
+                    options: [""] + profiles.map(\.id),
+                    label: { id in
+                        id.isEmpty ? L("自动（第一个）") : (profiles.first { $0.id == id }?.name ?? id)
+                    },
+                    isSelected: { $0 == config.ocrAIProfileID },
+                    select: { config.ocrAIProfileID = $0 }
+                )
             }
         }
     }
@@ -2811,29 +2737,22 @@ struct PreferencesPane: View {
                 .frame(height: 24)
         }
         if preset?.interpWire == .qwen {
-            Menu {
-                Button(L("默认")) {
+            let voices = [""] + QwenInterpVoice.all.map(\.voice)
+            let chosen = profile.voice.trimmingCharacters(in: .whitespacesAndNewlines)
+            MenuChip(
+                title: chosen.isEmpty ? L("译音音色：默认") : String(format: L("译音音色：%@"), QwenInterpVoice.name(for: chosen)),
+                options: voices,
+                label: { voice in
+                    voice.isEmpty ? L("默认") : "\(QwenInterpVoice.name(for: voice)) · \(voice)"
+                },
+                isSelected: { $0 == chosen },
+                select: { voice in
                     guard config.asrProfiles.indices.contains(idx) else { return }
-                    var p = config.asrProfiles[idx]
-                    p.voice = ""
-                    config.asrProfiles[idx] = p
+                    var next = config.asrProfiles[idx]
+                    next.voice = voice
+                    config.asrProfiles[idx] = next
                 }
-                Divider()
-                ForEach(QwenInterpVoice.all, id: \.voice) { item in
-                    Button("\(item.name) · \(item.voice)") {
-                        guard config.asrProfiles.indices.contains(idx) else { return }
-                        var p = config.asrProfiles[idx]
-                        p.voice = item.voice
-                        config.asrProfiles[idx] = p
-                    }
-                }
-            } label: {
-                let chosen = profile.voice.trimmingCharacters(in: .whitespacesAndNewlines)
-                Text(chosen.isEmpty ? L("译音音色：默认") : String(format: L("译音音色：%@"), QwenInterpVoice.name(for: chosen)))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize(horizontal: false, vertical: true)
+            )
             .help(L("同传译音用这把声音。改了之后，下次开始生效。"))
         }
         Text(preset?.interpWire == .qwen

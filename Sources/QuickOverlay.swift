@@ -12,7 +12,7 @@ final class QuickOverlay {
     private var generation = 0
 
     private let gap: CGFloat = 6
-    private let badgeHeight: CGFloat = 28
+    private let badgeHeight: CGFloat = 24
 
     /// `重试` 点下来。不接就不画这个字：这一层不知道怎么重跑上一次。
     var retry: (() -> Void)? {
@@ -213,7 +213,7 @@ private struct QuickBadgeView: View {
                 ErrorLine(text: message, lineLimit: 1, retry: model.canRetry ? retry : nil)
             }
         }
-        .font(Theme.TypeScale.label)
+        .font(Theme.TypeScale.labelMedium)
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { Capsule(style: .continuous).fill(.regularMaterial) }
@@ -224,7 +224,7 @@ private struct QuickBadgeView: View {
                 SelectionSweep().clipShape(shape)
             }
         }
-        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
     }
 }
 

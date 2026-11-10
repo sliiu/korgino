@@ -3,7 +3,7 @@ import Combine
 #endif
 import Foundation
 
-enum AppearanceMode: String, CaseIterable, Identifiable, Codable {
+enum AppearanceMode: String, CaseIterable, Identifiable, Hashable, Codable {
     case system, light, dark
     var id: String { rawValue }
     var title: String {

@@ -2,9 +2,20 @@ import AppKit
 import SwiftUI
 
 enum Theme {
-    static let panelRadius: CGFloat = 16
+    /// 翻译浮层的圆角。效果图是 14，不是之前的 16。
+    static let panelRadius: CGFloat = 14
     static let cardRadius: CGFloat = 10
+    /// 白卡描边。主色 8%。
     static let hairline = Color.primary.opacity(0.08)
+    /// 菜单和页按钮的边。黑 14%。
+    static let chipStroke = Color.black.opacity(0.14)
+    /// 侧栏底。效果图 #ECECEF。
+    static let sidebarFill = Color(nsColor: dynamic(light: 0xECECEF, dark: 0x242428))
+    static let sidebarWidth: CGFloat = 180
+    /// 浮层阴影：黑 18%，半径 12，y 4。
+    static let panelShadow = Color.black.opacity(0.18)
+    static let panelShadowRadius: CGFloat = 12
+    static let panelShadowY: CGFloat = 4
     static let cardFill = Color(nsColor: dynamic(light: 0xFFFFFF, dark: 0x2A2A2F))
     static let wellFill = Color.primary.opacity(0.045)
     static let windowFill = Color(nsColor: dynamic(light: 0xF4F4F6, dark: 0x1C1C20))
@@ -19,7 +30,12 @@ enum Theme {
         static let label = Font.system(size: 12, weight: .regular)
         static let labelMedium = Font.system(size: 12, weight: .medium)
         static let caption = Font.system(size: 11, weight: .regular)
+        static let captionSemibold = Font.system(size: 11, weight: .semibold)
         static let micro = Font.system(size: 10, weight: .medium)
+        /// 页按钮左边的图标。13 磅，次要色。
+        static let glyph = Font.system(size: 13, weight: .regular)
+        /// 侧栏图标。15 磅，强调色。
+        static let sidebarIcon = Font.system(size: 15, weight: .regular)
         /// 沉浸字幕原文。15 磅不在七档里，只给这一处。
         static let displaySource = Font.system(size: 15, weight: .medium)
 

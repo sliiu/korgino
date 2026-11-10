@@ -459,7 +459,7 @@ private struct OnboardingView: View {
             ForEach(Array(OnboardingStep.allCases.enumerated()), id: \.element) { index, step in
                 if index > 0 {
                     Rectangle()
-                        .fill(step.index <= model.step.index ? Theme.accent.opacity(0.5) : Theme.hairline)
+                        .fill(Color.primary.opacity(0.12))
                         .frame(width: 18, height: 1)
                 }
                 stepChip(step)
@@ -476,21 +476,28 @@ private struct OnboardingView: View {
         return HStack(spacing: 5) {
             ZStack {
                 Circle()
-                    .fill(done || current ? Theme.accent : Color.primary.opacity(0.08))
+                    .fill(current ? Theme.accent : (done ? Theme.ok.opacity(0.18) : Color.clear))
+                    .overlay(
+                        Circle().strokeBorder(
+                            done || current ? Color.clear : Color.primary.opacity(0.15),
+                            lineWidth: 1
+                        )
+                    )
                     .frame(width: 16, height: 16)
                 if done {
                     Image(systemName: "checkmark")
                         .font(Theme.TypeScale.micro)
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(Theme.ok)
                 } else {
                     Text("\(step.index + 1)")
                         .font(Theme.TypeScale.micro)
-                        .foregroundStyle(current ? Color.white : Color.secondary)
+                        .foregroundStyle(current ? Color.white : Color.primary.opacity(0.32))
                 }
             }
             Text(step.title)
                 .font(Theme.TypeScale.caption)
-                .foregroundStyle(current ? Color.primary : Color.secondary)
+                .fontWeight(current ? .medium : .regular)
+                .foregroundStyle(current ? Color.primary : Color.primary.opacity(0.32))
                 .lineLimit(1)
         }
     }
@@ -533,17 +540,6 @@ private struct OnboardingView: View {
         }
     }
 
-    private func languageMenu(_ selection: Binding<TargetLanguage>) -> some View {
-        Menu {
-            ForEach(TargetLanguage.specific) { lang in
-                Button(lang.menuTitle) { selection.wrappedValue = lang }
-            }
-        } label: {
-            menuLabel(selection.wrappedValue.menuTitle)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-    }
 
     private func sampleRow(_ caption: String, source: String, translation: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -1090,10 +1086,7 @@ private struct OnboardingView: View {
     private var footer: some View {
         HStack(spacing: 12) {
             if model.step != .language && model.step != .done {
-                Button(L("上一步")) { goBack() }
-                    .buttonStyle(.plain)
-                    .font(Theme.TypeScale.body)
-                    .foregroundStyle(.secondary)
+                PageButton(title: L("上一步")) { goBack() }
             }
             Spacer(minLength: 0)
             if model.step == .permissions {
@@ -1118,10 +1111,13 @@ private struct OnboardingView: View {
     private var primaryButton: some View {
         switch model.step {
         case .done:
-            Button(L("打开 Korgino")) { onFinish(true) }
+            PageButton(title: L("打开 Korgino"), primary: true) { onFinish(true) }
                 .keyboardShortcut(.defaultAction)
         case .tryout:
-            Button(model.tryIndex == OnboardingTry.allCases.count - 1 ? L("下一步") : L("下一个")) {
+            PageButton(
+                title: model.tryIndex == OnboardingTry.allCases.count - 1 ? L("下一步") : L("下一个"),
+                primary: true
+            ) {
                 model.noteTried()
                 if model.tryIndex < OnboardingTry.allCases.count - 1 {
                     model.tryIndex += 1
@@ -1131,7 +1127,7 @@ private struct OnboardingView: View {
             }
             .keyboardShortcut(.defaultAction)
         default:
-            Button(L("下一步")) { advance() }
+            PageButton(title: L("下一步"), primary: true) { advance() }
                 .keyboardShortcut(.defaultAction)
         }
     }
@@ -1167,42 +1163,20 @@ private struct OnboardingView: View {
     }
 
     private func group<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .fill(Theme.cardFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .strokeBorder(Theme.hairline, lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        SettingsGroup(title: "", content: content())
     }
 
     private func row<Control: View>(_ title: String, @ViewBuilder control: () -> Control) -> some View {
-        HStack {
-            Text(title)
-                .font(Theme.TypeScale.body)
-            Spacer(minLength: 12)
-            control()
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 38)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.leading, 14)
-        }
+        SettingsRow(title: title, control: control())
     }
 
-    private func menuLabel(_ text: String) -> some View {
-        HStack(spacing: 4) {
-            Text(text)
-                .font(Theme.TypeScale.body)
-                .foregroundStyle(.primary)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(Theme.TypeScale.micro)
-                .foregroundStyle(.secondary)
-        }
+    private func languageMenu(_ selection: Binding<TargetLanguage>) -> some View {
+        MenuChip(
+            title: selection.wrappedValue.menuTitle,
+            options: TargetLanguage.specific,
+            label: { $0.menuTitle },
+            isSelected: { $0 == selection.wrappedValue },
+            select: { selection.wrappedValue = $0 }
+        )
     }
 }
