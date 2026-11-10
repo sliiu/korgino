@@ -182,7 +182,8 @@ struct PopupView: View {
         .frame(maxWidth: .infinity, maxHeight: fillsWindow ? .infinity : nil, alignment: .topLeading)
         .background { panelGlass }
         .overlay {
-            panelShape.strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+            // 效果图 `.mat`：0.5 磅描边，黑 12%。
+            panelShape.strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         }
         .clipShape(panelShape)
         .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
@@ -217,7 +218,8 @@ struct PopupView: View {
     }
 
     /// Fixed-height title bar — pin icon / symbol metrics must not change chrome height.
-    private let chromeHeight: CGFloat = 36
+    /// 效果图 / HTML `.popup .head` 是 34，不是之前的 36。
+    private let chromeHeight: CGFloat = 34
 
     private var header: some View {
         ZStack {
@@ -556,8 +558,8 @@ struct PopupView: View {
 
     private var translationColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // 水平内边距都在 sourceWell / resultColumn 里，避免再叠 12。
             sourceWell
-                .padding(.horizontal, 12)
                 .padding(.bottom, showsResults ? 0 : 12)
                 .layoutPriority(1)
             if showsResults {
@@ -652,7 +654,8 @@ struct PopupView: View {
                 addProviderRow
             }
         }
-        .padding(.horizontal, 16)
+        // 与 sourceWell 同列：效果图 body 左右 14。
+        .padding(.horizontal, 14)
         .padding(.top, 4)
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -681,8 +684,9 @@ struct PopupView: View {
             }
             sourceActions
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
+        // 效果图 `.popup .body`：左右 14、顶 12。
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
         .padding(.bottom, 8)
     }
 

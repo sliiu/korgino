@@ -219,7 +219,8 @@ private struct QuickBadgeView: View {
         .background { Capsule(style: .continuous).fill(.regularMaterial) }
         .overlay {
             let shape = Capsule(style: .continuous)
-            shape.strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+            // 效果图 `.mat`：0.5 磅描边，黑 12%。
+            shape.strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
             if working, !reduceMotion {
                 SelectionSweep().clipShape(shape)
             }
