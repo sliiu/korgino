@@ -1418,63 +1418,79 @@ enum SelectionPluginRunner {
 /// 设置 › 功能 › 划词插件。开关、AI、插件表都在这一页。
 struct SelectionPluginSettingsSection: View {
     @ObservedObject private var store = SelectionPluginStore.shared
+    @ObservedObject private var config = AppConfig.shared
     @State private var adding = false
     @State private var editing: SelectionPlugin?
     @State private var confirmReset = false
     @State private var dragging: String?
 
     var body: some View {
-        Group {
-            Section {
-                Toggle(isOn: Binding(
-                    get: { store.isOn },
-                    set: { store.isOn = $0 }
-                )) {
-                    Text(L("划词后显示插件"))
-                    Text(L("在其他 App 里划选文字，选区上方浮出一排插件图标，点一下直接出结果"))
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroup(title: "") {
+                SettingsRow(
+                    title: L("划词后显示插件条"),
+                    detail: L("在别的应用里划选文字，选区上方浮出插件。不抢原来那个应用的焦点")
+                ) {
+                    Toggle("", isOn: Binding(get: { store.isOn }, set: { store.isOn = $0 }))
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
-                .toggleStyle(SegmentedToggleStyle())
-            } footer: {
-                Text(L("需要辅助功能权限。点图标不会抢走原来那个应用的焦点。翻译是其中一个插件；其余插件要么问下下面选的 AI，要么在本机跑一段脚本。"))
+                SettingsRow(
+                    title: L("插件用的 AI"),
+                    detail: L("翻译插件不用这里，它用「翻译服务与 AI」里给划词选的那几家"),
+                    showsDivider: false
+                ) {
+                    let profiles = store.readyAIProfiles
+                    MenuChip(
+                        title: profiles.first { $0.id == store.aiProfileID }?.name ?? L("自动（第一个可用）"),
+                        options: [""] + profiles.map(\.id),
+                        label: { id in
+                            id.isEmpty ? L("自动（第一个可用）") : (profiles.first { $0.id == id }?.name ?? id)
+                        },
+                        isSelected: { $0 == store.aiProfileID },
+                        select: { store.aiProfileID = $0 }
+                    )
+                }
             }
 
             if store.isOn {
-                Section {
-                    Picker(L("AI"), selection: Binding(
-                        get: { store.aiProfileID },
-                        set: { store.aiProfileID = $0 }
-                    )) {
-                        Text(L("自动（第一个可用）")).tag("")
-                        ForEach(store.readyAIProfiles) { p in
-                            Text(p.name).tag(p.id)
-                        }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(L("勾上的"))
+                            .font(Theme.TypeScale.captionSemibold)
+                            .foregroundStyle(.tertiary)
+                        Spacer(minLength: 8)
+                        Button(L("＋ 添加插件")) { adding = true }
+                            .buttonStyle(.plain)
+                            .font(Theme.TypeScale.label)
+                            .foregroundStyle(Theme.accent)
+                        Button(L("恢复默认")) { confirmReset = true }
+                            .buttonStyle(.plain)
+                            .font(Theme.TypeScale.caption)
+                            .foregroundStyle(.secondary)
+                            .disabled(store.isDefault)
                     }
-                    if store.aiProfile == nil {
-                        Text(L("还没有可用的 AI。到「翻译 › 服务」里加一家，填好密钥、地址和模型。"))
-                            .font(.caption)
-                            .foregroundStyle(Theme.attention)
+                    .padding(.leading, 4)
+
+                    SettingsGroup(title: "") {
+                        enabledList
                     }
-                } header: {
-                    Text(L("插件用的 AI"))
-                } footer: {
-                    Text(L("翻译插件不用这里，它走「翻译 › 服务」里给划词选的那几家。"))
                 }
 
-                Section {
-                    pluginList
-                    Button {
-                        adding = true
-                    } label: {
-                        Label(L("添加插件"), systemImage: "plus")
+                SettingsGroup(title: L("没勾的（放大镜和「⋯」里都能搜到）")) {
+                    let disabled = store.plugins.filter { !$0.enabled }
+                    if disabled.isEmpty {
+                        Text(L("没有未勾选的插件"))
+                            .font(Theme.TypeScale.body)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: SettingsChrome.rowMinHeight)
+                    } else {
+                        ForEach(disabled) { plugin in
+                            pluginRow(plugin, draggable: false)
+                        }
                     }
-                    Button(L("恢复默认插件")) {
-                        confirmReset = true
-                    }
-                    .disabled(store.isDefault)
-                } header: {
-                    Text(L("插件"))
-                } footer: {
-                    Text(L("勾选的可以拖动排序。前 5 个出现在划词条上，其余收进「⋯」。没勾选的不在条上，放大镜和「⋯」里搜得到。翻译也是普通插件，可以不勾。"))
                 }
             }
         }
@@ -1504,67 +1520,67 @@ struct SelectionPluginSettingsSection: View {
         }
     }
 
-    /// 勾上的在前，按表里的顺序；前 5 个和后面的之间写一条「以下收进「⋯」」。没勾的排在最后。
-    private var pluginList: some View {
+    @ViewBuilder
+    private var enabledList: some View {
         let enabled = store.plugins.filter(\.enabled)
-        let disabled = store.plugins.filter { !$0.enabled }
-        return Group {
-            ForEach(Array(enabled.enumerated()), id: \.element.id) { index, plugin in
-                if index == SelectionPluginBar.barSlots {
-                    Text(L("以下收进「⋯」"))
-                        .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                pluginRow(plugin, draggable: true)
+        ForEach(Array(enabled.enumerated()), id: \.element.id) { index, plugin in
+            if index == SelectionPluginBar.barSlots {
+                Text(L("以下收进「⋯」"))
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 24)
+                    .background(Color.primary.opacity(0.03))
             }
-            ForEach(disabled) { plugin in
-                pluginRow(plugin, draggable: false)
-            }
+            pluginRow(plugin, draggable: true)
+        }
+        if enabled.isEmpty {
+            Text(L("还没有勾选的插件"))
+                .font(Theme.TypeScale.body)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 14)
+                .frame(minHeight: SettingsChrome.rowMinHeight)
         }
     }
 
     private func pluginRow(_ plugin: SelectionPlugin, draggable: Bool) -> some View {
         HStack(spacing: 8) {
-            if draggable {
-                Image(systemName: "line.3.horizontal")
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Toggle(isOn: Binding(
+            Image(systemName: "line.3.horizontal")
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.tertiary)
+                .opacity(draggable ? 1 : 0.35)
+            Toggle("", isOn: Binding(
                 get: { plugin.enabled },
                 set: { store.setEnabled($0, id: plugin.id) }
-            )) {
-                EmptyView()
-            }
-            .toggleStyle(CheckToggleStyle())
+            ))
+            .labelsHidden()
+            .toggleStyle(.checkbox)
+            .controlSize(.small)
 
             Image(systemName: plugin.symbol)
                 .font(Theme.TypeScale.body)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(plugin.title)
-                Text(plugin.summary)
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+                .foregroundStyle(.secondary)
+                .frame(width: 15)
+            Text(plugin.title)
+                .font(Theme.TypeScale.body)
+                .lineLimit(1)
             Spacer(minLength: 8)
-            Button {
-                editing = plugin
-            } label: {
-                Image(systemName: "pencil")
-            }
-            .buttonStyle(.borderless)
-            .help(L("编辑"))
-            .disabled(plugin.isTranslate)
-            Button {
-                store.remove(id: plugin.id)
-            } label: {
-                Image(systemName: "trash")
-            }
-            .buttonStyle(.borderless)
-            .help(L("删除"))
+            Text(plugin.summary)
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Button(L("编辑")) { editing = plugin }
+                .buttonStyle(.plain)
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(Theme.accent)
+                .disabled(plugin.isTranslate)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .frame(minHeight: SettingsChrome.rowMinHeight)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.hairline).frame(height: 0.5)
         }
         .opacity(dragging == plugin.id ? 0.4 : 1)
         .onDrag {
@@ -1580,6 +1596,7 @@ struct SelectionPluginSettingsSection: View {
         ))
     }
 }
+
 
 /// 勾选的插件之间拖动换序。拖进某一行就插到它前面，和设置里别的可排序列表一样。
 /// 拖到没勾选的行上不起作用。
