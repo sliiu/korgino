@@ -28,7 +28,7 @@ extension SystemAudioTranslateController {
 
         if captureSystem {
             if !CGPreflightScreenCaptureAccess() {
-                PermissionGrantController.shared.prompt(.screenCapture)
+                Onboarding.showPermissions(pane: .screenCapture)
                 throw TErr(L("需要屏幕录制权限以捕获系统/应用音频（系统设置 › 隐私与安全性 › 屏幕录制）"))
             }
         }

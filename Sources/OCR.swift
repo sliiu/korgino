@@ -108,7 +108,7 @@ enum OCRCapture {
 
     private static func screenCaptureDenied(_ error: Error) -> Error {
         if !CGPreflightScreenCaptureAccess() {
-            PermissionGrantController.shared.prompt(.screenCapture)
+            Onboarding.showPermissions(pane: .screenCapture)
         }
         return TErr(String(format: L("OCR 截图翻译需要屏幕录制权限：系统设置 › 隐私与安全性 › 屏幕录制 › 允许 Korgino（%@）"), error.localizedDescription))
     }

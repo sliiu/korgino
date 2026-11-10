@@ -25,6 +25,18 @@ enum Onboarding {
         return !permissionsQuiet && !PermissionCheck.allGranted
     }
 
+    /// 各处「去授权」的统一入口：打开引导面板，直接停在授权那一步。
+    /// 只管权限：关掉不改「已看过」，也不会把后面几步塞给用户。
+    @MainActor
+    static func showPermissions(focus: PermissionCheck.Kind? = nil) {
+        OnboardingWindow.shared.showPermissions(focus: focus)
+    }
+
+    @MainActor
+    static func showPermissions(pane: PrivacyPane) {
+        showPermissions(focus: PermissionCheck.Kind(pane: pane))
+    }
+
     /// 设置页「重新看引导」：清掉已看过，从语言重来。
     @MainActor
     static func replay() {
@@ -90,6 +102,14 @@ enum PermissionCheck {
 
     enum Kind: CaseIterable {
         case accessibility, screenCapture, inputMonitoring, microphone, speech
+
+        init(pane: PrivacyPane) {
+            switch pane {
+            case .accessibility: self = .accessibility
+            case .screenCapture: self = .screenCapture
+            case .inputMonitoring: self = .inputMonitoring
+            }
+        }
 
         var title: String {
             switch self {
@@ -299,7 +319,20 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
 
     /// 没看过且授权还没齐时，从授权那一步开始，不从语言重来。
     func show(start: OnboardingStep? = nil) {
+        model.permissionsOnly = false
+        model.focus = nil
         let step = start ?? (Onboarding.seen ? .permissions : .language)
+        present(step: step)
+    }
+
+    /// 只看授权那一步。关掉不记「已看过」，不打开主窗口。
+    func showPermissions(focus: PermissionCheck.Kind?) {
+        model.permissionsOnly = true
+        model.focus = focus
+        present(step: .permissions)
+    }
+
+    private func present(step: OnboardingStep) {
         model.step = step
         if window == nil {
             let root = OnboardingView(model: model) { [weak self] openMain in
@@ -327,7 +360,7 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard (notification.object as? NSWindow) === window else { return }
         window = nil
-        finish(openMain: true)
+        finish(openMain: !model.permissionsOnly)
     }
 
     private func close(openMain: Bool) {
@@ -340,10 +373,11 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
 
     /// 走完或关掉都记已看过。五项都授权了就把「不再提醒」也记上。
     private func finish(openMain: Bool) {
-        Onboarding.seen = true
         if PermissionCheck.allGranted {
             Onboarding.permissionsQuiet = true
         }
+        if model.permissionsOnly { return }
+        Onboarding.seen = true
         if openMain {
             MainWindowController.shared.show()
         }
@@ -362,6 +396,9 @@ final class OnboardingModel: ObservableObject {
     @Published var packError: String?
     @Published var packConfiguration: TranslationSession.Configuration?
     @Published var permissionTick = 0
+    /// 从各处「去授权」进来：只显示授权一步，按钮是「完成」。
+    @Published var permissionsOnly = false
+    @Published var focus: PermissionCheck.Kind?
 
     func refreshPack(native: TargetLanguage, target: TargetLanguage) {
         let source = native.appleCode ?? "en"
@@ -412,7 +449,7 @@ private struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            stepBar
+            if !model.permissionsOnly { stepBar }
             ScrollView {
                 content
                     .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -602,6 +639,7 @@ private struct OnboardingView: View {
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 38)
+        .background(model.focus == kind && !granted ? Theme.accent.opacity(0.10) : Color.clear)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.leading, 14)
         }
@@ -1085,11 +1123,11 @@ private struct OnboardingView: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            if model.step != .language && model.step != .done {
+            if model.step != .language && model.step != .done && !model.permissionsOnly {
                 PageButton(title: L("上一步")) { goBack() }
             }
             Spacer(minLength: 0)
-            if model.step == .permissions {
+            if model.step == .permissions && !model.permissionsOnly {
                 Button(L("跳过")) { advance() }
                     .buttonStyle(.plain)
                     .font(Theme.TypeScale.body)
@@ -1110,6 +1148,9 @@ private struct OnboardingView: View {
     @ViewBuilder
     private var primaryButton: some View {
         switch model.step {
+        case _ where model.permissionsOnly:
+            PageButton(title: L("完成"), primary: true) { onFinish(false) }
+                .keyboardShortcut(.defaultAction)
         case .done:
             PageButton(title: L("打开 Korgino"), primary: true) { onFinish(true) }
                 .keyboardShortcut(.defaultAction)

@@ -58,7 +58,7 @@ enum QuickTranslate {
         guard let app = NSRunningApplication(processIdentifier: trigger.pid), !app.isTerminated else { return }
         guard AXIsProcessTrusted() else {
             overlay.fail(L("快捷翻译需要辅助功能权限"), rect: nil)
-            PermissionGrantController.shared.prompt(.accessibility)
+            Onboarding.showPermissions(pane: .accessibility)
             return
         }
         let bundleID = app.bundleIdentifier
@@ -150,7 +150,7 @@ enum QuickTranslate {
         }
         guard AXIsProcessTrusted() else {
             overlay.fail(L("快捷翻译需要辅助功能权限"), rect: nil)
-            PermissionGrantController.shared.prompt(.accessibility)
+            Onboarding.showPermissions(pane: .accessibility)
             return
         }
         guard let app = NSRunningApplication(processIdentifier: record.pid), !app.isTerminated else {

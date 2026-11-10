@@ -675,11 +675,7 @@ private final class TranslatePageModel: ObservableObject {
     }
 
     func authorize(_ pane: PrivacyPane) {
-        if pane.isGranted {
-            PermissionGrantController.shared.openSettings(pane)
-        } else {
-            PermissionGrantController.shared.prompt(pane)
-        }
+        Onboarding.showPermissions(pane: pane)
     }
 
     func sourceChanged() {

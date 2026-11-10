@@ -195,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 sysErrors[.quickTranslate] = problem
                 if !didPromptListen, !CGPreflightListenEventAccess() {
                     didPromptListen = true
-                    PermissionGrantController.shared.prompt(.inputMonitoring)
+                    Onboarding.showPermissions(pane: .inputMonitoring)
                 }
             }
         } else {
