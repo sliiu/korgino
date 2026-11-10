@@ -1327,11 +1327,10 @@ struct FileTranslateView: View {
                 Button {
                     model.startTranslate()
                 } label: {
-                    Label(
-                        model.hasTranslation ? L("重新翻译") : L("翻译"),
-                        systemImage: model.hasTranslation ? "arrow.clockwise" : "translate"
-                    )
-                    .labelStyle(.titleAndIcon)
+                    HStack(spacing: 5) {
+                        KIconView(model.hasTranslation ? .retry : .tr, size: 13)
+                        Text(model.hasTranslation ? L("重新翻译") : L("翻译"))
+                    }
                 }
                 .buttonStyle(ToolbarProminentButtonStyle())
                 .disabled(model.sourcePreview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
