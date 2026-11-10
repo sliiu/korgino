@@ -92,8 +92,7 @@ struct MenuChip<Option: Hashable>: View {
                         open = false
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "checkmark")
-                                .font(Theme.TypeScale.micro)
+                            KIconView(.check, size: 11)
                                 .foregroundStyle(isSelected(option) ? Color.primary : Color.clear)
                                 .frame(width: 12)
                             Text(label(option))
@@ -119,13 +118,17 @@ struct MenuChip<Option: Hashable>: View {
 struct PageButton: View {
     var title: String
     var systemImage: String? = nil
+    var icon: KIcon? = nil
     var primary = false
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                if let systemImage {
+                if let icon {
+                    KIconView(icon, size: 13)
+                        .foregroundStyle(primary ? Color.white : Color.secondary)
+                } else if let systemImage {
                     Image(systemName: systemImage)
                         .font(Theme.TypeScale.glyph)
                         .foregroundStyle(primary ? Color.white : Color.secondary)
@@ -292,6 +295,7 @@ struct SettingsRow<Control: View>: View {
 struct SidebarRow: View {
     var title: String
     var systemImage: String? = nil
+    var icon: KIcon? = nil
     var selected: Bool
     var badge = false
     var action: () -> Void
@@ -300,7 +304,11 @@ struct SidebarRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                if let systemImage {
+                if let icon {
+                    KIconView(icon, size: 15)
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 15, height: 15)
+                } else if let systemImage {
                     Image(systemName: systemImage)
                         .font(Theme.TypeScale.sidebarIcon)
                         .foregroundStyle(Theme.accent)

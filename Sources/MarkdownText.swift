@@ -69,7 +69,7 @@ struct CopyMarkdownMenu: View {
 
     var body: some View {
         IconButton(
-            systemImage: copied ? "checkmark" : "doc.on.doc",
+            icon: copied ? .check : .copy,
             help: L("复制完整内容（含 Markdown 格式）；右键可复制纯文本"),
             tint: copied ? Theme.ok : nil,
             size: 11

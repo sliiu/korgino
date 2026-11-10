@@ -116,8 +116,7 @@ struct SearchField: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(fontSize >= 14 ? Theme.TypeScale.label : Theme.TypeScale.micro)
+            KIconView(.search, size: fontSize >= 14 ? 13 : 12)
                 .foregroundStyle(.secondary)
             TextField(prompt, text: $text)
                 .textFieldStyle(.plain)
@@ -138,25 +137,72 @@ struct SearchField: View {
     }
 }
 
-/// Borderless SF Symbol button with a soft hover plate.
+/// Borderless icon button with a soft hover plate. 自绘图标（icon）是 22×22，次要色，悬停变实；
+/// SF Symbol 版本保持原样。
 struct IconButton: View {
-    let systemImage: String
+    var systemImage: String = ""
+    var icon: KIcon? = nil
     var help: String = ""
     var tint: Color? = nil
     var size: CGFloat = 12
     let action: () -> Void
 
+    init(systemImage: String, help: String = "", tint: Color? = nil, size: CGFloat = 12, action: @escaping () -> Void) {
+        self.systemImage = systemImage
+        self.help = help
+        self.tint = tint
+        self.size = size
+        self.action = action
+    }
+
+    init(icon: KIcon, help: String = "", tint: Color? = nil, size: CGFloat = 12, action: @escaping () -> Void) {
+        self.icon = icon
+        self.help = help
+        self.tint = tint
+        self.size = size
+        self.action = action
+    }
+
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(size >= 13 ? Theme.TypeScale.body : (size >= 12 ? Theme.TypeScale.labelMedium : Theme.TypeScale.caption))
-                .foregroundStyle(tint ?? Color.secondary)
-                .frame(width: 24, height: 22)
-                .contentShape(Rectangle())
+            if let icon {
+                IconGlyph(icon: icon, tint: tint)
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            } else {
+                Image(systemName: systemImage)
+                    .font(size >= 13 ? Theme.TypeScale.body : (size >= 12 ? Theme.TypeScale.labelMedium : Theme.TypeScale.caption))
+                    .foregroundStyle(tint ?? Color.secondary)
+                    .frame(width: 24, height: 22)
+                    .contentShape(Rectangle())
+            }
         }
         .buttonStyle(HoverPlateButtonStyle())
         .help(help)
-        .accessibilityLabel(help.isEmpty ? Text(Image(systemName: systemImage)) : Text(help))
+        .accessibilityLabel(help.isEmpty ? Text(icon?.rawValue ?? systemImage) : Text(help))
+    }
+
+    /// 13 磅自绘图标：默认次要色，悬停变实（primary）。
+    private struct IconGlyph: View {
+        let icon: KIcon
+        let tint: Color?
+        @Environment(\.hoverPlateHovering) private var hovering
+
+        var body: some View {
+            KIconView(icon, size: 13)
+                .foregroundStyle(tint ?? (hovering ? Color.primary : Color.secondary))
+        }
+    }
+}
+
+private struct HoverPlateHoveringKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var hoverPlateHovering: Bool {
+        get { self[HoverPlateHoveringKey.self] }
+        set { self[HoverPlateHoveringKey.self] = newValue }
     }
 }
 
@@ -173,6 +219,7 @@ struct HoverPlateButtonStyle: ButtonStyle {
 
         var body: some View {
             label()
+                .environment(\.hoverPlateHovering, hovering && enabled)
                 .opacity(enabled ? 1 : 0.4)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -383,8 +430,7 @@ struct ErrorLine: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(Theme.TypeScale.label)
+            KIconView(.warn, size: 13)
                 .foregroundStyle(Theme.danger)
             Text(text)
                 .font(Theme.TypeScale.label)
@@ -409,8 +455,7 @@ struct ErrorBlock: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(Theme.TypeScale.title)
+            KIconView(.warn, size: 20)
                 .foregroundStyle(Theme.danger)
             Text(text)
                 .font(Theme.TypeScale.body)

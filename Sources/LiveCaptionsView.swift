@@ -310,10 +310,22 @@ struct ImmersiveCaptionOverlay: View {
             chromeButton(pane.speechPlaying ? "speaker.wave.2.fill" : "speaker.slash", help: pane.speechPlaying ? L("暂停朗读") : L("朗读")) {
                 model.toggleImmersiveSpeech(providerID)
             }
-            chromeButton("xmark", help: L("关闭沉浸字幕")) {
+            chromeButton(icon: .x, help: L("关闭沉浸字幕")) {
                 model.setImmersive(providerID, on: false)
             }
         }
+    }
+
+    private func chromeButton(icon: KIcon, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            KIconView(icon, size: 12)
+                .foregroundStyle(Theme.onDark.secondary)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
     }
 
     private func chromeButton(_ systemImage: String, help: String, action: @escaping () -> Void) -> some View {

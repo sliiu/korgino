@@ -23,14 +23,14 @@ enum MainPage: String, CaseIterable, Identifiable {
         }
     }
 
-    var symbol: String {
+    var icon: KIcon {
         switch self {
-        case .translate: return "character.bubble"
-        case .live: return "waveform"
-        case .history: return "clock"
-        case .dictionary: return "text.book.closed"
-        case .media: return "film"
-        case .voice: return "mic"
+        case .translate: return .tr
+        case .live: return .wave
+        case .history: return .clock
+        case .dictionary: return .book
+        case .media: return .film
+        case .voice: return .mic
         }
     }
 
@@ -229,7 +229,7 @@ struct MainWindowView: View {
     private func row(_ page: MainPage) -> some View {
         SidebarRow(
             title: page.title,
-            systemImage: page.symbol,
+            icon: page.icon,
             selected: model.page == page,
             badge: page == .live && listening
         ) {
@@ -238,7 +238,7 @@ struct MainWindowView: View {
     }
 
     private func row(settings: Bool) -> some View {
-        SidebarRow(title: L("设置"), systemImage: "gearshape", selected: false) {
+        SidebarRow(title: L("设置"), icon: .gear, selected: false) {
             model.openSettings(.common)
         }
     }
@@ -359,13 +359,13 @@ private struct TranslatePage: View {
         HStack(spacing: 8) {
             languageMenus
             Spacer(minLength: 8)
-            pageButton("doc.on.clipboard", L("剪贴板"), enabled: config.isFeatureEnabled(.clipboard)) {
+            pageButton(.clip, L("剪贴板"), enabled: config.isFeatureEnabled(.clipboard)) {
                 model.fillClipboard()
             }
-            pageButton("text.viewfinder", L("截图"), enabled: config.isFeatureEnabled(.ocr)) {
+            pageButton(.shot, L("截图"), enabled: config.isFeatureEnabled(.ocr)) {
                 model.captureScreenshot()
             }
-            pageButton("doc", L("文档…"), enabled: config.isFeatureEnabled(.file)) {
+            pageButton(.doc, L("文档…"), enabled: config.isFeatureEnabled(.file)) {
                 files.openInPlace()
             }
         }
@@ -397,8 +397,8 @@ private struct TranslatePage: View {
         [.auto] + TargetLanguage.specific
     }
 
-    private func pageButton(_ symbol: String, _ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        PageButton(title: title, systemImage: symbol, action: action)
+    private func pageButton(_ icon: KIcon, _ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        PageButton(title: title, icon: icon, action: action)
             .disabled(!enabled)
     }
 
@@ -1165,8 +1165,7 @@ private struct LiveCaptureSettings: View {
                         }
                         .disabled(model.isActive)
                     } label: {
-                        Image(systemName: "ellipsis")
-                            .font(Theme.TypeScale.caption)
+                        KIconView(.more, size: 13)
                             .foregroundStyle(.secondary)
                             .frame(width: 22, height: 22)
                     }
@@ -1245,8 +1244,7 @@ private struct LiveCaptureSettings: View {
             Button {
                 model.removeBinding(lane.id, kind, binding.key)
             } label: {
-                Image(systemName: "xmark")
-                    .font(Theme.TypeScale.caption)
+                KIconView(.x, size: 11)
                     .foregroundStyle(.secondary)
                     .frame(width: 18, height: 18)
             }
@@ -1462,12 +1460,12 @@ private struct LiveListeningView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            PageButton(title: L("沉浸字幕"), systemImage: "captions.bubble") {
+            PageButton(title: L("沉浸字幕"), icon: .text) {
                 model.showImmersiveOverlay()
             }
             .disabled(model.immersiveChips().isEmpty)
             .help(model.immersiveOn.isEmpty ? L("打开沉浸字幕") : L("沉浸字幕"))
-            PageButton(title: L("笔记"), systemImage: "square.and.pencil") {
+            PageButton(title: L("笔记"), icon: .pen) {
                 openNote()
             }
             .disabled(!canRewrite)
@@ -1824,12 +1822,12 @@ private struct LiveListenColumn: View {
 
     private func rowActions(_ seg: LiveCaptionSegment, keys: [String]) -> some View {
         HStack(spacing: 0) {
-            IconButton(systemImage: "pencil", help: L("修改")) {
+            IconButton(icon: .pen, help: L("修改")) {
                 editingID = seg.id
                 editSource = seg.source
                 editTranslations = Dictionary(uniqueKeysWithValues: keys.map { ($0, seg.translations[$0] ?? "") })
             }
-            IconButton(systemImage: "speaker.wave.2", help: speech.notice.isEmpty ? L("朗读原文") : speech.notice) {
+            IconButton(icon: .spk, help: speech.notice.isEmpty ? L("朗读原文") : speech.notice) {
                 model.speak(seg.source, kind: .source, source: kind, lane: seg.laneID, speaker: seg.speaker)
             }
             IconButton(systemImage: "trash", help: L("删除")) {
@@ -1855,7 +1853,7 @@ private struct LiveListenColumn: View {
                         .foregroundStyle(Color.primary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    IconButton(systemImage: "speaker.wave.2", help: speech.notice.isEmpty ? L("朗读译文") : speech.notice, action: speak)
+                    IconButton(icon: .spk, help: speech.notice.isEmpty ? L("朗读译文") : speech.notice, action: speak)
                         .opacity(hoveredID == nil ? 0 : 1)
                         .disabled(text == L("翻译中…"))
                 }

@@ -101,7 +101,7 @@ struct DetectedLinksBar: View {
                                 LinkQRDetector.open(link)
                             }
                         }
-                        IconButton(systemImage: "doc.on.doc", help: L("复制"), size: 11) {
+                        IconButton(icon: .copy, help: L("复制"), size: 11) {
                             LinkQRDetector.copy(link)
                         }
                     }

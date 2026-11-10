@@ -77,12 +77,12 @@ struct SessionNoteCard: View {
                     IconButton(systemImage: "arrow.clockwise", help: L("重写"), size: 11, action: onRewrite)
                 }
                 if page != nil {
-                    IconButton(systemImage: copied ? "checkmark" : "doc.on.doc", help: L("复制"), size: 11) {
+                    IconButton(icon: copied ? .check : .copy, help: L("复制"), size: 11) {
                         copy()
                     }
                 }
                 if let onClose {
-                    IconButton(systemImage: "xmark", help: L("关闭"), size: 11, action: onClose)
+                    IconButton(icon: .x, help: L("关闭"), size: 11, action: onClose)
                 }
             }
             if !error.isEmpty {
