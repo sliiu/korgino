@@ -1515,65 +1515,35 @@ struct PreferencesPane: View {
                     feature: L("划词翻译读取并写回到别的应用里选中的文字"),
                     trusted: axTrusted
                 ) {
-                    if AXIsProcessTrusted() {
-                        PermissionGrantController.shared.openSettings(.accessibility)
-                    } else {
-                        PermissionGrantController.shared.prompt(.accessibility)
-                    }
+                    Onboarding.showPermissions(focus: .accessibility)
                 }
                 permissionRow(
                     title: L("屏幕录制"),
                     feature: L("截图翻译框选屏幕；实时字幕听系统声音"),
                     trusted: screenTrusted
                 ) {
-                    if CGPreflightScreenCaptureAccess() {
-                        PermissionGrantController.shared.openSettings(.screenCapture)
-                    } else {
-                        PermissionGrantController.shared.prompt(.screenCapture)
-                    }
+                    Onboarding.showPermissions(focus: .screenCapture)
                 }
                 permissionRow(
                     title: L("输入监视"),
                     feature: L("连按空格快捷翻译、按住 Fn 说话"),
                     trusted: listenTrusted
                 ) {
-                    if CGPreflightListenEventAccess() {
-                        PermissionGrantController.shared.openSettings(.inputMonitoring)
-                    } else {
-                        PermissionGrantController.shared.prompt(.inputMonitoring)
-                    }
+                    Onboarding.showPermissions(focus: .inputMonitoring)
                 }
                 permissionRow(
                     title: L("麦克风"),
                     feature: L("实时字幕的麦克风、语音"),
                     trusted: micTrusted
                 ) {
-                    switch AVCaptureDevice.authorizationStatus(for: .audio) {
-                    case .notDetermined:
-                        AVCaptureDevice.requestAccess(for: .audio) { granted in
-                            Task { @MainActor in micTrusted = granted }
-                        }
-                    default:
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
+                    Onboarding.showPermissions(focus: .microphone)
                 }
                 permissionRow(
                     title: L("语音识别"),
                     feature: L("Apple 语音识别"),
                     trusted: speechTrusted
                 ) {
-                    switch SFSpeechRecognizer.authorizationStatus() {
-                    case .notDetermined:
-                        SFSpeechRecognizer.requestAuthorization { status in
-                            Task { @MainActor in speechTrusted = status == .authorized }
-                        }
-                    default:
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
+                    Onboarding.showPermissions(focus: .speech)
                 }
             }
             HStack {
