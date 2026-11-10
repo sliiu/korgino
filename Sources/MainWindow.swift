@@ -222,7 +222,7 @@ struct MainWindowView: View {
             row(settings: true)
         }
         .padding(.horizontal, 10)
-        .padding(.top, 36)
+        .padding(.top, 44)
         .padding(.bottom, 10)
     }
 
@@ -408,8 +408,8 @@ private struct TranslatePage: View {
                 TextEditor(text: $model.source)
                     .font(Theme.TypeScale.body)
                     .scrollContentBackground(.hidden)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 14)
                     .padding(.bottom, 28)
                     .frame(maxWidth: .infinity, minHeight: 150)
                 if model.source.isEmpty {
@@ -510,14 +510,36 @@ private struct TranslateResultBody: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 ProviderIconView(outcomeID: outcome.id, name: outcome.name, size: 14)
-                MenuChip(
-                    title: outcome.name,
-                    options: targets.map(\.id),
-                    label: { id in targets.first { $0.id == id }?.displayName ?? id },
-                    isSelected: { $0 == outcome.id },
-                    select: { onPick($0) }
-                )
-                .disabled(targets.count < 2)
+                if targets.count < 2 {
+                    Text(outcome.name)
+                        .font(Theme.TypeScale.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                } else {
+                    Menu {
+                        ForEach(targets, id: \.id) { target in
+                            Button {
+                                onPick(target.id)
+                            } label: {
+                                if target.id == outcome.id {
+                                    Label(target.displayName, systemImage: "checkmark")
+                                } else {
+                                    Text(target.displayName)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(outcome.name)
+                                .font(Theme.TypeScale.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+                            ChromeChevron()
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
                 Spacer(minLength: 8)
                 if let text = outcome.text, !outcome.loading {
                     SpeakButton(text: text, language: speechCode, tag: "translatePage.\(outcome.id)")
@@ -847,12 +869,13 @@ private struct LiveMeetingPage: View {
 
     private var idle: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 cards
                 startBar
                 MeetingRecordList(model: records)
             }
-            .padding(16)
+            .padding(.horizontal, 26)
+            .padding(.vertical, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -898,7 +921,7 @@ private struct LiveMeetingPage: View {
         let ready = count > 0 && !live.isRequestingPermission
         return HStack(spacing: 12) {
             Text(sessionLine)
-                .font(Theme.TypeScale.body)
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -907,27 +930,24 @@ private struct LiveMeetingPage: View {
                 .disabled(!ready)
                 .help(ready ? L("打开的几路一起开始，记成同一场会议记录") : L("先打开一路"))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .fill(Theme.cardFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .strokeBorder(Theme.hairline, lineWidth: 0.5)
-        )
     }
 
     private var sessionLine: String {
         guard !armed.isEmpty else { return L("先打开一路") }
-        let names = armed.map { kind -> String in
-            if kind == .microphone, live.captureSystem {
-                return "\(kind.title)（\(live.micDeviceName)）"
-            }
-            return kind.title
+        let names = armed.map(\.title)
+        let closedHint: String
+        if live.captureSystem, !live.captureMicrophone {
+            closedHint = L("（麦克风已关）")
+        } else if live.captureMicrophone, !live.captureSystem {
+            closedHint = L("（系统声音已关）")
+        } else {
+            closedHint = ""
         }
-        return String(format: L("这一场听：%@ · 记成同一场会议记录"), names.joined(separator: " + "))
+        return String(
+            format: L("这一场听：%@%@ · 记成一场会议记录 · ↩ 开始"),
+            names.joined(separator: " + "),
+            closedHint
+        )
     }
 
     private var startTitle: String {
@@ -979,7 +999,7 @@ private struct LiveSourceCard: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .strokeBorder(expanded ? Theme.accent.opacity(0.45) : Theme.hairline, lineWidth: expanded ? 1.5 : 0.5)
+                .strokeBorder(Theme.hairline, lineWidth: 0.5)
         }
     }
 
@@ -1005,7 +1025,7 @@ private struct LiveSourceCard: View {
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                 }
                 .font(Theme.TypeScale.caption)
-                .foregroundStyle(expanded ? Color.accentColor : Color.secondary)
+                .foregroundStyle(Theme.accent)
             }
             .buttonStyle(.plain)
             .help(expanded ? L("收起设置") : L("展开设置"))
@@ -1420,7 +1440,7 @@ private struct LiveListeningView: View {
                 if noteOpen {
                     Divider()
                     noteColumn
-                        .frame(width: 280)
+                        .frame(width: 260)
                         .transition(.move(edge: .trailing))
                 }
             }
@@ -1438,35 +1458,81 @@ private struct LiveListeningView: View {
                 StatusDot(.live, L("正在听"))
             }
             Text(sessionName)
-                .font(Theme.TypeScale.body)
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Button {
+            PageButton(title: L("沉浸字幕"), systemImage: "captions.bubble") {
                 model.showImmersiveOverlay()
-            } label: {
-                Label(L("沉浸字幕"), systemImage: "captions.bubble")
             }
             .disabled(model.immersiveChips().isEmpty)
             .help(model.immersiveOn.isEmpty ? L("打开沉浸字幕") : L("沉浸字幕"))
-            Button {
+            PageButton(title: L("笔记"), systemImage: "square.and.pencil") {
                 openNote()
-            } label: {
-                Label(L("笔记"), systemImage: "square.and.pencil")
             }
             .disabled(!canRewrite)
-            exportMenu
-            Button(role: .destructive) {
+            exportChip
+            Button {
                 model.stop()
             } label: {
-                Label(L("停止"), systemImage: "stop.fill")
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(Theme.danger)
+                        .frame(width: 8, height: 8)
+                    Text(L("停止"))
+                        .font(Theme.TypeScale.label)
+                        .foregroundStyle(Theme.danger)
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Theme.cardFill)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
+                )
             }
+            .buttonStyle(.plain)
             .keyboardShortcut(".", modifiers: [.command])
-            .tint(Theme.danger)
         }
-        .font(Theme.TypeScale.label)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
         .background(Theme.windowFill)
+    }
+
+    private var exportChip: some View {
+        Menu {
+            Button(L("字幕（SRT）…")) { model.exportCaptions() }
+                .disabled(!model.canExportCaptions())
+            if !model.recordings.isEmpty {
+                Button(L("录音（M4A）…")) { model.exportRecordings() }
+                    .disabled(model.isActive)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(Theme.TypeScale.glyph)
+                    .foregroundStyle(Color.secondary)
+                Text(L("导出…"))
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Theme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
+            )
+            .shadow(color: Color.black.opacity(0.04), radius: 0.5, y: 1)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 
     private var sessionName: String {
@@ -1482,21 +1548,6 @@ private struct LiveListeningView: View {
     private var canRewrite: Bool {
         if let (kind, lane) = noteTarget { return model.canWriteNote(lane.id, kind) }
         return model.canWriteCombinedNote()
-    }
-
-    private var exportMenu: some View {
-        Menu {
-            Button(L("字幕（SRT）…")) { model.exportCaptions() }
-                .disabled(!model.canExportCaptions())
-            if !model.recordings.isEmpty {
-                Button(L("录音（M4A）…")) { model.exportRecordings() }
-                    .disabled(model.isActive)
-            }
-        } label: {
-            Label(L("导出…"), systemImage: "square.and.arrow.up")
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
     }
 
     private var columns: some View {
@@ -1604,7 +1655,8 @@ private struct LiveListenColumn: View {
     private var columnHeader: some View {
         HStack(spacing: 8) {
             Text(kind.title)
-                .font(Theme.TypeScale.body).fontWeight(.semibold)
+                .font(Theme.TypeScale.label)
+                .fontWeight(.semibold)
             Text(model.directionLine(kind))
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
@@ -1613,16 +1665,16 @@ private struct LiveListenColumn: View {
             Spacer(minLength: 6)
             Button(action: onToggleSetup) {
                 HStack(spacing: 3) {
-                    Text(setup ? L("收起") : L("设置"))
+                    Text(setup ? L("收起设置") : L("设置"))
                     Image(systemName: setup ? "chevron.up" : "chevron.down")
                 }
                 .font(Theme.TypeScale.caption)
-                .foregroundStyle(setup ? Color.accentColor : Color.secondary)
+                .foregroundStyle(Theme.accent)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
 
     private var levelMeter: some View {
@@ -1930,12 +1982,12 @@ private struct MeetingRecordList: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(L("会议记录"))
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.TypeScale.captionSemibold)
+                    .foregroundStyle(.tertiary)
                 Spacer(minLength: 8)
                 Text(String(format: L("共 %@ 场"), String(model.filtered.count)))
                     .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
             if model.filtered.isEmpty {
                 Text(model.entries.isEmpty ? L("还没有会议记录") : L("没有符合的记录"))
@@ -1943,7 +1995,7 @@ private struct MeetingRecordList: View {
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(14)
-                    .card(radius: 12)
+                    .card()
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(model.filtered.enumerated()), id: \.element.id) { index, entry in
@@ -1951,7 +2003,7 @@ private struct MeetingRecordList: View {
                         row(entry)
                     }
                 }
-                .card(radius: 12)
+                .card()
             }
         }
         .sheet(item: $open) { entry in
