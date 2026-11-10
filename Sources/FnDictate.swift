@@ -184,7 +184,11 @@ final class FnDictate {
         }
         let mic = AVCaptureDevice.authorizationStatus(for: .audio)
         if mic == .notDetermined {
-            _ = await AVCaptureDevice.requestAccess(for: .audio)
+            // Same sheet as live captions. Keep swallowing mouse moves until the
+            // events the sheet queued have drained, so they never reach SwiftUI hover.
+            _ = await LiveCaptionHost.whileMicrophonePrompt {
+                await AVCaptureDevice.requestAccess(for: .audio)
+            }
         }
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             fail(L("需要麦克风权限"), session: current)
@@ -659,11 +663,7 @@ private final class DictateEar: @unchecked Sendable {
             try MicInput.select(deviceID, on: input)
             choseDevice = true
         }
-        let hw = input.inputFormat(forBus: 0)
-        let format = (hw.sampleRate > 0 && hw.channelCount > 0) ? hw : input.outputFormat(forBus: 0)
-        guard format.channelCount > 0, format.sampleRate > 0 else {
-            throw TErr(L("麦克风不可用"))
-        }
+        let format = try MicInput.readyInputFormat(input, failure: L("麦克风不可用"))
         // 只有输入的麦克风接进主混音器会在 start() 报 -10875。没选设备时仍走原来的接法。
         if !choseDevice {
             audio.connect(input, to: audio.mainMixerNode, format: format)
