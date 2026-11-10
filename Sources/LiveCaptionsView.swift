@@ -166,10 +166,21 @@ struct LaneCaptionScroller<Content: View>: View {
                             Image(systemName: "arrow.down")
                         }
                         .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 10)
+                        .frame(height: 24)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Theme.cardFill)
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
+                        )
+                        .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .padding(.bottom, 10)
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 12)
                 }
             }
         }
