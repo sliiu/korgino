@@ -483,7 +483,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        false
+        // 与 Preferences 同默认：键不存在时视为 true（留在菜单栏）。
+        // bool(forKey:) 在缺键时是 false，这里必须用 object(forKey:)。
+        let keep = UserDefaults.standard.object(forKey: ConfigKeys.keepInMenuBar) as? Bool ?? true
+        return !keep
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
