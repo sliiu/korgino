@@ -1085,9 +1085,9 @@ struct PopupView: View {
 
     private func providerChevron(open: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
-            KIconView(.chevR, size: 9)
+            KIconView(.chevD, size: 9)
                 .foregroundStyle(.tertiary)
-                .rotationEffect(.degrees(open ? 90 : 0))
+                .rotationEffect(.degrees(open ? 180 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())

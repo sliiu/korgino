@@ -798,8 +798,7 @@ struct TranslationChatView: View {
                                 onWriteBack(msg.id, msg.content)
                             } label: {
                                 HStack(spacing: 3) {
-                                    Image(systemName: "arrow.uturn.backward")
-                                        .font(Theme.TypeScale.caption)
+                                    KIconView(.back, size: 13)
                                     Text(L("写回"))
                                         .font(Theme.TypeScale.caption)
                                 }
