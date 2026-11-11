@@ -52,18 +52,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ n: Notification) {
         AppDelegate.shared = self
-        MacKeychain.install()
-        AppleLanguageDetect.install()
-        AppleASRLocales.install()
-        _ = AppConfig.shared
-        AppConfig.shared.appearance.apply()
-        UIChrome.apply()
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        LaunchLog.step("MacKeychain.install") { MacKeychain.install() }
+        LaunchLog.step("AppleLanguageDetect.install") { AppleLanguageDetect.install() }
+        LaunchLog.step("AppleASRLocales.install") { AppleASRLocales.install() }
+        let config = LaunchLog.step("AppConfig.shared") { AppConfig.shared }
+        LaunchLog.step("appearance.apply") { config.appearance.apply() }
+        LaunchLog.step("UIChrome.apply") { UIChrome.apply() }
+        LaunchLog.step("statusItem create") {
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        }
         if let b = statusItem.button {
             MenuBarPulse.shared.attach(b, image: Self.menuBarIcon())
             b.imagePosition = .imageOnly
             b.toolTip = "Korgino"
         }
+        LaunchLog.statusItem(statusItem, label: "just created")
         let menu = NSMenu()
         menu.autoenablesItems = false
         menu.delegate = self
@@ -123,6 +126,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             MainWindowController.shared.show()
         }
+
+        LaunchLog.statusItem(statusItem, label: "after menu")
+        LaunchLog.log("menu items=\(statusItem.menu?.items.count ?? -1) AXTrusted=\(AXIsProcessTrusted())")
+        LaunchLog.markLaunched()
     }
 
     private func item(
@@ -1120,12 +1127,17 @@ if let i = args.firstIndex(of: "--test-ocr") {
 }
 
 MainActor.assumeIsolated {
+    LaunchLog.begin()
     // WebKit (incl. Quick Look previews) only draws overlay scrollers when this resolves to overlay.
     UserDefaults.standard.set("WhenScrolling", forKey: "AppleShowScrollBars")
     let app = NSApplication.shared
     let delegate = AppDelegate()
     app.delegate = delegate
     // 常规应用：Dock 和 ⌘Tab 里都有 Korgino。不再切 accessory，也不再靠 LSUIElement 拆包。
+    LaunchLog.log("entry: policyBefore=\(LaunchLog.policyName(app.activationPolicy()))")
     app.setActivationPolicy(.regular)
+    LaunchLog.log("entry: setActivationPolicy(.regular) -> \(LaunchLog.policyName(app.activationPolicy()))")
+    LaunchLog.log("entry: calling app.run()")
     app.run()
+    LaunchLog.log("entry: app.run() returned, policy=\(LaunchLog.policyName(app.activationPolicy()))")
 }
