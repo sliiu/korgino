@@ -547,14 +547,15 @@ struct CaptionBatchSheet: View {
                 Text(L("说话人"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Picker(L("说话人"), selection: $speaker) {
-                    Text(L("全部")).tag(Int?.none)
-                    ForEach(speakers, id: \.self) { id in
-                        Text(speakerLabel(id)).tag(Int?.some(id))
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 132)
+                let choices: [Int?] = [nil] + speakers.map { $0 }
+                MenuChip(
+                    title: speaker.map(speakerLabel) ?? L("全部"),
+                    options: choices,
+                    label: { $0.map(speakerLabel) ?? L("全部") },
+                    isSelected: { $0 == speaker },
+                    select: { speaker = $0 }
+                )
+                .frame(width: 132, alignment: .leading)
             }
 
             HStack(spacing: 8) {

@@ -89,7 +89,7 @@ struct HotkeyRecorderButton<Accessory: View>: View {
                         if recording {
                             Text(L("按下快捷键…"))
                         } else {
-                            HStack(spacing: 3) {
+                            HStack(spacing: 1) {
                                 ForEach(Array(spec.keys.enumerated()), id: \.offset) { _, key in
                                     Text(key)
                                 }
@@ -97,10 +97,21 @@ struct HotkeyRecorderButton<Accessory: View>: View {
                             .accessibilityElement(children: .combine)
                         }
                     }
-                    .frame(minWidth: 110)
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(recording ? Color.accentColor : Color.primary)
+                    .padding(.horizontal, 8)
+                    .frame(minWidth: 34, minHeight: 22)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Theme.cardFill)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .strokeBorder(Color.black.opacity(0.16), lineWidth: 0.5)
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: 0, y: 1)
                 }
-                .buttonStyle(.bordered)
-                .tint(recording ? .accentColor : nil)
+                .buttonStyle(.plain)
                 .disabled(!enabled)
                 .background(
                     HotkeyCaptureRepresentable(isRecording: $recording) { event in

@@ -191,11 +191,19 @@ struct QuickAppsSection: View {
     ) -> some View {
         let target = binding(bundleID, keyPath)
         let providers = config.catalogTargets()
+        let currentID = target.wrappedValue.providerID
+        var options = [""] + providers.map(\.id)
+        if !currentID.isEmpty, !providers.contains(where: { $0.id == currentID }) {
+            options.append(currentID)
+        }
         return SettingsRow(title: title) {
             HStack(spacing: 6) {
-                Picker(title, selection: Binding(
-                    get: { target.wrappedValue.providerID },
-                    set: { id in
+                MenuChip(
+                    title: providerTitle(currentID, followTitle),
+                    options: options,
+                    label: { providerTitle($0, followTitle) },
+                    isSelected: { $0 == currentID },
+                    select: { id in
                         // 换了供应商，上一个供应商的模型不再适用。
                         guard id != target.wrappedValue.providerID else { return }
                         var next = target.wrappedValue
@@ -203,18 +211,7 @@ struct QuickAppsSection: View {
                         next.model = ""
                         target.wrappedValue = next
                     }
-                )) {
-                    Text(followTitle).tag("")
-                    ForEach(providers) { p in
-                        Text(p.displayName).tag(p.id)
-                    }
-                    let id = target.wrappedValue.providerID
-                    if !id.isEmpty, !providers.contains(where: { $0.id == id }) {
-                        Text(pausedTitle(id)).tag(id)
-                    }
-                }
-                .labelsHidden()
-                .fixedSize()
+                )
                 if let profile = aiProfile(for: target.wrappedValue) {
                     ModelComboBox(
                         text: Binding(
@@ -232,30 +229,31 @@ struct QuickAppsSection: View {
     }
 
     private func voiceModeRow(_ bundleID: String) -> some View {
-        SettingsRow(title: L("语音模式")) {
-            Picker(L("语音模式"), selection: binding(bundleID, \.voiceMode)) {
-                Text(L("跟随语音页")).tag("")
-                ForEach(VoiceMode.allCases) { m in
-                    Text(m.title).tag(m.rawValue)
-                }
-            }
-            .labelsHidden()
-            .fixedSize()
+        let mode = binding(bundleID, \.voiceMode)
+        let options = [""] + VoiceMode.allCases.map(\.rawValue)
+        return SettingsRow(title: L("语音模式")) {
+            MenuChip(
+                title: voiceModeTitle(mode.wrappedValue),
+                options: options,
+                label: voiceModeTitle,
+                isSelected: { $0 == mode.wrappedValue },
+                select: { mode.wrappedValue = $0 }
+            )
             .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
         }
     }
 
     private func languageRow(_ bundleID: String) -> some View {
-        SettingsRow(title: L("应用目标语言")) {
-            Picker(L("应用目标语言"), selection: binding(bundleID, \.language)) {
-                Text(L("跟随默认")).tag("")
-                Text(L("跟随语音页的目标语言")).tag(QuickAppRule.followVoice)
-                ForEach(TargetLanguage.specific) { lang in
-                    Text(lang.menuTitle).tag(lang.rawValue)
-                }
-            }
-            .labelsHidden()
-            .fixedSize()
+        let language = binding(bundleID, \.language)
+        let options = ["", QuickAppRule.followVoice] + TargetLanguage.specific.map(\.rawValue)
+        return SettingsRow(title: L("应用目标语言")) {
+            MenuChip(
+                title: languageTitle(language.wrappedValue),
+                options: options,
+                label: languageTitle,
+                isSelected: { $0 == language.wrappedValue },
+                select: { language.wrappedValue = $0 }
+            )
             .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
         }
     }
@@ -265,13 +263,13 @@ struct QuickAppsSection: View {
         let mode = pluginModeBinding(bundleID)
         return VStack(alignment: .leading, spacing: 0) {
             SettingsRow(title: L("启用的插件"), showsDivider: mode.wrappedValue == QuickAppRule.pluginsCustom) {
-                Picker(L("启用的插件"), selection: mode) {
-                    Text(L("跟随默认")).tag("")
-                    Text(L("不配置")).tag(QuickAppRule.pluginsNone)
-                    Text(L("勾选要启用的")).tag(QuickAppRule.pluginsCustom)
-                }
-                .labelsHidden()
-                .fixedSize()
+                MenuChip(
+                    title: pluginModeTitle(mode.wrappedValue),
+                    options: ["", QuickAppRule.pluginsNone, QuickAppRule.pluginsCustom],
+                    label: pluginModeTitle,
+                    isSelected: { $0 == mode.wrappedValue },
+                    select: { mode.wrappedValue = $0 }
+                )
                 .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
             }
             if mode.wrappedValue == QuickAppRule.pluginsCustom {
@@ -387,6 +385,31 @@ struct QuickAppsSection: View {
     private func aiProfile(for target: QuickAppTarget) -> AIProfile? {
         guard !target.isEmpty else { return nil }
         return config.catalogTargets().first { $0.id == target.providerID }?.aiProfile
+    }
+
+    private func providerTitle(_ id: String, _ followTitle: String) -> String {
+        if id.isEmpty { return followTitle }
+        if let provider = config.catalogTargets().first(where: { $0.id == id }) { return provider.displayName }
+        return pausedTitle(id)
+    }
+
+    private func voiceModeTitle(_ id: String) -> String {
+        guard let mode = VoiceMode(rawValue: id) else { return L("跟随语音页") }
+        return mode.title
+    }
+
+    private func languageTitle(_ id: String) -> String {
+        if id.isEmpty { return L("跟随默认") }
+        if id == QuickAppRule.followVoice { return L("跟随语音页的目标语言") }
+        return TargetLanguage(rawValue: id)?.menuTitle ?? id
+    }
+
+    private func pluginModeTitle(_ id: String) -> String {
+        switch id {
+        case QuickAppRule.pluginsNone: return L("不配置")
+        case QuickAppRule.pluginsCustom: return L("勾选要启用的")
+        default: return L("跟随默认")
+        }
     }
 
     private func pausedTitle(_ id: String) -> String {

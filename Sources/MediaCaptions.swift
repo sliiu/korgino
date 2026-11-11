@@ -2183,12 +2183,14 @@ private struct MediaStage: View {
             Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
                 GridRow {
                     fieldLabel(L("语言"))
-                    Picker(L("识别语言"), selection: localeBinding) {
-                        ForEach(ASRLanguage.available(apple: AppConfig.shared.isSystemASR(job.engineID))) { lang in
-                            Text(lang.title).tag(lang.id)
-                        }
-                    }
-                    .labelsHidden()
+                    let languages = ASRLanguage.available(apple: AppConfig.shared.isSystemASR(job.engineID))
+                    MenuChip(
+                        title: languages.first { $0.id == localeBinding.wrappedValue }?.title ?? localeBinding.wrappedValue,
+                        options: languages.map(\.id),
+                        label: { id in languages.first { $0.id == id }?.title ?? id },
+                        isSelected: { $0 == localeBinding.wrappedValue },
+                        select: { localeBinding.wrappedValue = $0 }
+                    )
                     .frame(maxWidth: 220, alignment: .leading)
                 }
                 GridRow {
@@ -2211,12 +2213,13 @@ private struct MediaStage: View {
                 if job.tracks.count > 1 {
                     GridRow {
                         fieldLabel(L("音轨"))
-                        Picker(L("音轨"), selection: trackBinding) {
-                            ForEach(job.tracks) { track in
-                                Text(track.title).tag(track.id)
-                            }
-                        }
-                        .labelsHidden()
+                        MenuChip(
+                            title: job.tracks.first { $0.id == trackBinding.wrappedValue }?.title ?? "",
+                            options: job.tracks.map(\.id),
+                            label: { id in job.tracks.first { $0.id == id }?.title ?? String(id) },
+                            isSelected: { $0 == trackBinding.wrappedValue },
+                            select: { trackBinding.wrappedValue = $0 }
+                        )
                         .frame(maxWidth: 220, alignment: .leading)
                     }
                 }
@@ -2392,31 +2395,29 @@ private struct MediaStage: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 fieldLabel(L("识别"))
-                Picker(L("识别"), selection: Binding(
-                    get: { lane.asrID },
-                    set: { model.setLaneEngine(job.id, lane.id, $0) }
-                )) {
-                    ForEach(config.mediaASRChoices().filter { !taken.contains($0.id) }) { choice in
-                        Text(choice.name).tag(choice.id)
-                    }
-                }
-                .labelsHidden()
+                let choices = config.mediaASRChoices().filter { !taken.contains($0.id) }
+                MenuChip(
+                    title: choices.first { $0.id == lane.asrID }?.name ?? lane.asrID,
+                    options: choices.map(\.id),
+                    label: { id in choices.first { $0.id == id }?.name ?? id },
+                    isSelected: { $0 == lane.asrID },
+                    select: { model.setLaneEngine(job.id, lane.id, $0) }
+                )
                 .frame(maxWidth: 220, alignment: .leading)
             }
             ForEach(Array(lane.bindings.enumerated()), id: \.element.key) { index, binding in
                 HStack(spacing: 8) {
                     if index == 0 { fieldLabel(L("翻译")) } else { Color.clear.frame(width: 48, height: 1) }
-                    Picker(L("翻译服务"), selection: Binding(
-                        get: { binding.translateID },
-                        set: { model.setMediaBindingService(job.id, lane.id, binding.key, $0) }
-                    )) {
-                        Text(L("不翻译")).tag(LaneBinding.sourceID)
-                        Divider()
-                        ForEach(config.catalogTargets(), id: \.id) { target in
-                            Text(target.displayName).tag(target.id)
-                        }
-                    }
-                    .labelsHidden()
+                    let services = [LaneBinding.sourceID] + config.catalogTargets().map(\.id)
+                    MenuChip(
+                        title: binding.translateID == LaneBinding.sourceID
+                            ? L("不翻译")
+                            : LaneBindingNames.service(binding.translateID),
+                        options: services,
+                        label: { id in id == LaneBinding.sourceID ? L("不翻译") : LaneBindingNames.service(id) },
+                        isSelected: { $0 == binding.translateID },
+                        select: { model.setMediaBindingService(job.id, lane.id, binding.key, $0) }
+                    )
                     .frame(maxWidth: 220, alignment: .leading)
                     if let p = model.bindingProfile(binding) {
                         ModelOverrideMenu(profile: p, override: model.modelOverride(job.id, for: p), maxWidth: 130)
@@ -2427,16 +2428,14 @@ private struct MediaStage: View {
                             .foregroundStyle(.tertiary)
                             .frame(width: 120, alignment: .leading)
                     } else {
-                        Picker(L("译成"), selection: Binding(
-                            get: { binding.target },
-                            set: { model.setMediaBindingTarget(job.id, lane.id, binding.key, $0) }
-                        )) {
-                            ForEach(TargetLanguage.specific) { lang in
-                                Text(lang.shortTitle).tag(lang)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(width: 120)
+                        MenuChip(
+                            title: binding.target.shortTitle,
+                            options: TargetLanguage.specific,
+                            label: { $0.shortTitle },
+                            isSelected: { $0 == binding.target },
+                            select: { model.setMediaBindingTarget(job.id, lane.id, binding.key, $0) }
+                        )
+                        .frame(width: 120, alignment: .leading)
                     }
                     Spacer(minLength: 0)
                     let removable = lane.bindings.count > 1 || !binding.isSource

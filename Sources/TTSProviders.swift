@@ -307,7 +307,7 @@ final class SpeechPlayback: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
 }
 
 /// 一个说话人可以指定的一把声音。系统语音按正在读的语言列；云端音色属于已启用的那一家，每种语言都列。
-struct SpeakerVoice: Identifiable, Equatable {
+struct SpeakerVoice: Identifiable, Hashable {
     /// `apple:<voice identifier>`，或 `tts:<profile id>:<voice>`。
     var id: String
     var name: String

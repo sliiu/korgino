@@ -207,31 +207,17 @@ struct SpeakerChipButton: View {
     private func voicePicker(_ voices: [SpeakerVoice], onVoice: @escaping (String?) -> Void) -> some View {
         let stored = voiceID ?? ""
         let current = SpeakerVoice.title(for: stored)
-        let services = voices.map(\.service).filter { !$0.isEmpty }.reduce(into: [String]()) { list, service in
-            if !list.contains(service) { list.append(service) }
-        }
+        let options = [SpeakerVoice(id: "", name: SpeakerVoice.defaultTitle(), service: "")] + voices
         return VStack(alignment: .leading, spacing: 4) {
-            Picker(L("朗读"), selection: Binding(
-                get: { stored },
-                set: { onVoice($0.isEmpty ? nil : $0) }
-            )) {
-                Text(SpeakerVoice.defaultTitle()).tag("")
-                if !voices.isEmpty {
-                    Section(L("系统语音")) {
-                        ForEach(voices.filter { $0.service.isEmpty }) { voice in
-                            Text(voice.name).tag(voice.id)
-                        }
-                    }
-                    ForEach(services, id: \.self) { service in
-                        Section(service) {
-                            ForEach(voices.filter { $0.service == service }) { voice in
-                                Text(voice.name).tag(voice.id)
-                            }
-                        }
-                    }
-                }
-            }
-            .pickerStyle(.menu)
+            MenuChip(
+                title: current ?? SpeakerVoice.defaultTitle(),
+                options: options,
+                label: { voice in
+                    voice.service.isEmpty ? voice.name : "\(voice.service) · \(voice.name)"
+                },
+                isSelected: { $0.id == stored },
+                select: { onVoice($0.id.isEmpty ? nil : $0.id) }
+            )
             .frame(width: 220, alignment: .leading)
             if !stored.isEmpty, current == nil {
                 Text(L("这把声音已经不在了"))
