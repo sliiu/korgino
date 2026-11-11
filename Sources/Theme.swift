@@ -303,18 +303,47 @@ struct CheckToggleStyle: ToggleStyle {
                 configuration.isOn.toggle()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
-                        .font(Theme.TypeScale.reading)
-                        .foregroundStyle(configuration.isOn ? Color.accentColor : Color.secondary.opacity(0.5))
-                        .contentTransition(.symbolEffect(.replace))
+                    ShortcutCheck(on: configuration.isOn)
                     configuration.label
-                        .foregroundStyle(configuration.isOn ? Color.primary : Color.secondary)
+                        .foregroundStyle(Color.primary)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .opacity(enabled ? 1 : 0.45)
         }
+    }
+}
+
+/// 效果图里的勾选：14 磅圆角方框，勾上是强调色底、白勾。
+struct ShortcutCheck: View {
+    var on: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(on ? Color.accentColor : Color.clear)
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .strokeBorder(on ? Color.clear : Color.primary.opacity(0.25), lineWidth: 1)
+            if on {
+                ShortcutCheckMark()
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .frame(width: 14, height: 14)
+        .frame(width: 20, height: 24)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct ShortcutCheckMark: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + 1, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.38, y: rect.maxY - 1))
+        path.addLine(to: CGPoint(x: rect.maxX - 0.5, y: rect.minY + 1))
+        return path
     }
 }
 
