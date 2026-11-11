@@ -2099,6 +2099,7 @@ struct PreferencesPane: View {
                 control()
                     .frame(width: controlWidth, alignment: .trailing)
             }
+            .padding(.horizontal, 14)
             .frame(minHeight: SettingsChrome.rowMinHeight)
             if let note, !note.isEmpty {
                 Text(note)
@@ -2108,6 +2109,7 @@ struct PreferencesPane: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.top, -4)
                     .padding(.bottom, 8)
+                    .padding(.trailing, 14)
             }
         }
         .overlay(alignment: .top) {
