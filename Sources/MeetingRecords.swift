@@ -654,19 +654,15 @@ struct MeetingRecordsView: View {
                 MeetingRecordDetail(model: model, entry: entry)
                     .id(entry.id)
             } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "tray")
-                        .font(Theme.TypeScale.display)
-                        .foregroundStyle(.tertiary)
-                    Text(model.entries.isEmpty ? L("还没有会议记录") : L("选一份会议记录"))
-                        .foregroundStyle(.secondary)
-                    if model.entries.isEmpty {
-                        Text(L("在实时字幕里点「开始」，停下后这一场就留在这里。"))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
+                if model.entries.isEmpty {
+                    EmptyState(
+                        icon: "tray",
+                        title: L("还没有会议记录"),
+                        detail: L("在实时字幕里点「开始」，停下后这一场就留在这里。")
+                    )
+                } else {
+                    EmptyState(icon: "tray", title: L("选一份会议记录"))
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .controlSize(.small)
@@ -693,7 +689,7 @@ struct MeetingRecordsView: View {
             Divider()
             Toggle(L("保留新的会议记录"), isOn: $model.keepRecords)
                 .toggleStyle(.checkbox)
-                .font(.caption)
+                .font(Theme.TypeScale.caption)
                 .help(L("关掉后，实时字幕不再留下新的会议记录。已有的不动。"))
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -907,7 +903,7 @@ struct MeetingRecordDetail: View {
                 Button(L("写一场笔记")) { model.writeNote(record.id, lane: lane.id) }
                     .disabled(!model.canWriteNote(record, lane: lane.id))
                 Text(L("总结、议题、结论、待办和反复出现的词，用自己的 AI 密钥"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -984,7 +980,7 @@ private struct MeetingSegmentRow: View {
                     .font(Theme.TypeScale.caption.monospaced())
                     .foregroundStyle(playing ? Color.accentColor : Color.secondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HoverPlateButtonStyle())
             .disabled(!canPlay)
             .help(canPlay ? L("从这一句开始放录音") : "")
             .frame(width: 58, alignment: .trailing)
@@ -1093,6 +1089,8 @@ private struct MeetingPlayerBar: View {
             }
             .buttonStyle(.borderless)
             .disabled(recording)
+            .help(active && model.isPlaying ? L("暂停") : L("播放"))
+            .accessibilityLabel(Text(active && model.isPlaying ? L("暂停") : L("播放")))
             Text(MeetingExport.clock(active ? model.playTime : 0))
                 .font(Theme.TypeScale.caption.monospaced())
                 .foregroundStyle(.secondary)
@@ -1106,7 +1104,7 @@ private struct MeetingPlayerBar: View {
                 .foregroundStyle(.secondary)
             if recording {
                 Text(L("停下后才能放"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
             }
         }

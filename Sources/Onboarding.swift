@@ -864,7 +864,7 @@ private struct OnboardingView: View {
                 Spacer(minLength: 0)
                 if model.packDownloading {
                     Button(L("跳过")) { advance() }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(Theme.accent)
                         .help(L("跳过不取消下载，可以先去下一步"))
@@ -1261,7 +1261,7 @@ private struct OnboardingView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Color.primary.opacity(0.06))
                 )
         }
@@ -1282,13 +1282,13 @@ private struct OnboardingView: View {
             Spacer(minLength: 0)
             if model.step == .permissions && !model.permissionsOnly {
                 Button(L("跳过")) { advance() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .font(Theme.TypeScale.body)
                     .foregroundStyle(Theme.accent)
             }
             if model.step == .tryout {
                 Button(L("跳过体验")) { advance() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .font(Theme.TypeScale.body)
                     .foregroundStyle(Theme.accent)
             }

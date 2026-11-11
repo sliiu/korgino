@@ -29,6 +29,7 @@ struct VoiceprintSettingRow: View {
                     .menuIndicator(.hidden)
                     .fixedSize()
                     .disabled(listening)
+                    .accessibilityLabel(Text(L("更多")))
                 }
                 .help(L("每段说完后按声音认是谁，认错了可以在说话人上改名或并入另一位"))
                 Toggle(L("同传也按声纹再分"), isOn: reseparateInterp)
@@ -40,7 +41,7 @@ struct VoiceprintSettingRow: View {
                     ProgressView(value: progress)
                         .frame(maxWidth: .infinity)
                     Text(String(format: "%d%%", Int((progress * 100).rounded())))
-                        .font(.caption.monospacedDigit())
+                        .font(Theme.TypeScale.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Button(L("取消")) { model.cancel() }
                         .controlSize(.small)
@@ -49,7 +50,7 @@ struct VoiceprintSettingRow: View {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
                     Text(L("正在准备声纹模型"))
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                 }
             case .absent, .failed:
@@ -57,10 +58,10 @@ struct VoiceprintSettingRow: View {
                 HStack(spacing: 8) {
                     Button(L("用声纹分得更准…")) { asking = true }
                         .buttonStyle(.link)
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                     if case .failed(let message) = model.state {
                         Text(message)
-                            .font(.caption)
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(Theme.danger)
                             .lineLimit(2)
                     }
@@ -68,7 +69,7 @@ struct VoiceprintSettingRow: View {
             }
             if listening, model.state == .ready {
                 Text(L("下次开始时用上"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -83,9 +84,9 @@ struct VoiceprintSettingRow: View {
 
     private var slider: some View {
         HStack(spacing: 8) {
-            Text(L("少分")).font(.caption).foregroundStyle(.tertiary)
+            Text(L("少分")).font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
             Slider(value: threshold, in: SpeakerThreshold.range)
-            Text(L("多分")).font(.caption).foregroundStyle(.tertiary)
+            Text(L("多分")).font(Theme.TypeScale.caption).foregroundStyle(.tertiary)
         }
         .help(L("往「多分」拖，声音稍有不同就当成另一个人"))
     }

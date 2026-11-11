@@ -158,11 +158,11 @@ struct HotkeyRecorderButton<Accessory: View>: View {
                 .padding(.horizontal, 8)
                 .frame(minWidth: 34, minHeight: 22)
                 .background(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Theme.cardFill)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .strokeBorder(Color.black.opacity(0.16), lineWidth: 0.5)
                 )
                 .shadow(color: Color.black.opacity(0.08), radius: 0, y: 1)

@@ -269,11 +269,11 @@ enum SettingsGroups {
         .padding(.horizontal, 8)
         .frame(height: 24)
         .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .fill(Theme.cardFill)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
         )
     }

@@ -688,7 +688,7 @@ struct TranslationChatView: View {
             Spacer(minLength: 4)
             if !session.messages.isEmpty {
                 Button(L("清空")) { session.clearHistory() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .disabled(session.isSending)
@@ -755,7 +755,7 @@ struct TranslationChatView: View {
                     .padding(.horizontal, 11)
                     .padding(.vertical, 7)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.accentColor)
+                        RoundedRectangle(cornerRadius: Theme.panelRadius, style: .continuous).fill(Color.accentColor)
                     )
             }
             .padding(.horizontal, 12)
@@ -769,10 +769,10 @@ struct TranslationChatView: View {
                     .padding(.vertical, compact ? 2 : 8)
                     .background {
                         if !compact {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: Theme.panelRadius, style: .continuous)
                                 .fill(Theme.cardFill.opacity(surfaceOpacity))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    RoundedRectangle(cornerRadius: Theme.panelRadius, style: .continuous)
                                         .strokeBorder(Theme.hairline, lineWidth: 0.5)
                                 )
                         }
@@ -845,7 +845,7 @@ struct TranslationChatView: View {
                         .font(Theme.TypeScale.title)
                         .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
                 .help(L("停止生成"))
             } else {
                 Button {
@@ -857,7 +857,7 @@ struct TranslationChatView: View {
                     }
                     .frame(width: 20, height: 20)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
                 .disabled(!canSend)
                 .help(L("⌘↩ 发送"))
             }

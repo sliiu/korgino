@@ -726,7 +726,7 @@ struct PopupView: View {
     private func ocrShotPreview(_ shot: CGImage) -> some View {
         OCRShotPanel(image: shot)
             .frame(height: 240)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous))
     }
 
     @ViewBuilder
@@ -775,11 +775,8 @@ struct PopupView: View {
     }
 
     private func loadingRow(_ title: String = L("翻译中…")) -> some View {
-        HStack(spacing: 6) {
-            ProgressView().controlSize(.small)
-            Text(title).font(Theme.TypeScale.label).foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 2)
+        LoadingLine(text: title)
+            .padding(.vertical, 2)
     }
 
     /// 正在跑的那件事叫什么。翻译插件和普通翻译一样写「翻译中」，别的插件写自己的名字。
@@ -947,6 +944,7 @@ struct PopupView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
+                        .accessibilityLabel(Text(L("添加")))
                         .font(Theme.TypeScale.caption).fontWeight(.semibold)
                     Text(L("再加一家"))
                         .font(Theme.TypeScale.label)
@@ -995,7 +993,7 @@ struct PopupView: View {
                 } label: {
                     addProviderLine(name: provider.displayName, icon: ProviderIconView(ocr: provider, size: 14))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
             }
             ForEach(addableTargets) { target in
                 Button {
@@ -1007,7 +1005,7 @@ struct PopupView: View {
                         icon: ProviderIconView(outcomeID: target.id, name: target.displayName, size: 14)
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
             }
             Rectangle().fill(Theme.hairline).frame(height: 0.5)
             Button {
@@ -1235,7 +1233,7 @@ private struct OCRShotPanel: View {
             .padding(6)
         }
         .background(Color.primary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous))
         .overlay(alignment: .topLeading) {
             Text("\(Int((zoom * 100).rounded()))%")
                 .font(Theme.TypeScale.micro).monospacedDigit()
@@ -2768,7 +2766,7 @@ private struct PopupFollowUpBar: View {
                             .font(Theme.TypeScale.title)
                             .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .help(L("停止生成"))
                 } else {
                     Button(action: { if canSend { onSend() } }) {
@@ -2786,7 +2784,7 @@ private struct PopupFollowUpBar: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.05))
             )
         }

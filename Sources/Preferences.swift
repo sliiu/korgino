@@ -729,7 +729,7 @@ struct PreferencesPane: View {
             HStack {
                 Spacer(minLength: 0)
                 Button(L("重新看引导")) { Onboarding.replay() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .font(Theme.TypeScale.body)
                     .foregroundStyle(Theme.accent)
             }
@@ -915,14 +915,14 @@ struct PreferencesPane: View {
                         } label: {
                             ContactIcon(kind: .wechat)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .help(L("微信"))
                         Button {
                             NSWorkspace.shared.open(AppInfo.xProfileURL)
                         } label: {
                             ContactIcon(kind: .x)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .help("X")
                     }
                 }
@@ -977,7 +977,7 @@ struct PreferencesPane: View {
             KIconView(.spark, size: 20)
                 .foregroundStyle(Theme.accent)
                 .frame(width: 40, height: 40)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.accent.opacity(0.12)))
+                .background(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous).fill(Theme.accent.opacity(0.12)))
             VStack(alignment: .leading, spacing: 2) {
                 Text(accountHeadline)
                     .font(Theme.TypeScale.reading)
@@ -1101,7 +1101,7 @@ struct PreferencesPane: View {
                     .font(Theme.TypeScale.label)
                     .foregroundStyle(Theme.accent)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
                 .padding(.horizontal, 14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(minHeight: 38)
@@ -1395,7 +1395,7 @@ struct PreferencesPane: View {
                             config.maskPrefs.entries.removeAll { $0.id == entryID }
                             openMask.remove(entryID)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.body)
                         .foregroundStyle(Theme.danger)
                         Spacer(minLength: 8)
@@ -1526,7 +1526,7 @@ struct PreferencesPane: View {
             HStack {
                 Spacer(minLength: 0)
                 Button(L("刷新状态")) { refreshPermissions() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .font(Theme.TypeScale.body)
                     .foregroundStyle(Theme.accent)
             }
@@ -1585,7 +1585,7 @@ struct PreferencesPane: View {
                         .font(Theme.TypeScale.body)
                         .foregroundStyle(Theme.accent)
                     Button(L("导出…")) { exportAI() }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.body)
                         .foregroundStyle(Theme.accent)
                         .disabled(config.aiProfiles.isEmpty)
@@ -1692,7 +1692,7 @@ struct PreferencesPane: View {
                             testOutcomes = []
                             testDirection = ""
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                     }
@@ -2192,11 +2192,11 @@ struct PreferencesPane: View {
         .padding(.horizontal, 8)
         .frame(height: 24)
         .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .fill(Theme.cardFill)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
         )
     }
@@ -2392,6 +2392,8 @@ struct PreferencesPane: View {
                     .buttonStyle(.plain)
                     .frame(width: 22, height: 22)
                     .disabled(!canAdd)
+                    .help(L("添加"))
+                    .accessibilityLabel(Text(L("添加")))
                 }
             }
         }
@@ -2418,12 +2420,17 @@ struct PreferencesPane: View {
                 .buttonStyle(.plain)
                 .opacity(hover ? 1 : 0)
                 .allowsHitTesting(hover)
+                .accessibilityLabel(Text(L("移除")))
             }
             .padding(.horizontal, 8)
             .frame(height: 20)
             .background(Capsule().fill(Theme.accent.opacity(0.14)))
             .fixedSize()
             .onHover { hover = $0 }
+            // 悬停才出 ×，触控板和键盘用户靠右键菜单删。
+            .contextMenu {
+                Button(L("移除")) { remove() }
+            }
         }
     }
 
@@ -2599,11 +2606,9 @@ struct PreferencesPane: View {
                                 .foregroundStyle(.secondary)
                         } else {
                             Button(L("设为默认")) { config.setOCRDefault(p) }
-                                .buttonStyle(.plain)
+                                .buttonStyle(HoverPlateButtonStyle())
                                 .font(Theme.TypeScale.caption)
                                 .foregroundStyle(Theme.accent)
-                                .opacity(hoveredOCR == p.rawValue ? 1 : 0)
-                                .allowsHitTesting(hoveredOCR == p.rawValue)
                         }
                     }
                     if !ready {
@@ -2772,7 +2777,7 @@ struct PreferencesPane: View {
                             expandedASRIds.remove(profile.id)
                             config.removeASR(at: idx)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.label)
                         .foregroundStyle(Theme.danger)
                         Spacer(minLength: 0)
@@ -2911,7 +2916,6 @@ struct PreferencesPane: View {
     }
 
     private func ttsProfileRow(idx: Int, profile: TTSProfile) -> some View {
-        let on = config.ttsProfiles.indices.contains(idx) && config.ttsProfiles[idx].enabled
         let expanded = expandedTTSIds.contains(profile.id)
         let ready = config.ttsReady(profile)
         return VStack(alignment: .leading, spacing: 0) {
@@ -2947,7 +2951,7 @@ struct PreferencesPane: View {
                             expandedTTSIds.remove(profile.id)
                             config.removeTTS(at: idx)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.label)
                         .foregroundStyle(Theme.danger)
                         Spacer(minLength: 0)
@@ -3170,7 +3174,7 @@ struct PreferencesPane: View {
                             expandedAIIds.remove(profile.id)
                             config.removeAI(at: idx)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.label)
                         .foregroundStyle(Theme.danger)
                         Spacer(minLength: 0)
@@ -3222,7 +3226,7 @@ struct PreferencesPane: View {
                 HStack {
                     Spacer(minLength: 0)
                     Button(L("怎么拿密钥 ↗")) { NSWorkspace.shared.open(url) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.label)
                         .foregroundStyle(Theme.accent)
                 }
@@ -3303,7 +3307,7 @@ struct PreferencesPane: View {
             }
             if let t = o.text {
                 Text(t)
-                    .font(.body)
+                    .font(Theme.TypeScale.body)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -3373,7 +3377,7 @@ struct AddProviderSheet: View {
             }
             .padding(.horizontal, 10)
             .frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.wellFill))
+            .background(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous).fill(Theme.wellFill))
 
             HStack(spacing: 6) {
                 ForEach(Filter.allCases) { item in
@@ -3534,13 +3538,13 @@ struct AIModelPicker: View {
                     .lineLimit(2)
             } else if !models.isEmpty {
                 Text(String(format: L("已检测到 %@ 个模型，可下拉选择或直接输入"), String(describing: models.count)))
-                    .font(.caption2)
+                    .font(Theme.TypeScale.micro)
                     .foregroundStyle(.secondary)
             } else if !canFetch {
                 Text(allowEmptyKey
                      ? L("填写 Base URL 后可自动检测模型")
                      : L("填写 Base URL 和 API Key 后可自动检测模型"))
-                    .font(.caption2)
+                    .font(Theme.TypeScale.micro)
                     .foregroundStyle(.secondary)
             }
         }
@@ -3810,7 +3814,7 @@ struct ASRModelPicker: View {
                     .lineLimit(2)
             } else if !models.isEmpty {
                 Text(String(format: L("已检测到 %@ 个模型，可下拉选择或直接输入"), String(describing: models.count)))
-                    .font(.caption2)
+                    .font(Theme.TypeScale.micro)
                     .foregroundStyle(.secondary)
             }
         }

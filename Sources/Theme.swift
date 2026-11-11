@@ -5,6 +5,10 @@ enum Theme {
     /// 翻译浮层的圆角。效果图是 14，不是之前的 16。
     static let panelRadius: CGFloat = 14
     static let cardRadius: CGFloat = 10
+    /// 小控件（按钮、输入框、小块底色）的圆角。别再写 4、5、7、8、9 这些中间值。
+    static let smallRadius: CGFloat = 6
+    /// 高度一两磅的细条，圆角跟着高度走。
+    static let hairRadius: CGFloat = 2
     /// 白卡描边。主色 8%。
     static let hairline = Color.primary.opacity(0.08)
     /// 菜单和页按钮的边。黑 14%。
@@ -133,7 +137,7 @@ struct SearchField: View {
                 } label: {
                     KIconView(.clear, size: 13).foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
             }
         }
         .padding(.horizontal, 10)
@@ -227,7 +231,7 @@ struct HoverPlateButtonStyle: ButtonStyle {
                 .environment(\.hoverPlateHovering, hovering && enabled)
                 .opacity(enabled ? 1 : 0.4)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Color.primary.opacity(pressed ? 0.14 : (hovering && enabled ? 0.07 : 0)))
                 )
                 .onHover { hovering = $0 }
@@ -246,6 +250,59 @@ struct SegmentedToggleStyle: ToggleStyle {
         } label: {
             configuration.label
         }
+    }
+}
+
+/// 等待中的一行：小转圈 + 一句话。翻译、识别、加载都走这一个，别再各画各的。
+struct LoadingLine: View {
+    var text: String = L("翻译中…")
+    var body: some View {
+        HStack(spacing: 6) {
+            ProgressView().controlSize(.small)
+            Text(text)
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(text))
+    }
+}
+
+/// 空页面：图标 + 一句标题 + 一句说明。整页没有内容时用这个，纯一段灰字只在格子、行里用。
+struct EmptyState<Footer: View>: View {
+    let icon: String
+    let title: String
+    var detail: String?
+    @ViewBuilder var footer: Footer
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(Theme.TypeScale.display)
+                .foregroundStyle(.tertiary)
+            Text(title)
+                .font(Theme.TypeScale.body)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+            if let detail {
+                Text(detail)
+                    .font(Theme.TypeScale.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            footer
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(detail.map { "\(title)，\($0)" } ?? title))
+    }
+}
+
+extension EmptyState where Footer == EmptyView {
+    init(icon: String, title: String, detail: String? = nil) {
+        self.init(icon: icon, title: title, detail: detail) { EmptyView() }
     }
 }
 
@@ -274,7 +331,7 @@ struct PillSegmented<Value: Hashable>: View {
                         .padding(.vertical, fontSize * 0.3)
                         .background {
                             if selected {
-                                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                                     .fill(Theme.cardFill)
                                     .shadow(color: .black.opacity(0.14), radius: 1, y: 0.5)
                                     .matchedGeometryEffect(id: "thumb", in: ns)
@@ -286,7 +343,7 @@ struct PillSegmented<Value: Hashable>: View {
             }
         }
         .padding(2)
-        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.primary.opacity(0.07)))
+        .background(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous).fill(Color.primary.opacity(0.07)))
         .opacity(enabled ? 1 : 0.45)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
         .fixedSize()
@@ -326,9 +383,9 @@ struct ShortcutCheck: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .fill(on ? Color.accentColor : Color.clear)
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .strokeBorder(on ? Color.clear : Color.primary.opacity(0.25), lineWidth: 1)
             if on {
                 ShortcutCheckMark()
@@ -473,7 +530,7 @@ struct ErrorLine: View {
                 .lineLimit(lineLimit)
             if let retry {
                 Button(L("重试"), action: retry)
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .font(Theme.TypeScale.label)
                     .foregroundStyle(onDark ? Theme.onDark.primary : Theme.accent)
             }

@@ -934,9 +934,9 @@ struct SelectionPluginBarView: View {
         }
         .padding(3)
         .frame(height: 34)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         )
         .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
@@ -975,9 +975,9 @@ struct SelectionPluginBarView: View {
     private var resultsCard: some View {
         resultList
             .padding(.vertical, 4)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
             )
             .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
@@ -1008,9 +1008,9 @@ struct SelectionPluginBarView: View {
             .padding(.bottom, 4)
         }
         .frame(width: SelectionPluginBar.menuWidth)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         )
         .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
@@ -1043,6 +1043,7 @@ struct SelectionPluginBarView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 10)
                     .frame(height: 28)
+                    .accessibilityLabel(Text(model.query.isEmpty ? L("没有更多插件") : L("没有匹配的插件")))
             } else {
                 ForEach(Array(model.menuRows.enumerated()), id: \.element.id) { index, row in
                     Button {
@@ -1065,7 +1066,7 @@ struct SelectionPluginBarView: View {
                         .frame(height: 28)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                                 .fill(model.highlight == index ? Color.accentColor : Color.clear)
                         )
                         .foregroundStyle(model.highlight == index ? Color.white : Color.primary)
@@ -1094,7 +1095,7 @@ struct SelectionPluginBarView: View {
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
                 .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Color.primary.opacity(model.hovered == id ? 0.07 : 0))
                 )
                 .foregroundStyle(Color.primary.opacity(0.78))
@@ -1518,11 +1519,11 @@ struct SelectionPluginSettingsSection: View {
                             .foregroundStyle(.tertiary)
                         Spacer(minLength: 8)
                         Button(L("＋ 添加插件")) { adding = true }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HoverPlateButtonStyle())
                             .font(Theme.TypeScale.label)
                             .foregroundStyle(Theme.accent)
                         Button(L("恢复默认")) { confirmReset = true }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HoverPlateButtonStyle())
                             .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                             .disabled(store.isDefault)
@@ -1626,7 +1627,7 @@ struct SelectionPluginSettingsSection: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Button(L("编辑")) { editing = plugin }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
                 .font(Theme.TypeScale.label)
                 .foregroundStyle(Theme.accent)
                 .disabled(plugin.isTranslate || plugin.kind == .dictionary)
@@ -1705,7 +1706,7 @@ private struct SelectionPluginSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(plugin == nil ? L("添加插件") : L("编辑插件"))
-                .font(.headline)
+                .font(Theme.TypeScale.title)
 
             HStack(spacing: 8) {
                 Button {
@@ -1720,10 +1721,10 @@ private struct SelectionPluginSheet: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .background(
-                        RoundedRectangle(cornerRadius: 6)
+                        RoundedRectangle(cornerRadius: Theme.smallRadius)
                             .fill(Color.primary.opacity(0.06))
                     )
-                    .contentShape(RoundedRectangle(cornerRadius: 6))
+                    .contentShape(RoundedRectangle(cornerRadius: Theme.smallRadius))
                 }
                 .buttonStyle(.plain)
                 .help(L("图标"))
@@ -1742,13 +1743,13 @@ private struct SelectionPluginSheet: View {
 
             if mode == .ai {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(L("提示词")).font(.caption).foregroundStyle(.secondary)
+                    Text(L("提示词")).font(Theme.TypeScale.caption).foregroundStyle(.secondary)
                     TextEditor(text: $prompt)
                         .font(Theme.TypeScale.label)
                         .scrollContentBackground(.hidden)
                         .frame(height: 92)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: Theme.smallRadius)
                                 .strokeBorder(Color.primary.opacity(0.15))
                         )
                 }
@@ -1756,7 +1757,7 @@ private struct SelectionPluginSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(L("脚本（JavaScript）"))
-                            .font(.caption)
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                         Spacer(minLength: 8)
                         if generating {
@@ -1806,17 +1807,17 @@ private struct SelectionPluginSheet: View {
                     ScriptEditor(text: $script)
                         .frame(height: 132)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: Theme.smallRadius)
                                 .strokeBorder(Color.primary.opacity(0.15))
                         )
                     if let generateError {
                         Text(generateError)
-                            .font(.caption)
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(Theme.danger)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Text(L("划选的字就是变量 text。返回什么就显示什么，也可以写 output = …. 不联网、不花钱，本机跑。别写死循环——界面不卡，但这条线程会一直占着。"))
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -2062,11 +2063,11 @@ private struct SymbolPicker: View {
             StoredSymbol(name: name, size: 16, font: Theme.TypeScale.reading)
                 .frame(width: 30, height: 30)
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius)
                         .fill(on ? Color.accentColor.opacity(0.22) : Color.primary.opacity(0.05))
                 )
                 .foregroundStyle(on ? Color.accentColor : Color.primary)
-                .contentShape(RoundedRectangle(cornerRadius: 6))
+                .contentShape(RoundedRectangle(cornerRadius: Theme.smallRadius))
         }
         .buttonStyle(.plain)
         .help(KIcon(storageName: name)?.rawValue ?? name)

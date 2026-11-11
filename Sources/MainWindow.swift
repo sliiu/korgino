@@ -584,12 +584,7 @@ private struct TranslateResultBody: View {
     @ViewBuilder
     private var bodyContent: some View {
         if outcome.loading {
-            HStack(spacing: 6) {
-                ProgressView().controlSize(.small)
-                Text(L("翻译中…"))
-                    .font(Theme.TypeScale.label)
-                    .foregroundStyle(.secondary)
-            }
+            LoadingLine()
         } else if let error = outcome.error, !error.isEmpty {
             ErrorLine(text: error)
         } else if let text = outcome.text {
@@ -1037,7 +1032,7 @@ private struct LiveSourceCard: View {
                 .font(Theme.TypeScale.reading)
                 .foregroundStyle(Theme.accent)
                 .frame(width: 26, height: 26)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.accent.opacity(0.12)))
+                .background(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous).fill(Theme.accent.opacity(0.12)))
             Text(kind.title)
                 .font(Theme.TypeScale.body).fontWeight(.semibold)
             if kind == .microphone {
@@ -1281,7 +1276,7 @@ private struct LiveCaptureSettings: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 18, height: 18)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HoverPlateButtonStyle())
             .disabled(!removable)
             .opacity(removable ? 1 : 0)
             .help(L("移除这条翻译"))
@@ -1300,7 +1295,7 @@ private struct LiveCaptureSettings: View {
                         .font(Theme.TypeScale.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 Divider()
@@ -1510,7 +1505,7 @@ private struct LiveListeningView: View {
                 model.stop()
             } label: {
                 HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.hairRadius, style: .continuous)
                         .fill(Theme.danger)
                         .frame(width: 8, height: 8)
                     Text(L("停止"))
@@ -1520,11 +1515,11 @@ private struct LiveListeningView: View {
                 .padding(.horizontal, 10)
                 .frame(height: 24)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Theme.cardFill)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
                 )
             }
@@ -1555,11 +1550,11 @@ private struct LiveListeningView: View {
             .padding(.horizontal, 10)
             .frame(height: 24)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                     .fill(Theme.cardFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                     .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
             )
             .shadow(color: Color.black.opacity(0.04), radius: 0.5, y: 1)
@@ -1681,7 +1676,7 @@ private struct LiveListenColumn: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Button(L("撤销")) { model.undoDelete() }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(Theme.accent)
                     Spacer(minLength: 0)
@@ -1692,7 +1687,7 @@ private struct LiveListenColumn: View {
                             .font(Theme.TypeScale.micro)
                             .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .help(L("不再提示"))
                 }
                 .padding(.horizontal, 14)
@@ -1736,7 +1731,7 @@ private struct LiveListenColumn: View {
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(Theme.accent)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HoverPlateButtonStyle())
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -1747,7 +1742,7 @@ private struct LiveListenColumn: View {
         return HStack(alignment: .bottom, spacing: 2) {
             ForEach(0..<4, id: \.self) { index in
                 let on = level > Double(index) * 0.22
-                RoundedRectangle(cornerRadius: 1, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.hairRadius, style: .continuous)
                     .fill(on ? Theme.ok : Color.primary.opacity(0.15))
                     .frame(width: 2, height: 5 + CGFloat(index) * 2.5)
             }
@@ -1862,6 +1857,29 @@ private struct LiveListenColumn: View {
         .padding(.vertical, 8)
         .background(jump?.id == seg.id ? Color.accentColor.opacity(0.08) : Color.clear)
         .onHover { inside in hoveredID = inside ? seg.id : (hoveredID == seg.id ? nil : hoveredID) }
+        // 行内按钮悬停才出，右键菜单是键盘和不爱悬停的人的入口；盖掉了文本框自带的菜单，复制一并放进来。
+        .contextMenu {
+            Button(L("修改")) { beginEdit(seg, keys: keys) }
+            Button(L("朗读原文")) {
+                model.speak(seg.source, kind: .source, source: kind, lane: seg.laneID, speaker: seg.speaker)
+            }
+            Button(L("复制")) {
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(seg.source, forType: .string)
+            }
+            Divider()
+            Button(L("删除"), role: .destructive) {
+                if editingID == seg.id { editingID = nil }
+                model.deleteSegment(id: seg.id, kind: kind)
+            }
+        }
+    }
+
+    private func beginEdit(_ seg: LiveCaptionSegment, keys: [String]) {
+        editingID = seg.id
+        editSource = seg.source
+        editTranslations = Dictionary(uniqueKeysWithValues: keys.map { ($0, seg.translations[$0] ?? "") })
     }
 
     private func editor(_ seg: LiveCaptionSegment, keys: [String]) -> some View {
@@ -1890,11 +1908,7 @@ private struct LiveListenColumn: View {
 
     private func rowActions(_ seg: LiveCaptionSegment, keys: [String]) -> some View {
         HStack(spacing: 0) {
-            IconButton(icon: .pen, help: L("修改")) {
-                editingID = seg.id
-                editSource = seg.source
-                editTranslations = Dictionary(uniqueKeysWithValues: keys.map { ($0, seg.translations[$0] ?? "") })
-            }
+            IconButton(icon: .pen, help: L("修改")) { beginEdit(seg, keys: keys) }
             IconButton(icon: .spk, help: speech.notice.isEmpty ? L("朗读原文") : speech.notice) {
                 model.speak(seg.source, kind: .source, source: kind, lane: seg.laneID, speaker: seg.speaker)
             }

@@ -236,10 +236,10 @@ struct ImmersiveCaptionOverlay: View {
             chrome
                 .padding(4)
                 .background(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Color(white: 30 / 255).opacity(hovering ? 0.86 : 0))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                                 .strokeBorder(Color.white.opacity(hovering ? 0.12 : 0), lineWidth: 0.5)
                         )
                 )
@@ -349,7 +349,7 @@ struct ImmersiveCaptionOverlay: View {
                 .padding(.horizontal, 7)
                 .frame(height: 20)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                         .fill(Color.white.opacity(on ? 0.22 : 0.08))
                 )
                 .contentShape(Rectangle())
@@ -422,7 +422,7 @@ struct ImmersiveCaptionOverlay: View {
     }
 
     private var capsuleBackground: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
             .fill(Color.black.opacity(0.72))
     }
 }

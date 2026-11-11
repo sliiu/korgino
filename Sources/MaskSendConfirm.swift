@@ -168,9 +168,9 @@ private struct MaskConfirmView: View {
                     .padding(8)
             }
             .frame(height: 200)
-            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: Theme.smallRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: Theme.smallRadius)
                     .strokeBorder(Color.primary.opacity(0.15))
             )
 
@@ -187,9 +187,9 @@ private struct MaskConfirmView: View {
         }
         .padding(20)
         .frame(width: 540, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.panelRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: Theme.panelRadius)
                 .strokeBorder(Color.primary.opacity(0.12))
         )
     }

@@ -103,6 +103,7 @@ struct MenuChip<Option: Hashable>: View {
     var select: (Option) -> Void
 
     @State private var open = false
+    @State private var hover = false
 
     var body: some View {
         Button {
@@ -118,16 +119,17 @@ struct MenuChip<Option: Hashable>: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Theme.cardFill)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
+                    .fill(hover ? Color.primary.opacity(0.04) : Theme.cardFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Theme.chipStroke, lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
+                    .strokeBorder(hover ? Color.black.opacity(0.2) : Theme.chipStroke, lineWidth: 0.5)
             )
             .shadow(color: Color.black.opacity(0.04), radius: 0.5, y: 1)
         }
         .buttonStyle(.plain)
+        .onHover { hover = $0 }
         .fixedSize()
         .disabled(options.isEmpty)
         .popover(isPresented: $open, arrowEdge: .bottom) {
@@ -168,6 +170,8 @@ struct PageButton: View {
     var primary = false
     var action: () -> Void
 
+    @State private var hover = false
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -188,16 +192,17 @@ struct PageButton: View {
             .padding(.horizontal, primary ? 16 : 10)
             .frame(height: primary ? 28 : 24)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(primary ? Theme.accent : Theme.cardFill)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
+                    .fill(primary ? Theme.accent : (hover ? Color.primary.opacity(0.04) : Theme.cardFill))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(primary ? Color.clear : Theme.chipStroke, lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
+                    .strokeBorder(primary ? Color.clear : (hover ? Color.black.opacity(0.2) : Theme.chipStroke), lineWidth: 0.5)
             )
             .shadow(color: primary ? Color.clear : Color.black.opacity(0.04), radius: 0.5, y: 1)
         }
         .buttonStyle(.plain)
+        .onHover { hover = $0 }
         .fixedSize()
     }
 }
@@ -225,7 +230,7 @@ struct PermissionBanner: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                 .fill(Theme.attention.opacity(0.12))
         )
     }
@@ -376,10 +381,10 @@ struct SidebarRow: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous)
                     .fill(selected ? Color.primary.opacity(0.08) : (hover ? Color.primary.opacity(0.04) : Color.clear))
             )
-            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }

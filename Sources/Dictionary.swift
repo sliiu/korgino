@@ -198,7 +198,7 @@ private struct ExampleQuote: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.leading, 8)
             .overlay(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 1).fill(Color.primary.opacity(0.15)).frame(width: 2)
+                RoundedRectangle(cornerRadius: Theme.hairRadius).fill(Color.primary.opacity(0.15)).frame(width: 2)
             }
     }
 }

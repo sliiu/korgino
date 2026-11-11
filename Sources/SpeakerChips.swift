@@ -140,7 +140,7 @@ struct SpeakerChipButton: View {
                 SpeakerChip(speaker: speaker, token: token)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HoverPlateButtonStyle())
         .help(chipHelp)
         .popover(isPresented: $editing, arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 10) {
@@ -221,7 +221,7 @@ struct SpeakerChipButton: View {
             .frame(width: 220, alignment: .leading)
             if !stored.isEmpty, current == nil {
                 Text(L("这把声音已经不在了"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(Theme.attention)
             }
         }

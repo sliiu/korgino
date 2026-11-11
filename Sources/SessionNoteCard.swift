@@ -61,7 +61,7 @@ struct SessionNoteCard: View {
                     .font(Theme.TypeScale.body).fontWeight(.medium)
                 if let stamp = stampLine {
                     Text(stamp)
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
@@ -70,7 +70,7 @@ struct SessionNoteCard: View {
                     ProgressView()
                         .controlSize(.small)
                     Text(page == nil ? L("正在写笔记") : L("正在更新"))
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                 }
                 if let onRewrite, !writing {
@@ -130,7 +130,7 @@ struct SessionNoteCard: View {
     private func section<Body: View>(_ title: String, @ViewBuilder body: () -> Body) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.caption)
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
             body()
         }
@@ -171,7 +171,7 @@ struct SessionNoteCard: View {
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(Color.accentColor)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HoverPlateButtonStyle())
                 .help(item.cues.count > 1
                     ? String(format: L("跳到原话（共 %@ 处）"), String(item.cues.count))
                     : L("跳到原话"))

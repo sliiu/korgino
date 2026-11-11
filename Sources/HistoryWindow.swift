@@ -184,7 +184,7 @@ struct HistoryFavoritesView: View {
                             appName: e.appName
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                 }
                 if model.hiddenCount > 0 {
                     HStack(spacing: 6) {
@@ -223,7 +223,7 @@ struct HistoryFavoritesView: View {
                             help: [e.providerName, e.direction].filter { !$0.isEmpty }.joined(separator: " · ")
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HoverPlateButtonStyle())
                     .contextMenu {
                         Button(L("取消收藏"), role: .destructive) {
                             model.removeFavorite(id: e.id)

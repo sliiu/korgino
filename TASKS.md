@@ -15,6 +15,7 @@
 | A3 | 浮层引导视觉补差（④–⑧⑩） | grok-4.7@500k | ✅ 完成 | #15 | `./build.sh --no-install` 通过；未合并；笔记见 side-session a3-overlays-parity.md |
 | P7 | Windows 对齐 | — | ⬜ 待办 | — | Mac 完成后另起 ADR |
 | P10 | 全面对齐效果图；OCR 选区贴边修正；Pro 标记收敛；字幕删除可撤销 | self | ✅ 完成 | — | 2026-11-11，`--no-install` 编译过、`check-strings` 过，未实跑、未提交 |
+| P11 | 界面二轮优化：圆角三档、字号零裸写、按钮悬停反馈、加载行统一、悬停控件补右键路、图标无障碍标签、空态统一 | self | ✅ 完成 | — | 2026-11-12，`--no-install` 编译过、`check-strings` 1244 键全在，未实跑、未提交 |
 
 ## 注意
 

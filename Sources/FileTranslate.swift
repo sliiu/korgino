@@ -1345,13 +1345,13 @@ struct FileTranslateView: View {
     private var dropZone: some View {
         VStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.panelRadius, style: .continuous)
                     .strokeBorder(
                         style: StrokeStyle(lineWidth: 1.5, dash: [7, 5])
                     )
                     .foregroundStyle(model.isDropTargeted ? Color.accentColor : Color.primary.opacity(0.15))
                     .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: Theme.panelRadius, style: .continuous)
                             .fill(model.isDropTargeted ? Color.accentColor.opacity(0.08) : Theme.cardFill)
                     )
 
@@ -1478,6 +1478,7 @@ struct FileTranslateView: View {
                 }
             } label: {
                 Image(systemName: "plus")
+                    .accessibilityLabel(Text(L("添加")))
                     .font(Theme.TypeScale.caption).fontWeight(.semibold)
             }
             .menuStyle(.borderlessButton)
@@ -1977,7 +1978,6 @@ struct MarkdownWebView: NSViewRepresentable {
         guard context.coordinator.lastFingerprint != fingerprint else { return }
         context.coordinator.lastFingerprint = fingerprint
         let md = markdown
-        let coord = context.coordinator
         Task.detached(priority: .userInitiated) {
             let body = SimpleMarkdownHTML.convert(md)
     let html = """

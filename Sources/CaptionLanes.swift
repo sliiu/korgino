@@ -545,7 +545,7 @@ struct CaptionBatchSheet: View {
 
             HStack(spacing: 8) {
                 Text(L("说话人"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                 let choices: [Int?] = [nil] + speakers.map { $0 }
                 MenuChip(
@@ -560,7 +560,7 @@ struct CaptionBatchSheet: View {
 
             HStack(spacing: 8) {
                 Text(L("时段"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                 TextField("0:00:00", text: $from)
                     .textFieldStyle(.plain)
@@ -571,7 +571,7 @@ struct CaptionBatchSheet: View {
                     .well(radius: 6)
                     .frame(width: 88)
                 Text("→")
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
                 TextField(L("到末尾"), text: $to)
                     .textFieldStyle(.plain)
@@ -589,13 +589,13 @@ struct CaptionBatchSheet: View {
                 }
                 Spacer(minLength: 0)
                 Text(String(format: L("%@ 段"), String(visible.count)))
-                    .font(.caption.monospacedDigit())
+                    .font(Theme.TypeScale.caption.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
 
             if visible.isEmpty {
                 Text(L("这个范围里没有字幕"))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 24)
@@ -609,13 +609,13 @@ struct CaptionBatchSheet: View {
                 }
                 .frame(height: 240)
                 .background {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.wellFill)
+                    RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous).fill(Theme.wellFill)
                 }
             }
 
             HStack(spacing: 8) {
                 Text(selected.isEmpty ? L("还没选") : String(format: L("已选 %@ 段"), String(selected.count)))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(selected.isEmpty ? .tertiary : .secondary)
                 Spacer(minLength: 8)
                 Button(L("取消")) { dismiss() }
@@ -705,7 +705,7 @@ struct SpeakerMarkList: View {
                 if canDelete {
                     Button(L("全部删除")) { onDeleteAll() }
                         .buttonStyle(.borderless)
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                 }
             }
         }

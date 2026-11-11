@@ -1860,7 +1860,7 @@ struct MediaCaptionsView: View {
             }
             if let notice = model.notice, !notice.isEmpty {
                 Label(notice, systemImage: "info.circle")
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(3)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1925,7 +1925,7 @@ struct MediaCaptionsView: View {
                     }
                     progressTrack(job)
                     Text(metaLine(job))
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
@@ -2003,22 +2003,19 @@ struct MediaCaptionsView: View {
                 MediaStage(model: model, job: job)
                     .id(job.id)
             } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "film")
-                        .font(Theme.TypeScale.display)
-                        .foregroundStyle(.tertiary)
-                    Text(model.jobs.isEmpty ? L("拖入音视频") : L("选一份查看字幕"))
-                        .font(Theme.TypeScale.body).fontWeight(.medium)
-                    if model.jobs.isEmpty {
-                        Text(String(format: L("可以放进多份，同时识别 %@ 份"), String(model.concurrentLimit)))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
+                if model.jobs.isEmpty {
+                    EmptyState(
+                        icon: "film",
+                        title: L("拖入音视频"),
+                        detail: String(format: L("可以放进多份，同时识别 %@ 份"), String(model.concurrentLimit))
+                    ) {
                         Button(L("选择文件…")) { model.chooseFile() }
                             .controlSize(.small)
                             .padding(.top, 4)
                     }
+                } else {
+                    EmptyState(icon: "film", title: L("选一份查看字幕"))
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -2107,7 +2104,7 @@ private struct MediaStage: View {
                     .truncationMode(.middle)
                 Spacer(minLength: 8)
                 Text(String(format: L("%@ 段"), String(job.segments.count)))
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 14)
@@ -2156,14 +2153,14 @@ private struct MediaStage: View {
     private var summaryRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(summary)
-                .font(.caption)
+                .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
             Spacer(minLength: 8)
             if job.phase == .finished {
                 Button(adjusting ? L("收起设置") : L("调整设置")) { adjusting.toggle() }
                     .buttonStyle(.borderless)
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .help(L("换语言、起点、引擎或翻译后重新识别"))
             }
         }
@@ -2205,7 +2202,7 @@ private struct MediaStage: View {
                             .well(radius: 6)
                             .frame(width: 92)
                         Text(String(format: L("总长 %@"), MediaClock.format(job.duration)))
-                            .font(.caption.monospacedDigit())
+                            .font(Theme.TypeScale.caption.monospacedDigit())
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                     }
@@ -2275,7 +2272,7 @@ private struct MediaStage: View {
                 Spacer(minLength: 0)
                 if !segs.isEmpty {
                     Text(String(format: L("%@ 段"), String(segs.count)))
-                        .font(.caption.monospacedDigit())
+                        .font(Theme.TypeScale.caption.monospacedDigit())
                         .foregroundStyle(.tertiary)
                 }
                 Button(L("笔记")) { model.writeNote(job.id, lane.id) }
@@ -2326,7 +2323,7 @@ private struct MediaStage: View {
         .padding(8)
         .frame(maxHeight: fill ? .infinity : nil, alignment: .top)
         .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.wellFill)
+            RoundedRectangle(cornerRadius: Theme.smallRadius, style: .continuous).fill(Theme.wellFill)
         }
         .padding(.horizontal, 12)
     }
@@ -2352,7 +2349,7 @@ private struct MediaStage: View {
         ) {
             if segs.isEmpty {
                 Text(emptyText)
-                    .font(.caption)
+                    .font(Theme.TypeScale.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 8)
@@ -2423,7 +2420,7 @@ private struct MediaStage: View {
                     }
                     if binding.isSource {
                         Text(L("只出原文"))
-                            .font(.caption)
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.tertiary)
                             .frame(width: 120, alignment: .leading)
                     } else {
@@ -2602,14 +2599,12 @@ private struct MediaCueRow: View, Equatable {
                 ForEach(lanes, id: \.self) { id in
                     if lanes.count > 1, let name = names[id] {
                         Text(name)
-                            .font(.caption)
+                            .font(Theme.TypeScale.caption)
                             .foregroundStyle(.tertiary)
                             .padding(.top, 2)
                     }
                     if seg.loadingIDs.contains(id), seg.translations[id] == nil, seg.errors[id] == nil {
-                        Text(L("翻译中…"))
-                            .font(Theme.TypeScale.reading)
-                            .foregroundStyle(.tertiary)
+                        LoadingLine()
                     } else if let error = seg.errors[id] {
                         ErrorLine(text: error, lineLimit: 2)
                             .padding(.trailing, 56)

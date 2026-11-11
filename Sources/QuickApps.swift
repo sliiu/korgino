@@ -130,7 +130,7 @@ struct QuickAppsSection: View {
                             }
                             expanded.remove(app.bundleID)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HoverPlateButtonStyle())
                         .font(Theme.TypeScale.label)
                         .foregroundStyle(Theme.danger)
                         Spacer(minLength: 0)
