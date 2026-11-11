@@ -39,7 +39,7 @@ struct ChromeChevron: View {
     }
 }
 
-/// 设置页左上角的返回箭头。效果图里是 90 度的直角折线：左边和底边各 1.5 磅，转 45 度。
+/// 设置页左上角的返回箭头。效果图里是 90 度的直角折线，角朝左。
 struct BackChevron: View {
     var color: Color = Color.secondary
 
@@ -86,9 +86,10 @@ private struct ChromeChevronMark: Shape {
 private struct BackChevronMark: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        path.move(to: CGPoint(x: rect.minX + 0.75, y: rect.midY))
+        // SwiftUI 的 y 向下，顶点放在 minX 才朝左。
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY + 0.75))
+        path.addLine(to: CGPoint(x: rect.minX + 0.75, y: rect.midY))
         path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - 0.75))
-        path.addLine(to: CGPoint(x: rect.maxX - 0.75, y: rect.midY))
         return path
     }
 }
