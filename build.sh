@@ -109,8 +109,9 @@ if ls Resources/*.lproj >/dev/null 2>&1; then
   mkdir -p "$APP/Contents/Resources"
   cp -R Resources/*.lproj "$APP/Contents/Resources/"
 fi
-# Apache-2.0 §4(a) / CC BY 4.0: ship the licence text and the change notes with the app.
+# AGPL-3.0 §4, Apache-2.0 §4(a), CC BY 4.0: ship the licence text and the change notes with the app.
 mkdir -p "$APP/Contents/Resources/LICENSES"
+cp LICENSE COPYRIGHT "$APP/Contents/Resources/"
 cp LICENSES/*.txt "$APP/Contents/Resources/LICENSES/"
 cp THIRD-PARTY-NOTICES.md "$APP/Contents/Resources/"
 if [[ -f Assets/MenuBarTemplate.png ]]; then

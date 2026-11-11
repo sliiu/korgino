@@ -14,7 +14,7 @@ Core ML、Accelerate 等），随 macOS 分发，无单独署名义务。
 - 使用形式：预训练权重，在 VoxCeleb 上训练，原样用于本地推理，未再训练
 - 许可：CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
 - 改动说明：由 wquguru/cicada 转换为 Core ML 格式并重新量化，本项目按原样分发该转换结果
-- 模型文件仍受 CC BY 4.0 约束，不适用本仓库其余部分可能采用的条款
+- 模型文件仍受 CC BY 4.0 约束，不适用本仓库其余部分的 AGPL-3.0-or-later
 
 ## 2. wquguru/cicada — SpeakerID.swift 的 Swift 移植（代码）
 
@@ -24,7 +24,7 @@ Core ML、Accelerate 等），随 macOS 分发，无单独署名义务。
   与 `SpeakerModel.embed` 里逐 bin 去均值的一段
 - 改动说明：改为 Swift + Accelerate（vDSP）实现，包成 `enum` 与本项目的
   采样管线对接；数学常数与计算顺序保持不变，以便与 Core ML 模型的训练前处理对齐
-- 原文件版权归 wquguru/cicada 项目作者；上述改动部分随本仓库分发
+- 原文件版权归 wquguru/cicada 项目作者，仍按 Apache-2.0。上述改动部分随本仓库按 AGPL-3.0-or-later 分发
 
 ---
 
