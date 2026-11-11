@@ -72,8 +72,8 @@ struct HotkeyRecorderButton<Accessory: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 8) {
                 if showsToggle {
                     Toggle(action.title, isOn: $enabled)
                         .toggleStyle(CheckToggleStyle())
@@ -82,66 +82,93 @@ struct HotkeyRecorderButton<Accessory: View>: View {
                 }
                 accessory()
                 Spacer(minLength: 12)
-                Button {
-                    recording.toggle()
-                } label: {
-                    Group {
-                        if recording {
-                            Text(L("按下快捷键…"))
-                        } else {
-                            HStack(spacing: 1) {
-                                ForEach(Array(spec.keys.enumerated()), id: \.offset) { _, key in
-                                    Text(key)
-                                }
-                            }
-                            .accessibilityElement(children: .combine)
-                        }
-                    }
-                    .font(Theme.TypeScale.label)
-                    .foregroundStyle(recording ? Color.accentColor : Color.primary)
-                    .padding(.horizontal, 8)
-                    .frame(minWidth: 34, minHeight: 22)
+                recordButton
+                    .disabled(!enabled)
                     .background(
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(Theme.cardFill)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .strokeBorder(Color.black.opacity(0.16), lineWidth: 0.5)
-                    )
-                    .shadow(color: Color.black.opacity(0.08), radius: 0, y: 1)
-                }
-                .buttonStyle(.plain)
-                .disabled(!enabled)
-                .background(
-                    HotkeyCaptureRepresentable(isRecording: $recording) { event in
-                        if event.keyCode == UInt16(kVK_Escape) {
-                            recording = false
-                            return
+                        HotkeyCaptureRepresentable(isRecording: $recording) { event in
+                            if event.keyCode == UInt16(kVK_Escape) {
+                                recording = false
+                                return
+                            }
+                            if let next = HotkeySpec.from(event: event) {
+                                spec = next
+                                onChange(next)
+                                recording = false
+                            }
                         }
-                        if let next = HotkeySpec.from(event: event) {
-                            spec = next
-                            onChange(next)
-                            recording = false
-                        }
+                    )
+                if enabled {
+                    IconButton(icon: .back, help: String(format: L("恢复默认（%@）"), String(describing: action.default.display))) {
+                        let d = action.default
+                        spec = d
+                        onChange(d)
+                        recording = false
                     }
-                )
-                IconButton(icon: .back, help: String(format: L("恢复默认（%@）"), String(describing: action.default.display))) {
-                    let d = action.default
-                    spec = d
-                    onChange(d)
-                    recording = false
+                    .disabled(spec == action.default)
                 }
-                .disabled(!enabled || spec == action.default)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .frame(minHeight: SettingsChrome.rowMinHeight)
             .frame(maxWidth: .infinity)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Theme.hairline).frame(height: 0.5)
+            }
             if let w = conflictWarning, !w.isEmpty, enabled {
-                Text(w)
-                    .font(.caption)
-                    .foregroundStyle(Theme.attention)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                HStack(spacing: 6) {
+                    Circle().fill(Theme.attention).frame(width: 6, height: 6)
+                    Text(w)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(.leading, 36)
+                .padding(.vertical, 4)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Theme.hairline).frame(height: 0.5)
+                }
             }
         }
+    }
+
+    /// 没开的行右边是一行蓝字，开着的行是键帽。
+    private var recordButton: some View {
+        Button {
+            recording.toggle()
+        } label: {
+            if !enabled {
+                Text(L("录制快捷键"))
+                    .font(Theme.TypeScale.label)
+                    .foregroundStyle(Color.accentColor)
+            } else {
+                Group {
+                    if recording {
+                        Text(L("按下快捷键…"))
+                    } else {
+                        HStack(spacing: 1) {
+                            ForEach(Array(spec.keys.enumerated()), id: \.offset) { _, key in
+                                Text(key)
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .font(Theme.TypeScale.label)
+                .foregroundStyle(recording ? Color.accentColor : Color.primary)
+                .padding(.horizontal, 8)
+                .frame(minWidth: 34, minHeight: 22)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(Theme.cardFill)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.16), lineWidth: 0.5)
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 0, y: 1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
