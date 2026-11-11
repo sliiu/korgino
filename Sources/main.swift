@@ -17,8 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var quickUndoItem: NSMenuItem!
     var liveCaptionsItem: NSMenuItem!
     var quitItem: NSMenuItem!
-    /// 最近一次 ⌘Q 的时刻。Dock 图标上的「退出」不带按键，靠这个和菜单退出区分。
-    var lastQuitKeyAt: TimeInterval = 0
+    /// 这一次退出是菜单或 ⌘Q 来的。Dock 图标上的「退出」不带这个标记，只关窗口。
+    var quittingForReal = false
     /// Work that fills the translation panel. Starting one replaces the last: they
     /// all write into the same popup, so the older answer must not land in it.
     var panelTask: Task<Void, Never>?
@@ -84,7 +84,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         liveCaptionsItem = item(L("开始实时字幕"), #selector(toggleLiveCaptions))
         menu.addItem(liveCaptionsItem)
         menu.addItem(.separator())
-        quitItem = NSMenuItem(title: L("退出 Korgino"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quitItem = NSMenuItem(title: L("退出 Korgino"), action: #selector(quitFromMenu(_:)), keyEquivalent: "q")
+        quitItem.target = self
         quitItem.keyEquivalentModifierMask = [.command]
         // 退出项不画图标。系统有时会给 terminate 补一个方框叉，这里明确清掉。
         quitItem.image = nil
@@ -96,12 +97,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         SelectionPluginWatcher.shared.refresh()
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
-        // Dock 图标上的「退出」没有自己的入口。菜单和 ⌘Q 都带着 ⌘Q，记下时刻来区分。
+        // ⌘Q 不经过菜单项。按下时先做标记，退出前回调才放行。
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             if event.keyCode == 12, flags.contains(.command) {
-                self.lastQuitKeyAt = ProcessInfo.processInfo.systemUptime
+                self.quittingForReal = true
             }
             return event
         }
@@ -512,9 +513,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return false
     }
 
-    /// 菜单来的退出。先记下，好让退出前回调放行。
+    /// 菜单来的退出。先做标记，好让退出前回调放行。
     @objc func quitFromMenu(_ sender: Any?) {
-        lastQuitKeyAt = ProcessInfo.processInfo.systemUptime
+        quittingForReal = true
         NSApp.terminate(sender)
     }
 
@@ -542,10 +543,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // Dock 图标上的「退出」只关窗口并隐掉 Dock 图标。菜单里的「退出」和 ⌘Q 才真正退出。
-        if ProcessInfo.processInfo.systemUptime - lastQuitKeyAt > 1 {
+        guard quittingForReal else {
             hideFromDock(nil)
             return .terminateCancel
         }
+        quittingForReal = false
         guard MediaCaptionsController.shared.needsFlushBeforeQuit else { return .terminateNow }
         Task { @MainActor in
             await MediaCaptionsController.shared.flushForQuit()
