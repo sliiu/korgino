@@ -451,7 +451,7 @@ struct SettingsSidebar: View {
             Spacer(minLength: 8)
         }
         .padding(.horizontal, 10)
-        .padding(.top, 36)
+        .padding(.top, 44)
         .padding(.bottom, 10)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.sidebarFill)
@@ -584,14 +584,14 @@ struct PreferencesPane: View {
 
     private var detail: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 pageHeader
                 pageBody
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 28)
-            .padding(.top, 36)
-            .padding(.bottom, 28)
+            .padding(.horizontal, 26)
+            .padding(.top, 26)
+            .padding(.bottom, 26)
         }
     }
 
@@ -627,7 +627,7 @@ struct PreferencesPane: View {
 
     /// 常用只留这 12 行。其余设置在高级里。
     private var commonPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup(L("语言")) {
                 settingsRow(L("母语"), detail: L("用来读译文的语言")) {
                     languageMenu(selection: $config.nativeLanguage)
@@ -813,7 +813,7 @@ struct PreferencesPane: View {
     // MARK: - 快捷键
 
     private var shortcutsPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup(L("主窗口")) {
                 hotkeyRow(.openMain, spec: $config.hotkeyOpenMain)
             }
@@ -868,7 +868,7 @@ struct PreferencesPane: View {
     // MARK: - 账号与 Pro
 
     private var accountPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             accountStatusCard
             accountKeyBlock
             settingsGroup(L("免费版和 Pro")) {
@@ -1221,7 +1221,7 @@ struct PreferencesPane: View {
     // MARK: - 脱敏
 
     private var privacyPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup("") {
                 settingsRow(L("发出前先让我确认"), detail: L("命中脱敏规则时，先显示将要发出的内容")) {
                     Toggle("", isOn: confirmBeforeSendBinding)
@@ -1438,7 +1438,7 @@ struct PreferencesPane: View {
     // MARK: - 网络与权限
 
     private var networkPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup(L("网络代理")) {
                 fieldRow(L("代理")) {
                     PillSegmented(
@@ -1536,7 +1536,7 @@ struct PreferencesPane: View {
     // MARK: - 翻译服务与 AI
 
     private var providersPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup(L("各功能用哪几家")) {
                 useLine(L("划词翻译"), .select)
                 useLine(L("翻译剪贴板"), .clipboard)
@@ -1656,7 +1656,6 @@ struct PreferencesPane: View {
                     Text(L("免费版单份原文 5000 字符以内，中文一个字算一个。"))
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
-                    ProBadge(help: L("超过 5000 字符的文件需要 Pro"))
                 }
             }
 
@@ -1727,7 +1726,6 @@ struct PreferencesPane: View {
                     Text(config.translateCap(use) == 1 ? L("免费版只用默认一家") : L("免费版最多同时两家"))
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(Theme.attention)
-                    ProBadge(help: L("Pro 不限家数"))
                 }
             }
         }
@@ -1742,7 +1740,7 @@ struct PreferencesPane: View {
     // MARK: - 识别、朗读与 OCR
 
     private var recognitionPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup(L("语音识别")) {
                 asrBuiltInRow(
                     title: L("Apple 语音分析"),
@@ -1912,7 +1910,7 @@ struct PreferencesPane: View {
     // MARK: - 词典
 
     private var dictionaryPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             settingsGroup(L("来源")) {
                 ForEach(DictionaryProviderID.allCases) { provider in
                     dictProviderRow(provider)
@@ -1923,7 +1921,9 @@ struct PreferencesPane: View {
                     Text(L("免费版只用默认一家"))
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
-                    ProBadge(help: L("Pro 不限家数，按这个顺序排。"))
+                    Text(L("Pro 不限家数，按这个顺序排。"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.tertiary)
                 }
             } else {
                 Text(L("Pro 不限家数，按这个顺序排。"))

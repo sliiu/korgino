@@ -414,6 +414,8 @@ final class SystemAudioTranslateController: ObservableObject {
     // Dual-lane segmented captions
     @Published var systemSegments: [LiveCaptionSegment] = []
     @Published var micSegments: [LiveCaptionSegment] = []
+    /// 刚删掉的那一条，留着给「撤销」。只记一条，删下一次就换掉。
+    @Published var lastDeleted: (segment: LiveCaptionSegment, kind: SourceKind)? = nil
     @Published var systemMarks = SpeakerMarkBook()
     @Published var micMarks = SpeakerMarkBook()
     @Published var systemLanes: [RecognitionLane] = []
@@ -785,6 +787,10 @@ final class SystemAudioTranslateController: ObservableObject {
     }
 
     func deleteSegment(id: UUID, kind: SourceKind) {
+        let pool = kind == .system ? systemSegments : micSegments
+        if let seg = pool.first(where: { $0.id == id }) {
+            lastDeleted = (seg, kind)
+        }
         switch kind {
         case .system:
             systemSegments.removeAll { $0.id == id }
@@ -796,6 +802,23 @@ final class SystemAudioTranslateController: ObservableObject {
             autoSpokenID = nil
             autoSpokenKind = nil
             stopSpeaking()
+        }
+        if immersiveMode { refreshImmersiveOverlay() }
+    }
+
+    /// 加回来刚删的那一条，位置按开始时间插回，别甩到末尾。
+    func undoDelete() {
+        guard let (seg, kind) = lastDeleted else { return }
+        lastDeleted = nil
+        switch kind {
+        case .system:
+            guard !systemSegments.contains(where: { $0.id == seg.id }) else { return }
+            let at = systemSegments.firstIndex { $0.start > seg.start } ?? systemSegments.count
+            systemSegments.insert(seg, at: at)
+        case .microphone:
+            guard !micSegments.contains(where: { $0.id == seg.id }) else { return }
+            let at = micSegments.firstIndex { $0.start > seg.start } ?? micSegments.count
+            micSegments.insert(seg, at: at)
         }
         if immersiveMode { refreshImmersiveOverlay() }
     }

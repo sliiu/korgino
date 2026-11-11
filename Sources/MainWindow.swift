@@ -139,7 +139,8 @@ final class MainWindowController {
         model.translateRequest += 1
     }
 
-    /// 截图前让开。框选盖住全屏，主窗口留在画面里会被一起截进去。
+    /// 引导里的体验截图才让开。对话框挡着示例，留着会一起截进去。
+    /// 主窗口自己的截图不走这里：收窗口有系统默认的缩放动画，字会被缩糊。
     func yieldForCapture() {
         window?.orderOut(nil)
     }
@@ -381,7 +382,7 @@ private struct TranslatePage: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             languageMenus
             Spacer(minLength: 8)
             pageButton(.clip, L("剪贴板"), enabled: config.isFeatureEnabled(.clipboard)) {
@@ -474,7 +475,7 @@ private struct TranslatePage: View {
     }
 
     private var results: some View {
-        PageCard(padding: EdgeInsets(top: 12, leading: 16, bottom: 0, trailing: 16), content:
+        PageCard(padding: EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16), content:
             VStack(alignment: .leading, spacing: 0) {
                 if model.outcomes.indices.contains(model.expandedIndex) {
                     TranslateResultBody(
@@ -618,6 +619,7 @@ private struct TranslateFoldRow: View {
                 ChromeChevron(color: Color.primary.opacity(0.32))
             }
             .padding(.vertical, 9)
+            .padding(.horizontal, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
             .overlay(alignment: .top) {
@@ -807,14 +809,12 @@ private final class TranslatePageModel: ObservableObject {
         guard AppConfig.shared.isFeatureEnabled(.ocr) else { return }
         task?.cancel()
         task = Task { @MainActor in
-            MainWindowController.shared.yieldForCapture()
+            // 窗口留在原地。框选盖的是冻结画面，窗口不会被截进去，也不用收起再拉起。
             do {
                 let captured = try await OCRCapture.captureRegion()
-                MainWindowController.shared.show()
                 source = captured.0.text
                 translateNow()
             } catch {
-                MainWindowController.shared.show()
                 let message = error.localizedDescription
                 if message.contains("取消") || message.contains("已取消")
                     || message.localizedCaseInsensitiveContains("cancel") { return }
@@ -954,6 +954,10 @@ private struct LiveMeetingPage: View {
                 .disabled(!ready)
                 .help(ready ? L("打开的几路一起开始，记成同一场会议记录") : L("先打开一路"))
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .card()
+        .padding(.top, -2)
     }
 
     private var sessionLine: String {
@@ -1001,7 +1005,7 @@ private struct LiveSourceCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 direction
                 if expanded {
                     LiveCaptureSettings(model: model, kind: kind)
@@ -1028,7 +1032,7 @@ private struct LiveSourceCard: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Image(systemName: kind == .system ? "speaker.wave.2.fill" : "mic.fill")
                 .font(Theme.TypeScale.reading)
                 .foregroundStyle(Theme.accent)
@@ -1053,6 +1057,7 @@ private struct LiveSourceCard: View {
             }
             .buttonStyle(.plain)
             .help(expanded ? L("收起设置") : L("展开设置"))
+            .padding(.trailing, 10)
             Toggle("", isOn: capture)
                 .toggleStyle(.switch)
                 .controlSize(.small)
@@ -1064,7 +1069,7 @@ private struct LiveSourceCard: View {
     }
 
     private var direction: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Text(L("听"))
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
@@ -1072,6 +1077,7 @@ private struct LiveSourceCard: View {
             Text(L("译成"))
                 .font(Theme.TypeScale.caption)
                 .foregroundStyle(.secondary)
+                .padding(.leading, 6)
             LiveTargetMenu(model: model, kind: kind)
         }
     }
@@ -1668,6 +1674,37 @@ private struct LiveListenColumn: View {
             ForEach(model.lanes(kind)) { lane in
                 laneBody(lane)
             }
+            if let last = model.lastDeleted, last.kind == kind {
+                HStack(spacing: 8) {
+                    Text(L("已删除一条字幕"))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Button(L("撤销")) { model.undoDelete() }
+                        .buttonStyle(.plain)
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(Theme.accent)
+                    Spacer(minLength: 0)
+                    Button {
+                        model.lastDeleted = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(Theme.TypeScale.micro)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("不再提示"))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .transition(.opacity)
+                // 撤销条不常驻，几秒后自己收起来。
+                .task(id: last.segment.id) {
+                    try? await Task.sleep(nanoseconds: 8_000_000_000)
+                    guard !Task.isCancelled, model.lastDeleted?.segment.id == last.segment.id else { return }
+                    model.lastDeleted = nil
+                }
+            }
         }
         .confirmationDialog(
             L("清空这一路的字幕？"),
@@ -1711,8 +1748,8 @@ private struct LiveListenColumn: View {
             ForEach(0..<4, id: \.self) { index in
                 let on = level > Double(index) * 0.22
                 RoundedRectangle(cornerRadius: 1, style: .continuous)
-                    .fill(on ? Color.accentColor : Color.primary.opacity(0.15))
-                    .frame(width: 3, height: CGFloat(6 + index * 3))
+                    .fill(on ? Theme.ok : Color.primary.opacity(0.15))
+                    .frame(width: 2, height: 5 + CGFloat(index) * 2.5)
             }
         }
         .frame(height: 16, alignment: .bottom)
@@ -1796,7 +1833,7 @@ private struct LiveListenColumn: View {
                     speakerMark(seg, mark: mark)
                 }
             }
-            .frame(width: 44, alignment: .trailing)
+            .frame(width: 40, alignment: .trailing)
             VStack(alignment: .leading, spacing: 4) {
                 if editingID == seg.id {
                     editor(seg, keys: keys)
@@ -1809,10 +1846,11 @@ private struct LiveListenColumn: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         rowActions(seg, keys: keys)
                             .opacity(hoveredID == seg.id ? 1 : 0)
+                            .allowsHitTesting(hoveredID == seg.id)
                     }
                     ForEach(Array(keys.enumerated()), id: \.element) { index, key in
                         if let text = segmentTranslation(seg, providerID: key) {
-                            translationBlock(text, key: key, labeled: keys.count > 1, failed: seg.errors[key] != nil, first: index == 0) {
+                            translationBlock(text, key: key, labeled: keys.count > 1, failed: seg.errors[key] != nil, showSpeak: hoveredID == seg.id) {
                                 model.speak(text, kind: .translation, source: kind, target: LaneBinding(key: key)?.target, lane: seg.laneID, speaker: seg.speaker)
                             }
                         }
@@ -1867,7 +1905,7 @@ private struct LiveListenColumn: View {
         }
     }
 
-    private func translationBlock(_ text: String, key: String, labeled: Bool, failed: Bool, first: Bool, speak: @escaping () -> Void) -> some View {
+    private func translationBlock(_ text: String, key: String, labeled: Bool, failed: Bool, showSpeak: Bool, speak: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             if labeled {
                 Text(LaneBindingNames.title(key: key))
@@ -1884,7 +1922,8 @@ private struct LiveListenColumn: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     IconButton(icon: .spk, help: speech.notice.isEmpty ? L("朗读译文") : speech.notice, action: speak)
-                        .opacity(hoveredID == nil ? 0 : 1)
+                        .opacity(showSpeak ? 1 : 0)
+                        .allowsHitTesting(showSpeak)
                         .disabled(text == L("翻译中…"))
                 }
             }

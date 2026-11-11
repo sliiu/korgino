@@ -2228,10 +2228,9 @@ private struct MediaStage: View {
             HStack {
                 if overFreeDuration {
                     Text(L("免费版一份不超过 15 分钟"))
-                        .font(.caption)
+                        .font(Theme.TypeScale.caption)
                         .foregroundStyle(Theme.attention)
                         .lineLimit(1)
-                    ProBadge(help: L("超过 15 分钟的媒体字幕需要 Pro"))
                 }
                 Spacer(minLength: 0)
                 Button {

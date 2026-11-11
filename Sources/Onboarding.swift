@@ -491,8 +491,8 @@ private struct OnboardingView: View {
             ScrollView {
                 content
                     .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .padding(.horizontal, 28)
-                    .padding(.top, 8)
+                    .padding(.horizontal, 26)
+                    .padding(.top, 16)
                     .padding(.bottom, 16)
             }
             footer

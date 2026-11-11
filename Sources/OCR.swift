@@ -79,6 +79,31 @@ enum OCRCapture {
         return shots
     }
 
+    /// 屏幕上的普通窗口，Cocoa 全局坐标。用来让选区贴边。桌面、程序坞、菜单栏和太小的丢掉。
+    static func windowFrames() async throws -> [CGRect] {
+        let content = try await Task.detached(priority: .userInitiated) {
+            try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+        }.value
+        var frames: [CGRect] = []
+        for window in content.windows {
+            // 0 是普通窗口。菜单栏、程序坞、壁纸和各种浮层都在别的层。
+            guard window.windowLayer == 0, window.isOnScreen else { continue }
+            // 最前面的是发起截图的窗口，框选盖在它上面。它自己的边没有用，底下的窗才是要贴的。
+            guard window.owningApplication?.bundleIdentifier != Bundle.main.bundleIdentifier else { continue }
+            let frame = cocoaFrame(window.frame)
+            guard frame.width >= 80, frame.height >= 60 else { continue }
+            frames.append(frame)
+        }
+        return frames
+    }
+
+    /// ScreenCaptureKit 的框是左上角原点，主屏左上角为 0。选区用的是左下角原点。
+    /// 翻转基准只能是主屏高度：并排第二块屏在主屏右边，上方另有一块时各屏 maxY 会超过主屏高。
+    private static func cocoaFrame(_ cg: CGRect) -> CGRect {
+        let height = NSScreen.screens.first?.frame.height ?? 0
+        return CGRect(x: cg.minX, y: height - cg.maxY, width: cg.width, height: cg.height)
+    }
+
     private static func captureDisplay(_ display: SCDisplay, screen: NSScreen) async throws -> CGImage {
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let scale = screen.backingScaleFactor
@@ -168,10 +193,12 @@ enum RegionSelector {
 
     static func selectImage() async throws -> CGImage {
         let shots = try await OCRCapture.freezeScreens()
+        // 窗体边和冻结画面同一刻取。框选盖上去之后再取，拿到的是遮罩自己。
+        let windows = (try? await OCRCapture.windowFrames()) ?? []
         return try await withCheckedThrowingContinuation { cont in
             let ctl = RegionOverlayController()
             active = ctl
-            ctl.begin(shots: shots) { result in
+            ctl.begin(shots: shots, windows: windows) { result in
                 active = nil
                 switch result {
                 case .success(let image): cont.resume(returning: image)
@@ -191,12 +218,18 @@ final class RegionOverlayController {
     /// Selection in global Cocoa coordinates (bottom-left origin, points).
     private(set) var selectionGlobal: CGRect?
 
-    func begin(shots: [FrozenScreen], _ completion: @escaping (Result<CGImage, Error>) -> Void) {
+    func begin(shots: [FrozenScreen], windows windowFrames: [CGRect], _ completion: @escaping (Result<CGImage, Error>) -> Void) {
         self.completion = completion
         // One overlay window per screen so dimming + hit-testing stay correct on multi-monitor.
         for screen in NSScreen.screens {
             let shot = shots.first { framesMatch($0.frame, screen.frame) }
-            let w = RegionOverlayWindow(screenFrame: screen.frame, image: shot?.image, controller: self)
+            let onScreen = windowFrames.filter { $0.intersects(screen.frame) }
+            let w = RegionOverlayWindow(
+                screenFrame: screen.frame,
+                image: shot?.image,
+                windows: onScreen,
+                controller: self
+            )
             w.orderFrontRegardless()
             windows.append(w)
         }
@@ -255,10 +288,11 @@ final class RegionOverlayController {
 final class RegionOverlayWindow: NSWindow {
     let selectView: RegionSelectView
 
-    init(screenFrame: CGRect, image: CGImage?, controller: RegionOverlayController) {
+    init(screenFrame: CGRect, image: CGImage?, windows: [CGRect], controller: RegionOverlayController) {
         let view = RegionSelectView(frame: NSRect(origin: .zero, size: screenFrame.size))
         view.controller = controller
         view.loadFrozenImage(image)
+        view.loadWindows(windows, screenFrame: screenFrame)
         self.selectView = view
         super.init(
             contentRect: screenFrame,
@@ -296,6 +330,29 @@ final class RegionSelectView: NSView {
 
     private enum Handle: CaseIterable, Equatable {
         case n, s, e, w, ne, nw, se, sw
+
+        /// 拉这个手柄会动的边。贴边只贴会动的那几条，否则从右下角拉会让左边跳。
+        var movingEdges: SnapEdges {
+            switch self {
+            case .n: return .top
+            case .s: return .bottom
+            case .e: return .right
+            case .w: return .left
+            case .ne: return [.top, .right]
+            case .nw: return [.top, .left]
+            case .se: return [.bottom, .right]
+            case .sw: return [.bottom, .left]
+            }
+        }
+    }
+
+    struct SnapEdges: OptionSet {
+        let rawValue: Int
+        static let left   = SnapEdges(rawValue: 1 << 0)
+        static let right  = SnapEdges(rawValue: 1 << 1)
+        static let bottom = SnapEdges(rawValue: 1 << 2)
+        static let top    = SnapEdges(rawValue: 1 << 3)
+        static let all: SnapEdges = [.left, .right, .bottom, .top]
     }
 
     /// Selection in this view's bounds (bottom-left origin).
@@ -310,6 +367,11 @@ final class RegionSelectView: NSView {
     private var sourceImage: CGImage?
     private var smear: SelectionSmear?
     private var toolbar: SelectionToolbar?
+    /// 这块屏上的窗体边，视图坐标。鼠标停上去画淡边，拖近了吸上去。
+    private var windowFrames: [CGRect] = []
+    private var hoverWindow: CGRect?
+    /// 边离窗体边这么近就吸上去。
+    private let snapDistance: CGFloat = 8
     private let handleSize: CGFloat = 9
     private let minSize: CGFloat = 8
     /// 只有承载选区的这块屏幕画工具条、尺寸标签和手柄，多屏时不重复。
@@ -319,6 +381,20 @@ final class RegionSelectView: NSView {
         sourceImage = image
         if let image { smear = SelectionSmear(image: image) }
         needsDisplay = true
+    }
+
+    /// `frames` 是 Cocoa 全局坐标。转进这块屏的视图坐标，超出的丢掉。
+    func loadWindows(_ frames: [CGRect], screenFrame: CGRect) {
+        windowFrames = frames.compactMap { frame in
+            let local = CGRect(
+                x: frame.minX - screenFrame.minX,
+                y: frame.minY - screenFrame.minY,
+                width: frame.width,
+                height: frame.height
+            ).intersection(bounds)
+            guard local.width >= 80, local.height >= 60 else { return nil }
+            return local
+        }
     }
 
     /// Crop of this view's selection, including paint locked to those pixels.
@@ -402,6 +478,14 @@ final class RegionSelectView: NSView {
         NSColor.black.withAlphaComponent(0.55).setFill()
         dim.fill()
 
+        // 鼠标停着的窗体。淡边，点一下就选中整窗。
+        if let hover = hoverWindow, hover != selection {
+            NSColor.white.withAlphaComponent(0.85).setStroke()
+            let edge = NSBezierPath(rect: hover.insetBy(dx: 0.5, dy: 0.5))
+            edge.lineWidth = 1.5
+            edge.stroke()
+        }
+
         // Hint banner
         let hint = hintText()
         let attrs: [NSAttributedString.Key: Any] = [
@@ -425,8 +509,6 @@ final class RegionSelectView: NSView {
         hint.draw(at: NSPoint(x: banner.minX + pad, y: banner.minY + 5), withAttributes: attrs)
 
         guard let sel = selection, sel.width > 1, sel.height > 1 else { return }
-
-        let accent = NSColor.controlAccentColor
 
         // 选中区域里再亮一点，边界更清楚；外侧压一层柔和暗角。
         if sel.width > 4, sel.height > 4 {
@@ -531,7 +613,7 @@ final class RegionSelectView: NSView {
 
     private func hintText() -> String {
         if selection == nil {
-            return L("拖拽选择截图区域  ·  Esc 取消")
+            return L("拖拽选择，或点一下窗体  ·  Esc 取消")
         }
         switch tool {
         case .paint:
@@ -607,6 +689,13 @@ final class RegionSelectView: NSView {
             selectionAtDragStart = sel
             return
         }
+        // 点在窗体上、还没选区：记下这个窗，没拖开就选中整窗。
+        if selection == nil, window(at: p) != nil {
+            mode = .creating
+            selection = nil
+            selectionAtDragStart = .zero
+            return
+        }
         // Start a new selection
         mode = .creating
         selection = CGRect(origin: p, size: .zero)
@@ -624,12 +713,12 @@ final class RegionSelectView: NSView {
             return
         case .creating:
             let s = dragStart
-            selection = CGRect(
+            selection = snapped(CGRect(
                 x: min(s.x, p.x),
                 y: min(s.y, p.y),
                 width: abs(p.x - s.x),
                 height: abs(p.y - s.y)
-            ).intersection(bounds)
+            ).intersection(bounds))
         case .moving:
             var r = selectionAtDragStart
             r.origin.x += p.x - dragStart.x
@@ -637,9 +726,9 @@ final class RegionSelectView: NSView {
             // Clamp inside view
             r.origin.x = min(max(0, r.origin.x), bounds.width - r.width)
             r.origin.y = min(max(0, r.origin.y), bounds.height - r.height)
-            selection = r
+            selection = snappedOffset(r)
         case .resizing(let h):
-            selection = resized(selectionAtDragStart, handle: h, to: p)
+            selection = snapped(resized(selectionAtDragStart, handle: h, to: p), edges: h.movingEdges)
         case .idle:
             break
         }
@@ -657,7 +746,12 @@ final class RegionSelectView: NSView {
             return
         }
         if case .creating = mode {
-            if let sel = selection, (sel.width < minSize || sel.height < minSize) {
+            // 点一下窗体就选整窗。手抖拖出一两个像素也算点，不按小选区丢掉。
+            let tiny = selection.map { $0.width < minSize || $0.height < minSize } ?? true
+            if tiny, let frame = window(at: dragStart) {
+                selection = frame
+                publishSelection()
+            } else if tiny {
                 selection = nil
                 publishSelection()
             }
@@ -671,6 +765,11 @@ final class RegionSelectView: NSView {
 
     override func mouseMoved(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
+        let hover = selection == nil ? window(at: p) : nil
+        if hover != hoverWindow {
+            hoverWindow = hover
+            needsDisplay = true
+        }
         if let bar = toolbar, !bar.isHidden, bar.frame.contains(p) {
             setBrushPoint(nil)
             NSCursor.arrow.set()
@@ -778,11 +877,79 @@ final class RegionSelectView: NSView {
     }
 
     override func mouseExited(with event: NSEvent) {
+        var dirty = false
         if brushPoint != nil {
             brushPoint = nil
-            needsDisplay = true
+            dirty = true
         }
+        if hoverWindow != nil {
+            hoverWindow = nil
+            dirty = true
+        }
+        if dirty { needsDisplay = true }
         super.mouseExited(with: event)
+    }
+
+    /// 最靠上的那个包含这个点的窗体。SCShareableContent 按前后顺序给，最前面的在前。
+    private func window(at p: NSPoint) -> CGRect? {
+        windowFrames.first { $0.contains(p) }
+    }
+
+    /// 按住 Option 不吸。指定的每一条边各自找 8 磅以内最近的窗体边。
+    private func snapped(_ rect: CGRect, edges: SnapEdges = .all) -> CGRect {
+        guard !NSEvent.modifierFlags.contains(.option) else { return rect }
+        guard rect.width >= 1, rect.height >= 1 else { return rect }
+        var left = rect.minX
+        var right = rect.maxX
+        var bottom = rect.minY
+        var top = rect.maxY
+        if edges.contains(.left), let edge = nearest(to: left, edges: windowFrames.map(\.minX)) {
+            left = edge
+        }
+        if edges.contains(.right), let edge = nearest(to: right, edges: windowFrames.map(\.maxX)) {
+            right = edge
+        }
+        if edges.contains(.bottom), let edge = nearest(to: bottom, edges: windowFrames.map(\.minY)) {
+            bottom = edge
+        }
+        if edges.contains(.top), let edge = nearest(to: top, edges: windowFrames.map(\.maxY)) {
+            top = edge
+        }
+        guard right - left >= minSize, top - bottom >= minSize else { return rect }
+        return CGRect(x: left, y: bottom, width: right - left, height: top - bottom).intersection(bounds)
+    }
+
+    /// 搬动整块选区时只平移，不改变大小：横竖各自取最近的一条窗边当位移，别让四条边各自吸、把框拉变形。
+    private func snappedOffset(_ rect: CGRect) -> CGRect {
+        guard !NSEvent.modifierFlags.contains(.option) else { return rect }
+        let xs: [CGFloat] = [rect.minX, rect.midX, rect.maxX]
+        let ys: [CGFloat] = [rect.minY, rect.midY, rect.maxY]
+        let dx = nearestDelta(to: xs, edges: windowFrames.map(\.minX) + windowFrames.map(\.maxX))
+        let dy = nearestDelta(to: ys, edges: windowFrames.map(\.minY) + windowFrames.map(\.maxY))
+        let moved = rect.offsetBy(dx: dx ?? 0, dy: dy ?? 0)
+        guard moved.minX >= bounds.minX, moved.maxX <= bounds.maxX,
+              moved.minY >= bounds.minY, moved.maxY <= bounds.maxY else { return rect }
+        return moved
+    }
+
+    /// xs 里任一条线离某条窗边不超过吸附距离时，返回那个最近的位移。
+    private func nearestDelta(to lines: [CGFloat], edges: [CGFloat]) -> CGFloat? {
+        var best: (delta: CGFloat, distance: CGFloat)?
+        for line in lines {
+            for edge in edges {
+                let delta = edge - line
+                let distance = abs(delta)
+                guard distance > 0.5, distance <= snapDistance else { continue }
+                if best == nil || distance < best!.distance { best = (delta, distance) }
+            }
+        }
+        return best?.delta
+    }
+
+    private func nearest(to value: CGFloat, edges: [CGFloat]) -> CGFloat? {
+        edges
+            .filter { abs($0 - value) <= snapDistance && abs($0 - value) > 0.5 }
+            .min { abs($0 - value) < abs($1 - value) }
     }
 
     override func cancelOperation(_ sender: Any?) {

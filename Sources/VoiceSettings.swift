@@ -7,7 +7,7 @@ struct VoiceSettingsPage: View {
     var body: some View {
         let _ = config.appLanguage
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(L("语音"))
                         .font(Theme.TypeScale.title)
@@ -18,9 +18,9 @@ struct VoiceSettingsPage: View {
                 VoiceSettingsBody()
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 28)
-            .padding(.top, 36)
-            .padding(.bottom, 28)
+            .padding(.horizontal, 26)
+            .padding(.top, 26)
+            .padding(.bottom, 26)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.windowFill)
@@ -38,7 +38,7 @@ struct VoiceSettingsBody: View {
 
     var body: some View {
         let _ = config.appLanguage
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Spacer(minLength: 0)
                 Toggle("", isOn: $config.dictateEnabled)

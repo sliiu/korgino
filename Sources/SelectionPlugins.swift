@@ -1481,7 +1481,7 @@ struct SelectionPluginSettingsSection: View {
     @State private var dragging: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             SettingsGroup(title: "") {
                 SettingsRow(
                     title: L("划词后显示插件条"),

@@ -449,7 +449,7 @@ struct StatusDot: View {
                     value: dim
                 )
             Text(text)
-                .font(Theme.TypeScale.caption)
+                .font(Theme.TypeScale.label)
                 .foregroundStyle(.secondary)
         }
     }

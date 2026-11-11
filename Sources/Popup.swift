@@ -248,7 +248,7 @@ struct PopupView: View {
                 )
             }
             .padding(.leading, 12)
-            .padding(.trailing, 6)
+            .padding(.trailing, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity)
@@ -523,7 +523,6 @@ struct PopupView: View {
                     HStack(spacing: 6) {
                         Text(L("继续对话需要 Pro"))
                             .font(Theme.TypeScale.label)
-                        ProBadge(help: L("继续对话需要 Pro"))
                         Spacer(minLength: 0)
                     }
                     .foregroundStyle(.secondary)
@@ -970,7 +969,6 @@ struct PopupView: View {
                 HStack(spacing: 6) {
                     Text(L("再加一家需要 Pro"))
                         .font(Theme.TypeScale.label)
-                    ProBadge(help: L("再加一家需要 Pro"))
                     Spacer(minLength: 0)
                 }
                 .foregroundStyle(.secondary)
