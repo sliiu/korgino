@@ -2257,6 +2257,7 @@ private struct MediaStage: View {
             Label(L("再加一路识别"), systemImage: "plus")
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .controlSize(.small)
         .fixedSize()
         .disabled(choices.isEmpty)

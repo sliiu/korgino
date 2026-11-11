@@ -544,6 +544,7 @@ private struct TranslateResultBody: View {
                         }
                     }
                     .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
                     .fixedSize()
                 }
                 Spacer(minLength: 8)
@@ -1154,11 +1155,12 @@ private struct LiveCaptureSettings: View {
                         Button(choice.name) { model.setLaneEngine(lane.id, kind, choice.id) }
                     }
                 } label: {
-                    Text(L("换引擎"))
-                        .font(Theme.TypeScale.caption)
+                    MenuLabel {
+                        Text(L("换引擎"))
+                            .font(Theme.TypeScale.caption)
+                    }
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+                .menuChevron()
                 .disabled(model.isActive)
                 if model.lanes(kind).count > 1 {
                     Menu {
@@ -1202,12 +1204,13 @@ private struct LiveCaptureSettings: View {
                     Button(target.displayName) { model.setBindingService(lane.id, kind, binding.key, target.id) }
                 }
             } label: {
-                Text(LaneBindingNames.service(binding.translateID))
-                    .font(Theme.TypeScale.body)
-                    .lineLimit(1)
+                MenuLabel {
+                    Text(LaneBindingNames.service(binding.translateID))
+                        .font(Theme.TypeScale.body)
+                        .lineLimit(1)
+                }
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
+            .menuChevron()
             if binding.isSource {
                 Text(L("只出原文"))
                     .font(Theme.TypeScale.caption)
@@ -1218,12 +1221,13 @@ private struct LiveCaptureSettings: View {
                         Button(lang.shortTitle) { model.setBindingTarget(lane.id, kind, binding.key, lang) }
                     }
                 } label: {
-                    Text(binding.target.shortTitle)
-                        .font(Theme.TypeScale.body)
-                        .lineLimit(1)
+                    MenuLabel {
+                        Text(binding.target.shortTitle)
+                            .font(Theme.TypeScale.body)
+                            .lineLimit(1)
+                    }
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+                .menuChevron()
             }
             if binding.isInterp {
                 Text(L("同传"))
@@ -1293,6 +1297,7 @@ private struct LiveCaptureSettings: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .disabled(choices.isEmpty || model.isActive)
         .padding(.horizontal, 4)
     }
@@ -1384,12 +1389,13 @@ private struct LiveMicDeviceMenu: View {
                 Button(device.name) { model.micDeviceUID = device.uid }
             }
         } label: {
-            Text(model.micDeviceName)
-                .font(Theme.TypeScale.caption)
-                .lineLimit(1)
+            MenuLabel {
+                Text(model.micDeviceName)
+                    .font(Theme.TypeScale.caption)
+                    .lineLimit(1)
+            }
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        .menuChevron()
         .disabled(model.isActive)
     }
 }
@@ -1407,12 +1413,13 @@ private struct LiveRelayMenu: View {
                 Button(device.name) { model.relayDeviceUID = device.uid }
             }
         } label: {
-            Text(name)
-                .font(Theme.TypeScale.caption)
-                .lineLimit(1)
+            MenuLabel {
+                Text(name)
+                    .font(Theme.TypeScale.caption)
+                    .lineLimit(1)
+            }
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        .menuChevron()
         .disabled(model.isActive)
         .help(L("通话时把你这一路的同传译音送进虚拟声卡，聊天软件选它当麦克风；对方那一路的译音自动播到耳机。请戴耳机。"))
     }
@@ -1531,6 +1538,7 @@ private struct LiveListeningView: View {
             .shadow(color: Color.black.opacity(0.04), radius: 0.5, y: 1)
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .fixedSize()
     }
 

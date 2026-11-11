@@ -159,16 +159,20 @@ struct SpeakerChipButton: View {
                         .controlSize(.small)
                     }
                     if let onMerge, !others.isEmpty {
-                        Menu(L("并入…")) {
+                        Menu {
                             ForEach(others, id: \.id) { other in
                                 Button(SpeakerMarkText.display(other.token)) {
                                     onMerge(other.id)
                                     editing = false
                                 }
                             }
+                        } label: {
+                            MenuLabel {
+                                Text(L("并入…"))
+                                    .font(Theme.TypeScale.caption)
+                            }
                         }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
+                        .menuChevron()
                         .controlSize(.small)
                         .help(L("认成了两个人时，把这一位的话都算给另一位"))
                     }

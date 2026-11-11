@@ -788,7 +788,7 @@ struct MeetingRecordDetail: View {
                     .onSubmit { model.rename(record.id, to: titleDraft) }
                     .help(L("给这一场起个名字，回车保存"))
                 Spacer(minLength: 8)
-                Menu(L("导出…")) {
+                Menu {
                     Button(L("Markdown…")) { model.exportMarkdown(record) }
                     Button(L("Word…")) { model.exportWord(record) }
                     Button(L("字幕（SRT）…")) { model.exportSRT(record) }
@@ -796,8 +796,13 @@ struct MeetingRecordDetail: View {
                         Button(L("录音（M4A）…")) { model.exportAudio(record) }
                             .disabled(model.isRecording(record))
                     }
+                } label: {
+                    MenuLabel {
+                        Text(L("导出…"))
+                            .font(Theme.TypeScale.caption)
+                    }
                 }
-                .fixedSize()
+                .menuChevron()
                 Menu {
                     Button(L("在访达中显示")) { model.reveal(record.id) }
                     if let lane {

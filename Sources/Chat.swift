@@ -578,12 +578,12 @@ struct TranslationChatView: View {
                     }
                 }
             } label: {
-                Text(session.effectiveProfile.map(modelLabel) ?? L("选择模型"))
-                    .font(Theme.TypeScale.caption)
+                MenuLabel {
+                    Text(session.effectiveProfile.map(modelLabel) ?? L("选择模型"))
+                        .font(Theme.TypeScale.caption)
+                }
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.visible)
-            .fixedSize()
+            .menuChevron()
             .frame(maxWidth: compact ? 200 : 260, alignment: .trailing)
             .disabled(session.isSending)
             .help(L("对话中可随时换模型，下一条消息起生效，不改设置"))

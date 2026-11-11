@@ -1780,11 +1780,12 @@ private struct SelectionPluginSheet: View {
                             .pickerStyle(.inline)
                             .labelsHidden()
                         } label: {
-                            Label(generateProfileName, systemImage: "sparkles")
-                                .font(Theme.TypeScale.caption)
+                            MenuLabel {
+                                Label(generateProfileName, systemImage: "sparkles")
+                                    .font(Theme.TypeScale.caption)
+                            }
                         }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
+                        .menuChevron()
                         .help(L("用哪一家 AI 来写脚本"))
 
                         if let profile = generateProfile {

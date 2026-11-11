@@ -134,13 +134,13 @@ struct ModelOverrideMenu: View {
             Menu {
                 ModelOverrideItems(profile: profile, override: $override)
             } label: {
-                Text(ModelChoices.short(current))
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(override == nil ? Color.secondary : Color.accentColor)
+                MenuLabel {
+                    Text(ModelChoices.short(current))
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(override == nil ? Color.secondary : Color.accentColor)
+                }
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.visible)
-            .fixedSize()
+            .menuChevron()
             .frame(maxWidth: maxWidth, alignment: .leading)
             .help(override == nil
                   ? L("这次换一个模型，不改设置")
