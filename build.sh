@@ -3,17 +3,20 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # dev：常规应用，编译带 KORGI_DEV。Dock 和 ⌘Tab 里都有 Korgino。
-# --macos26：最低系统 26.0，Pro 用 KORGI_TEST_PRO 开到 2026-12-31。
-# --macos15：最低系统仍是 15.0，Pro 同样开到 2026-12-31。产出 dist/Korgino-macos15.app，不覆盖 ~/Applications。
-# --no-install：只产出 build/ 或 dist/ 里的 .app，不签本机证书，不覆盖 ~/Applications，不启动。给 CI 用。
+# --release：发布包。最低系统 15.0，一份包 15 和 26 都能开。Pro 用 KORGI_TEST_PRO 开到 2026-12-31。
+#   产出 dist/Korgino.app，不覆盖 ~/Applications。见 docs/adr/0074-one-package.md。
+# --no-install：只产出 .app，不签本机证书，不覆盖 ~/Applications，不启动。给 CI 用。
 # 见 docs/adr/0070-test-pro-until-year-end.md。主窗口之后不再写 LSUIElement。
-TARGET_OS=dev
+RELEASE=0
 NO_INSTALL=0
 for arg in "$@"; do
   case "$arg" in
-    --macos15) TARGET_OS=15 ;;
-    --macos26) TARGET_OS=26 ;;
+    --release) RELEASE=1 ;;
     --no-install) NO_INSTALL=1 ;;
+    --macos15|--macos26)
+      echo "$arg was removed; one package covers macOS 15 and later. Use --release." >&2
+      exit 1
+      ;;
     *) echo "unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
@@ -55,7 +58,7 @@ if found=$(grep -n -F '.system(size:' Sources/*.swift | grep -v '^Sources/Theme.
   exit 1
 fi
 
-# One universal binary: arm64 for Apple silicon, x86_64 for Intel Macs on macOS 15.
+# One universal binary: arm64 for Apple silicon, x86_64 for Intel Macs still on macOS 15.
 # Slices compile in parallel; lipo merges them. Deployment target stays 15.0.
 SLICE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/korgino-slices.XXXXXX")"
 
@@ -63,9 +66,9 @@ compile_slice() {
   local arch="$1"
   echo "Compiling $arch"
   # 本机开发包带 KORGI_DEV，Pro 默认当作已购买。
-  # --macos15 和 --macos26 都不带这个开关，改由 KORGI_TEST_PRO 把 Pro 开到 2026-12-31。
+  # --release 不带这个开关，改由 KORGI_TEST_PRO 把 Pro 开到 2026-12-31。
   local defines=(-D KORGI_DEV)
-  if [[ "$TARGET_OS" == "15" || "$TARGET_OS" == "26" ]]; then
+  if [[ "$RELEASE" -eq 1 ]]; then
     defines=(-D KORGI_TEST_PRO)
   fi
   swiftc -O -swift-version 5 "${defines[@]}" \
@@ -97,9 +100,6 @@ echo "Architectures: $(lipo -info "$APP/Contents/MacOS/Korgino")"
 # Local symbols are only for crash logs and the debugger. Drop them before signing.
 strip -x "$APP/Contents/MacOS/Korgino"
 cp Info.plist "$APP/Contents/Info.plist"
-if [[ "$TARGET_OS" == "26" ]]; then
-  /usr/libexec/PlistBuddy -c 'Set :LSMinimumSystemVersion 26.0' "$APP/Contents/Info.plist"
-fi
 # Classic Mac OS type/creator — helps Launch Services treat the bundle as APPL
 echo -n 'APPL????' > "$APP/Contents/PkgInfo"
 if [[ -f Assets/AppIcon.icns ]]; then
@@ -129,17 +129,12 @@ xattr -cr "$APP"
 if [[ "$NO_INSTALL" -eq 1 ]]; then
   # CI has no login keychain and no Developer ID. Ad-hoc is enough to bundle a dmg.
   codesign --force --deep -s - "$APP"
-  if [[ "$TARGET_OS" == "15" ]]; then
+  if [[ "$RELEASE" -eq 1 ]]; then
     mkdir -p dist
-    rm -rf dist/Korgino-macos15.app
-    cp -R "$APP" dist/Korgino-macos15.app
-    echo "BUILD OK -> $PWD/dist/Korgino-macos15.app"
-  elif [[ "$TARGET_OS" == "26" ]]; then
-    mkdir -p dist
-    rm -rf dist/Korgino-macos26.app
-    cp -R "$APP" dist/Korgino-macos26.app
-    echo "BUILD OK -> $PWD/dist/Korgino-macos26.app"
-    echo "macOS 26 package: LSMinimumSystemVersion 26.0, regular app, Pro until 2026-12-31."
+    rm -rf dist/Korgino.app dist/Korgino-macos15.app dist/Korgino-macos26.app
+    cp -R "$APP" dist/Korgino.app
+    echo "BUILD OK -> $PWD/dist/Korgino.app"
+    echo "Release package: macOS 15 or later, regular app, Pro until 2026-12-31."
   else
     echo "BUILD OK -> $PWD/$APP"
   fi
@@ -184,12 +179,12 @@ else
   codesign --force --deep -s - "$APP"
 fi
 
-if [[ "$TARGET_OS" == "15" ]]; then
+if [[ "$RELEASE" -eq 1 ]]; then
   mkdir -p dist
-  rm -rf dist/Korgino-macos15.app
-  cp -R "$APP" dist/Korgino-macos15.app
-  echo "BUILD OK -> $PWD/dist/Korgino-macos15.app"
-  echo "macOS 15 package: regular app, Pro until 2026-12-31. Do not install a package that still has LSUIElement on macOS 26 (open fails with -600)."
+  rm -rf dist/Korgino.app dist/Korgino-macos15.app dist/Korgino-macos26.app
+  cp -R "$APP" dist/Korgino.app
+  echo "BUILD OK -> $PWD/dist/Korgino.app"
+  echo "Release package: macOS 15 or later, regular app, Pro until 2026-12-31."
   exit 0
 fi
 
@@ -211,7 +206,4 @@ $LSREG -u "$PWD/build/Korgino.app" 2>/dev/null || true
 $LSREG -f -R -trusted "$HOME/Applications/Korgino.app" 2>/dev/null || true
 
 echo "BUILD OK -> $HOME/Applications/Korgino.app"
-if [[ "$TARGET_OS" == "26" ]]; then
-  echo "macOS 26 package: LSMinimumSystemVersion 26.0, regular app, Pro until 2026-12-31."
-fi
 open "$HOME/Applications/Korgino.app"

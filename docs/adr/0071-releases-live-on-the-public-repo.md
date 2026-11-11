@@ -6,12 +6,9 @@
 
 源码在私有仓库 `sliiu/korgino-code`。安装包在公开仓库 `sliiu/korgino` 的 GitHub Releases。应用里的检查更新读的是公开仓库，`githubReleasesRepo` 是 `sliiu/korgino`。
 
-在私有仓库推送 `v*` 标签（`v` 加点分数字，如 `v1.42`）触发 `.github/workflows/release.yml`。流水线把标签写进 `CFBundleShortVersionString`，把 `github.run_number` 写进 `CFBundleVersion`，在 `macos-26` runner 上打两份：
+在私有仓库推送 `v*` 标签（`v` 加点分数字，如 `v1.42`）触发 `.github/workflows/release.yml`。流水线把标签写进 `CFBundleShortVersionString`，把 `github.run_number` 写进 `CFBundleVersion`，在 `macos-26` runner 上打一份 `Korgino-<version>.dmg`：`./build.sh --release --no-install`。原来按系统拆成两份，见 `0074`。
 
-- `Korgino-<version>-macos26.dmg`：`./build.sh --macos26 --no-install`
-- `Korgino-<version>-macos15.dmg`：`./build.sh --macos15 --no-install`
-
-两份都带 `KORGI_TEST_PRO`，Pro 开到 2026-12-31，见 `0070`。镜像里是 `Korgino.app` 和 Applications 替身。签名是临时签名，没有公证。GitHub 托管 runner 没有 Developer ID。
+这份带 `KORGI_TEST_PRO`，Pro 开到 2026-12-31，见 `0070`。镜像里是 `Korgino.app` 和 Applications 替身。签名是临时签名，没有公证。GitHub 托管 runner 没有 Developer ID。
 
 `--no-install` 只产出 `.app`，不覆盖 `~/Applications`，不启动。本机 `./build.sh` 不带这个参数，行为不变。
 

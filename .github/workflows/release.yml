@@ -1,5 +1,5 @@
-# Tag v* builds two disk images and publishes them as a Release on this repo,
-# which is what the in-app update check reads.
+# Tag v* builds one disk image and publishes it as a Release on this repo,
+# which is what the in-app update check reads. One package covers macOS 15 and later.
 name: release
 
 on:
@@ -27,11 +27,8 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" Info.plist
           echo "version=$version" >> "$GITHUB_ENV"
 
-      - name: Build macOS 26
-        run: ./build.sh --macos26 --no-install
-
-      - name: Build macOS 15
-        run: ./build.sh --macos15 --no-install
+      - name: Build the release
+        run: ./build.sh --release --no-install
 
       - name: Disk images
         run: |
@@ -46,8 +43,7 @@ jobs:
             hdiutil create -volname "Korgino" -srcfolder "$stage/$name" \
               -ov -format UDZO "dist/$name.dmg"
           }
-          make_dmg "Korgino-${version}-macos26" dist/Korgino-macos26.app
-          make_dmg "Korgino-${version}-macos15" dist/Korgino-macos15.app
+          make_dmg "Korgino-${version}" dist/Korgino.app
           rm -rf "$stage"
 
       - name: Publish the release
@@ -57,14 +53,12 @@ jobs:
           set -euo pipefail
           notes="$(mktemp)"
           cat > "$notes" <<EOF
-          macOS 26: Korgino-${version}-macos26.dmg
-          macOS 15: Korgino-${version}-macos15.dmg
+          macOS 15 or later: Korgino-${version}.dmg
 
-          Both builds unlock Pro until 2026-12-31. Signed ad-hoc; not notarized.
+          Unlocks Pro until 2026-12-31. Signed ad-hoc; not notarized.
           EOF
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes-file "$notes" \
-            "dist/Korgino-${version}-macos26.dmg" \
-            "dist/Korgino-${version}-macos15.dmg"
+            "dist/Korgino-${version}.dmg"
           rm -f "$notes"

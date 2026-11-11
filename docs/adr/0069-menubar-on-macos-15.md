@@ -1,5 +1,7 @@
 # macOS 15 的菜单栏包单独声明 LSUIElement
 
+2026-11-11 起由 `0074` 替换：常规应用不再写 `LSUIElement`，15 和 26 合成一份安装包。
+
 ## 结论
 
 macOS 15 的包在 Info.plist 里写 `LSUIElement`，启动时不再调用 `setActivationPolicy(.accessory)`。macOS 26 及以上的包不写这个键，只在系统版本 ≥ 26 时切到 accessory。
