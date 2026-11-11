@@ -85,8 +85,6 @@ enum ConfigKeys {
     static let youdaoAppKey = "youdaoAppKey"
     /// 登录时打开。这一轮只存，还没接 SMAppService。默认关。
     static let launchAtLogin = "launchAtLogin"
-    /// 关掉窗口后留在菜单栏。这一轮只存。默认开。
-    static let keepInMenuBar = "keepInMenuBar"
     /// 初始引导走完或关掉过。默认没看过。
     static let onboardingSeen = "onboarding.seen"
     /// 授权那一步的「下次启动不再提醒」。和「已看过」分开记。

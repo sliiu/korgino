@@ -78,25 +78,46 @@ final class MainWindowController {
             model.page = page
         }
         model.showingSettings = false
-        if window == nil {
-            let root = MainWindowView(model: model)
-                .environmentObject(AppConfig.shared)
-            let host = NSHostingController(rootView: root)
-            let w = NSWindow(contentViewController: host)
-            w.title = "Korgino"
-            w.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
-            w.titleVisibility = .hidden
-            w.titlebarAppearsTransparent = true
-            w.toolbar = nil
-            w.isReleasedWhenClosed = false
-            w.setContentSize(NSSize(width: 900, height: 620))
-            w.minSize = NSSize(width: 760, height: 520)
-            w.setFrameAutosaveName("KorginoMain")
-            w.center()
-            window = w
-        }
+        makeWindow()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// 建出主窗口但不显示。引导要挂在它上面当对话框时用。
+    func prepare() {
+        makeWindow()
+    }
+
+    /// 把引导挂成对话框。没关掉之前主窗口既不能点也不能操作。
+    func presentOnboarding(_ controller: NSViewController) {
+        makeWindow()
+        guard let window, window.attachedSheet == nil else { return }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.contentViewController?.presentAsSheet(controller)
+    }
+
+    func dismissOnboarding(_ controller: NSViewController) {
+        window?.contentViewController?.dismiss(controller)
+    }
+
+    private func makeWindow() {
+        guard window == nil else { return }
+        let root = MainWindowView(model: model)
+            .environmentObject(AppConfig.shared)
+        let host = NSHostingController(rootView: root)
+        let w = NSWindow(contentViewController: host)
+        w.title = "Korgino"
+        w.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
+        w.titleVisibility = .hidden
+        w.titlebarAppearsTransparent = true
+        w.toolbar = nil
+        w.isReleasedWhenClosed = false
+        w.setContentSize(NSSize(width: 900, height: 620))
+        w.minSize = NSSize(width: 760, height: 520)
+        w.setFrameAutosaveName("KorginoMain")
+        w.center()
+        window = w
     }
 
     func relocalize() {

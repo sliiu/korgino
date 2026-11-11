@@ -490,7 +490,6 @@ struct PreferencesPane: View {
     @State private var speechTrusted = SFSpeechRecognizer.authorizationStatus() == .authorized
     @State private var launchAtLogin = LoginItem.isOn
     @State private var launchAtLoginError: String?
-    @State private var keepInMenuBar = UserDefaults.standard.object(forKey: ConfigKeys.keepInMenuBar) as? Bool ?? true
     @State private var applePackStatus = L("检查中…")
     @State private var providerSheet: ProviderSheet?
     @State private var expandedAIIds: Set<String> = []
@@ -726,12 +725,6 @@ struct PreferencesPane: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
                 }
-                settingsRow(L("关掉窗口后留在菜单栏"), detail: L("实时字幕在听时会继续听")) {
-                    Toggle("", isOn: keepInMenuBarBinding)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                }
             }
             HStack {
                 Spacer(minLength: 0)
@@ -813,16 +806,6 @@ struct PreferencesPane: View {
             set: { on in
                 launchAtLoginError = LoginItem.set(on)
                 launchAtLogin = LoginItem.isOn
-            }
-        )
-    }
-
-    private var keepInMenuBarBinding: Binding<Bool> {
-        Binding(
-            get: { keepInMenuBar },
-            set: { on in
-                keepInMenuBar = on
-                UserDefaults.standard.set(on, forKey: ConfigKeys.keepInMenuBar)
             }
         )
     }

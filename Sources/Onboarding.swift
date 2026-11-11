@@ -2,6 +2,8 @@ import AppKit
 import AVFoundation
 import ApplicationServices
 import CoreGraphics
+import CoreMedia
+import ScreenCaptureKit
 import Speech
 import SwiftUI
 import Translation
@@ -257,6 +259,9 @@ struct OnboardingSamples {
     /// 体验步用的一句母语，和它的目标语言译文。
     var sayNative: String
     var sayForeign: String
+    /// 体验步里要对着麦克风读的那句目标语言，和它的母语译文。
+    var speakForeign: String
+    var speakNative: String
 
     static func pair(native: TargetLanguage, target: TargetLanguage) -> OnboardingSamples {
         switch (native, target) {
@@ -269,7 +274,9 @@ struct OnboardingSamples {
                 demoForeign: "Our flight was delayed by two hours because of the storm.",
                 demoNative: "因为暴风雨，我们的航班延误了两个小时。",
                 sayNative: "帮我订一张明天早上去上海的高铁票。",
-                sayForeign: "Book me a high-speed train ticket to Shanghai tomorrow morning."
+                sayForeign: "Book me a high-speed train ticket to Shanghai tomorrow morning.",
+                speakForeign: "The meeting has been moved to Thursday.",
+                speakNative: "会议改到周四了。"
             )
         case (.zhHans, .ja):
             return OnboardingSamples(
@@ -280,7 +287,9 @@ struct OnboardingSamples {
                 demoForeign: "風で便が二時間遅れました。",
                 demoNative: "因为大风，航班晚了两个小时。",
                 sayNative: "帮我订一张明天早上去上海的高铁票。",
-                sayForeign: "明朝上海行きの高鉄の切符を一枚予約してください。"
+                sayForeign: "明朝上海行きの高鉄の切符を一枚予約してください。",
+                speakForeign: "会議は木曜日に変更になりました。",
+                speakNative: "会议改到周四了。"
             )
         case (.en, .zhHans):
             return OnboardingSamples(
@@ -291,7 +300,9 @@ struct OnboardingSamples {
                 demoForeign: "因为暴风雨，我们的航班延误了两个小时。",
                 demoNative: "Our flight was delayed by two hours because of the storm.",
                 sayNative: "Book me a high-speed train ticket to Shanghai tomorrow morning.",
-                sayForeign: "帮我订一张明天早上去上海的高铁票。"
+                sayForeign: "帮我订一张明天早上去上海的高铁票。",
+                speakForeign: "会议改到周四了。",
+                speakNative: "The meeting has been moved to Thursday."
             )
         case (.en, .es):
             return OnboardingSamples(
@@ -302,7 +313,9 @@ struct OnboardingSamples {
                 demoForeign: "El vuelo se retrasó dos horas por la tormenta.",
                 demoNative: "Our flight was delayed by two hours because of the storm.",
                 sayNative: "Book me a high-speed train ticket to Shanghai tomorrow morning.",
-                sayForeign: "Resérvame un billete de tren de alta velocidad a Shanghái para mañana por la mañana."
+                sayForeign: "Resérvame un billete de tren de alta velocidad a Shanghái para mañana por la mañana.",
+                speakForeign: "La reunión se ha pasado al jueves.",
+                speakNative: "The meeting has been moved to Thursday."
             )
         default:
             return pair(native: .zhHans, target: .en)
@@ -310,11 +323,12 @@ struct OnboardingSamples {
     }
 }
 
+/// 引导是主窗口上的对话框。没关掉之前主窗口既不能点也不能操作。
 @MainActor
-final class OnboardingWindow: NSObject, NSWindowDelegate {
+final class OnboardingWindow: NSObject {
     static let shared = OnboardingWindow()
 
-    private var window: NSWindow?
+    private var sheet: NSViewController?
     private let model = OnboardingModel()
 
     /// 没看过且授权还没齐时，从授权那一步开始，不从语言重来。
@@ -334,41 +348,31 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
 
     private func present(step: OnboardingStep) {
         model.step = step
-        if window == nil {
-            let root = OnboardingView(model: model) { [weak self] openMain in
-                self?.close(openMain: openMain)
-            }
-            .environmentObject(AppConfig.shared)
-            let host = NSHostingController(rootView: root)
-            let w = NSWindow(contentViewController: host)
-            w.title = L("初始引导")
-            w.styleMask = [.titled, .closable, .fullSizeContentView]
-            w.titleVisibility = .hidden
-            w.titlebarAppearsTransparent = true
-            w.isReleasedWhenClosed = false
-            w.setContentSize(NSSize(width: 640, height: 520))
-            w.minSize = NSSize(width: 640, height: 520)
-            w.maxSize = NSSize(width: 640, height: 520)
-            w.delegate = self
-            w.center()
-            window = w
+        guard sheet == nil else { return }
+        let root = OnboardingView(model: model) { [weak self] openMain in
+            self?.close(openMain: openMain)
         }
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    func windowWillClose(_ notification: Notification) {
-        guard (notification.object as? NSWindow) === window else { return }
-        window = nil
-        finish(openMain: !model.permissionsOnly)
+        .environmentObject(AppConfig.shared)
+        let host = NSHostingController(rootView: root)
+        host.preferredContentSize = NSSize(width: 640, height: 520)
+        sheet = host
+        MainWindowController.shared.presentOnboarding(host)
     }
 
     private func close(openMain: Bool) {
-        let w = window
-        window = nil
-        w?.delegate = nil
-        w?.close()
+        model.resetTry()
+        let host = sheet
+        sheet = nil
+        if let host {
+            MainWindowController.shared.dismissOnboarding(host)
+        }
         finish(openMain: openMain)
+    }
+
+    /// 截图前对话框让开了，截完再挂回来。内容还是原来那一份。
+    func restore() {
+        guard let sheet else { return }
+        MainWindowController.shared.presentOnboarding(sheet)
     }
 
     /// 走完或关掉都记已看过。五项都授权了就把「不再提醒」也记上。
@@ -396,6 +400,15 @@ final class OnboardingModel: ObservableObject {
     @Published var packError: String?
     @Published var packConfiguration: TranslationSession.Configuration?
     @Published var permissionTick = 0
+    /// 体验步里当场翻出来的结果。换一项就清掉。
+    @Published var trySource = ""
+    @Published var tryTranslation: String?
+    @Published var tryWorking = false
+    @Published var tryError: String?
+    /// 语音和会议字幕正在听。
+    @Published var tryListening = false
+    private var tryTask: Task<Void, Never>?
+    var tryListener: TryoutListener?
     /// 从各处「去授权」进来：只显示授权一步，按钮是「完成」。
     @Published var permissionsOnly = false
     @Published var focus: PermissionCheck.Kind?
@@ -437,6 +450,31 @@ final class OnboardingModel: ObservableObject {
 
     func noteTried() {
         tried.insert(tryIndex)
+    }
+
+    /// 换了一项体验，上一轮的结果和正在听的都停掉。
+    func resetTry() {
+        tryTask?.cancel()
+        tryTask = nil
+        tryListener?.stop()
+        tryListener = nil
+        trySource = ""
+        tryTranslation = nil
+        tryWorking = false
+        tryError = nil
+        tryListening = false
+    }
+
+    func beginTry(_ work: @escaping @MainActor (OnboardingModel) async -> Void) {
+        resetTry()
+        noteTried()
+        let generation = tryIndex
+        tryWorking = true
+        tryTask = Task { @MainActor in
+            await work(self)
+            guard !Task.isCancelled, generation == tryIndex else { return }
+            if !Task.isCancelled { tryWorking = false }
+        }
     }
 }
 
@@ -904,15 +942,10 @@ private struct OnboardingView: View {
                 .font(Theme.TypeScale.title)
             tryTabs
             tryCard
-            if tryItem.needsPermission {
-                Text(L("需要权限"))
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(tryItem.trigger)
-                    .font(Theme.TypeScale.caption)
-                    .foregroundStyle(.secondary)
-            }
+            tryResult
+            Text(tryItem.trigger)
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -921,6 +954,8 @@ private struct OnboardingView: View {
             ForEach(Array(OnboardingTry.allCases.enumerated()), id: \.element) { index, item in
                 let current = index == model.tryIndex
                 Button {
+                    guard index != model.tryIndex else { return }
+                    model.resetTry()
                     model.tryIndex = index
                 } label: {
                     HStack(spacing: 4) {
@@ -969,14 +1004,16 @@ private struct OnboardingView: View {
                     .font(Theme.TypeScale.reading)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
                 Text(tryHint)
                     .font(Theme.TypeScale.label)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Spacer(minLength: 0)
-                    Button(L("去试试")) { tryIt() }
+                    Button(model.tryListening ? L("停止") : L("去试试")) { tryIt() }
                         .controlSize(.small)
+                        .disabled(model.tryWorking && !model.tryListening)
                 }
             }
         }
@@ -996,59 +1033,175 @@ private struct OnboardingView: View {
     private var tryExample: String {
         switch tryItem {
         case .select, .screenshot, .meeting: return samples.demoForeign
-        case .quick, .voice: return samples.sayNative
+        case .quick: return samples.sayNative
+        case .voice: return samples.speakForeign
         }
     }
 
     private var tryHint: String {
         switch tryItem {
         case .select:
-            return String(format: L("点「去试试」，这句会填进翻译页并译成：%@"), samples.demoNative)
+            return L("点「去试试」，这句就在这里翻出来。平时选中外文按 ⌥D。")
         case .screenshot:
-            return String(format: L("点「去试试」后框住这句，识别出的字会译成：%@"), samples.demoNative)
+            return L("点「去试试」后框住这句，认出来的字就在这里翻出来。平时按 ⌥S。")
         case .quick:
-            return String(format: L("点「去试试」，这句会填进翻译页并译成：%@"), samples.sayForeign)
+            return L("点「去试试」，这句就在这里翻成外文。平时在输入框里连按三下空格。")
         case .voice:
-            return String(format: L("点「去试试」后对着麦克风读这句，写进去的是：%@"), samples.sayForeign)
+            return L("点「去试试」，对着麦克风读上面这句，听出来的字就在这里翻出来。平时按住 Fn。")
         case .meeting:
-            return String(format: L("点「去试试」就开始听系统声音，字幕会译成：%@"), samples.demoNative)
+            return L("点「去试试」，放一段外文，听出来的字幕就在这里翻出来。平时在实时与会议里点开始。")
         }
     }
 
-    /// 点了就走现有动作。没授权的那一项上面已经改成「去授权」，到不了这里。
-    private func tryIt() {
-        model.noteTried()
-        switch tryItem {
-        case .select:
-            putOnPasteboard(samples.demoForeign)
-            onFinish(false)
-            MainWindowController.shared.showTranslate(text: samples.demoForeign)
-        case .screenshot:
-            onFinish(false)
-            (NSApp.delegate as? AppDelegate)?.ocrTranslate()
-        case .quick:
-            putOnPasteboard(samples.sayNative)
-            onFinish(false)
-            MainWindowController.shared.showTranslate(text: samples.sayNative)
-        case .voice:
-            onFinish(false)
-            FnDictate.shared.beginForOnboarding()
-        case .meeting:
-            onFinish(false)
-            let live = SystemAudioTranslateController.shared
-            if !live.isActive {
-                live.setCapture(.system, true)
+    /// 这一项当场做出来的结果。听的时候原文跟着变，翻完才出译文。
+    @ViewBuilder
+    private var tryResult: some View {
+        if model.tryWorking || model.tryTranslation != nil || model.tryError != nil {
+            VStack(alignment: .leading, spacing: 4) {
+                if !model.trySource.isEmpty {
+                    Text(model.trySource)
+                        .font(Theme.TypeScale.label)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if model.tryWorking, model.tryTranslation == nil {
+                    Text(model.tryListening ? L("正在听…") : L("正在翻译…"))
+                        .font(Theme.TypeScale.reading)
+                        .foregroundStyle(.secondary)
+                } else if let translation = model.tryTranslation {
+                    Text(translation)
+                        .font(Theme.TypeScale.reading)
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                if let error = model.tryError {
+                    ErrorLine(text: error)
+                }
             }
-            MainWindowController.shared.show(page: .live)
-            live.start()
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .fill(Theme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Theme.hairline, lineWidth: 0.5)
+            )
         }
     }
 
-    /// 划词和快捷翻译的示例句同时放进剪贴板，用户也可以自己贴到别处。
-    private func putOnPasteboard(_ text: String) {
-        let board = NSPasteboard.general
-        board.clearContents()
-        board.setString(text, forType: .string)
+    /// 五项都在引导里当场做完，不打开主窗口，也不启动整场会议。
+    /// 正在听时再点一次就是停。没授权的那一项上面已经改成「去授权」，到不了这里。
+    private func tryIt() {
+        if model.tryListening {
+            model.tryListening = false
+            return
+        }
+        let item = tryItem
+        let example = tryExample
+        model.beginTry { model in
+            switch item {
+            case .select, .quick:
+                model.trySource = example
+                await Self.translateHere(example, into: model, writing: item == .quick)
+            case .screenshot:
+                await Self.screenshotHere(into: model)
+            case .voice:
+                await Self.listenHere(system: false, into: model)
+            case .meeting:
+                await Self.listenHere(system: true, into: model)
+            }
+        }
+    }
+
+    /// 就地翻译。划词翻成母语，快捷翻译翻成目标语言。用这个功能平时用的那几家。
+    @MainActor
+    private static func translateHere(_ text: String, into model: OnboardingModel, writing: Bool) async {
+        let cfg = AppConfig.shared
+        let targets = writing
+            ? (cfg.dictateTranslateTarget().map { [$0] } ?? [])
+            : cfg.selectTranslateTargets(bundleID: nil)
+        let picked = targets.isEmpty ? Array(cfg.catalogTargets().prefix(1)) : targets
+        guard !picked.isEmpty else {
+            model.tryError = L("还没有可用的翻译服务")
+            return
+        }
+        let language = writing ? cfg.targetLanguage.resolvedDestination : cfg.nativeLanguage
+        let plan = Lang.plan(text, target: language, mutual: false)
+        let result = await Translator.translateAll(text, targets: picked, plan: plan)
+        guard !Task.isCancelled else { return }
+        if let text = result.outcomes.first(where: { ($0.text ?? "").isEmpty == false })?.text {
+            model.tryTranslation = text
+        } else {
+            model.tryError = result.outcomes.first?.error ?? L("没有翻译结果")
+        }
+    }
+
+    /// 框选截图，认出来的字就地翻成母语。引导对话框先让开，截完再回来。
+    @MainActor
+    private static func screenshotHere(into model: OnboardingModel) async {
+        MainWindowController.shared.yieldForCapture()
+        let captured: (OCRCaptureResult, CGImage)
+        do {
+            captured = try await OCRCapture.captureRegion()
+        } catch {
+            MainWindowController.shared.show()
+            OnboardingWindow.shared.restore()
+            let message = error.localizedDescription
+            if message.contains("取消") || message.contains("已取消")
+                || message.localizedCaseInsensitiveContains("cancel") { return }
+            model.tryError = String(format: L("OCR 失败：%@"), message)
+            return
+        }
+        MainWindowController.shared.show()
+        OnboardingWindow.shared.restore()
+        guard !Task.isCancelled else { return }
+        let text = captured.0.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            model.tryError = L("没有认出文字")
+            return
+        }
+        model.trySource = text
+        await translateHere(text, into: model, writing: false)
+    }
+
+    /// 听一小段再就地翻译。语音听麦克风、翻成目标语言；会议字幕听系统声音、翻成母语。
+    /// 点「停止」、换一项或离开这一步都会停。最长听八秒。
+    @MainActor
+    private static func listenHere(system: Bool, into model: OnboardingModel) async {
+        if system, SystemAudioTranslateController.shared.isActive {
+            model.tryError = L("实时字幕正在听，先停掉再试")
+            return
+        }
+        let listener: TryoutListener
+        do {
+            listener = try await TryoutListener(system: system)
+        } catch {
+            model.tryError = error.localizedDescription
+            return
+        }
+        model.tryListener = listener
+        model.tryListening = true
+        let started = Date()
+        while model.tryListening, Date().timeIntervalSince(started) < 8 {
+            if Task.isCancelled { break }
+            let heard = listener.latest.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !heard.isEmpty { model.trySource = heard }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        model.tryListening = false
+        let heard = await listener.finish()
+        model.tryListener = nil
+        guard !Task.isCancelled else { return }
+        let text = heard.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            model.tryError = L("没有听清")
+            return
+        }
+        model.trySource = text
+        await translateHere(text, into: model, writing: !system)
     }
 
     // MARK: 完成
@@ -1221,3 +1374,135 @@ private struct OnboardingView: View {
         )
     }
 }
+
+/// 体验步里听一小段。语音走麦克风，会议字幕走系统声音。
+/// 识别用设置里选的那一家，只出文字，不写进任何输入框，也不记成一场会议。
+@MainActor
+final class TryoutListener {
+    private let system: Bool
+    private var ear: TryoutMic?
+    private var stream: SCStream?
+    private var streamOutput: SystemAudioStreamOutput?
+    private var lane: (any LiveAudioSink)?
+    private(set) var latest = ""
+    private var stopped = false
+
+    init(system: Bool) async throws {
+        self.system = system
+        if system {
+            try await startSystem()
+        } else {
+            try startMicrophone()
+        }
+    }
+
+    func stop() {
+        guard !stopped else { return }
+        stopped = true
+        ear?.cancel()
+        stream?.stopCapture()
+        lane?.stop()
+    }
+
+    /// 停下来，等最后一句出齐再交回。
+    func finish() async -> String {
+        if system {
+            stop()
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            return latest
+        }
+        let heard = await ear?.transcript() ?? latest
+        stopped = true
+        return heard.isEmpty ? latest : heard
+    }
+
+    private func startMicrophone() throws {
+        let cfg = AppConfig.shared
+        let session = try TryoutMic(engine: cfg.resolvedDictateAsr(), language: ASRLanguage(id: cfg.dictateLocaleID)) { [weak self] text in
+            self?.latest = text
+        }
+        try session.start()
+        ear = session
+    }
+
+    private func startSystem() async throws {
+        guard CGPreflightScreenCaptureAccess() else {
+            throw TErr(L("听系统声音需要屏幕录制权限"))
+        }
+        let cfg = AppConfig.shared
+        let engine = cfg.resolvedLiveAsr()
+        let language = ASRLanguage(id: "system")
+        let made = try Self.makeLane(engine: engine, language: language) { [weak self] text in
+            self?.latest = text
+        }
+        try made.prepare()
+        lane = made
+
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        guard let display = content.displays.first else { throw TErr(L("未找到可捕获的显示器")) }
+        let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+        let conf = SCStreamConfiguration()
+        conf.capturesAudio = true
+        conf.excludesCurrentProcessAudio = true
+        conf.width = 2
+        conf.height = 2
+        conf.minimumFrameInterval = CMTime(value: 1, timescale: 1)
+        conf.sampleRate = 48000
+        conf.channelCount = 1
+        let stream = SCStream(filter: filter, configuration: conf, delegate: nil)
+        let output = SystemAudioStreamOutput { [weak made] sample in
+            made?.append(sampleBuffer: sample)
+        }
+        let queue = DispatchQueue(label: "com.sliiu.Korgino.tryout", qos: .userInitiated)
+        try stream.addStreamOutput(output, type: .audio, sampleHandlerQueue: queue)
+        try await stream.startCapture()
+        self.stream = stream
+        self.streamOutput = output
+        made.startRecognition()
+    }
+
+    /// 按设置里选的那一家建一条识别。只收最后一句，不要说话人。
+    private static func makeLane(
+        engine: String,
+        language: ASRLanguage,
+        onText: @escaping @MainActor (String) -> Void
+    ) throws -> any LiveAudioSink {
+        let cfg = AppConfig.shared
+        let report: @Sendable (SystemAudioTranslateController.SourceKind, String, Bool, Int) -> Void = { _, text, _, _ in
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            DispatchQueue.main.async { MainActor.assumeIsolated { onText(trimmed) } }
+        }
+        if #available(macOS 26.0, *), cfg.isAnalyzerASR(engine), SpeechTranscriber.isAvailable {
+            return LiveAnalyzerLane(
+                source: .system,
+                locale: language.locale,
+                terms: cfg.asrContextTerms,
+                onHypothesis: report,
+                onError: { _, _ in }
+            )
+        }
+        if cfg.isSystemASR(engine) {
+            return LiveASRLane(
+                source: .system,
+                locale: language.locale,
+                preferOnDevice: cfg.asrAppleOnDevice,
+                terms: cfg.asrContextTerms,
+                onHypothesis: report
+            )
+        }
+        return LiveWhisperLane(
+            source: .system,
+            config: try cfg.asrWhisperConfig(selection: engine),
+            language: language.whisperCode,
+            prompt: cfg.asrContextPrompt,
+            onHypothesis: report,
+            onBusy: { _, _ in },
+            onError: { _, message in
+                DispatchQueue.main.async { MainActor.assumeIsolated { onText("") } }
+                _ = message
+            }
+        )
+    }
+}
+

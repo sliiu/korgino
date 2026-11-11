@@ -14,10 +14,11 @@
 | P8 | 初始引导：五步窗口、授权不再提醒、Apple 语言包下载、五项体验和按语言对的例句 | grok-4.7@500k | ⏸ 待授权 | — | 依赖 P1 |
 | A3 | 浮层引导视觉补差（④–⑧⑩） | grok-4.7@500k | ✅ 完成 | #15 | `./build.sh --no-install` 通过；未合并；笔记见 side-session a3-overlays-parity.md |
 | P7 | Windows 对齐 | — | ⬜ 待办 | — | Mac 完成后另起 ADR |
+| P9 | Dock 退出只关窗口并隐掉 Dock 图标；引导改成挡住主窗口的对话框；体验步五项留在引导里当场做完 | self | 🔄 进行 | — | 2026-11-11 已编译（`--no-install`），未实跑、未提交 |
 
 ## 注意
 
-- 合并后跟进：`MainWindow.swift` 侧栏红点用了 `Color.red`，P5 合并后改成 `Theme.live`。
+- 侧栏红点已经是 `Theme.live`（`Chrome.swift` 的 `SidebarRow`），这条跟进可以划掉。
 - 验收包用 `--no-install` 没签本机证书，启动时 `MacKeychain.install` 会弹钥匙串框挡住主线程；实跑要用签名包。
 
 - 用户 2026-11-09 定：本项目全部任务派给 grok（magpie · cursor/grok-4.7@500k）。

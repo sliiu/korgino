@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var quickUndoItem: NSMenuItem!
     var liveCaptionsItem: NSMenuItem!
     var quitItem: NSMenuItem!
+    /// 最近一次 ⌘Q 的时刻。Dock 图标上的「退出」不带按键，靠这个和菜单退出区分。
+    var lastQuitKeyAt: TimeInterval = 0
     /// Work that fills the translation panel. Starting one replaces the last: they
     /// all write into the same popup, so the older answer must not land in it.
     var panelTask: Task<Void, Never>?
@@ -94,6 +96,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         SelectionPluginWatcher.shared.refresh()
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
+        // Dock 图标上的「退出」没有自己的入口。菜单和 ⌘Q 都带着 ⌘Q，记下时刻来区分。
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if event.keyCode == 12, flags.contains(.command) {
+                self.lastQuitKeyAt = ProcessInfo.processInfo.systemUptime
+            }
+            return event
+        }
         applyHotkeys()
         hotkeyObserver = NotificationCenter.default.addObserver(
             forName: .korgiHotkeysDidChange, object: nil, queue: .main
@@ -122,6 +133,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 常规应用：从启动台、Finder 打开时要看得到窗口。
         // 没看过引导就先出引导；看过了但授权还没齐、也没勾「不再提醒」，只再出授权那一步。
         if Onboarding.shouldPresent {
+            // 引导是主窗口上的对话框，主窗口先建好再挂上去。
+            MainWindowController.shared.prepare()
             OnboardingWindow.shared.show()
         } else {
             MainWindowController.shared.show()
@@ -481,7 +494,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func openMainWindow() {
-        MainWindowController.shared.show()
+        revealFromMenuBar()
     }
 
     private var liveListening: Bool {
@@ -490,15 +503,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // 与 Preferences 同默认：键不存在时视为 true（留在菜单栏）。
-        // bool(forKey:) 在缺键时是 false，这里必须用 object(forKey:)。
-        let keep = UserDefaults.standard.object(forKey: ConfigKeys.keepInMenuBar) as? Bool ?? true
-        return !keep
+        // 关窗口不退出。菜单栏图标留下，实时字幕继续听。
+        return false
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        MainWindowController.shared.show()
+        revealFromMenuBar()
         return false
+    }
+
+    /// 菜单来的退出。先记下，好让退出前回调放行。
+    @objc func quitFromMenu(_ sender: Any?) {
+        lastQuitKeyAt = ProcessInfo.processInfo.systemUptime
+        NSApp.terminate(sender)
+    }
+
+    /// Dock 图标上的「退出」只关窗口并隐掉 Dock 图标，应用留在菜单栏。
+    /// 菜单里的「退出 Korgino」和 ⌘Q 仍真正退出。
+    @objc func hideFromDock(_ sender: Any?) {
+        for window in NSApp.windows where window.canBecomeKey {
+            window.close()
+        }
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    /// 从菜单栏回来：Dock 图标和 ⌘Tab 重新出现，主窗口打开。
+    func revealFromMenuBar() {
+        if NSApp.activationPolicy() != .regular {
+            NSApp.setActivationPolicy(.regular)
+        }
+        MainWindowController.shared.show()
     }
 
     @objc func mediaCaptions() {
@@ -507,6 +541,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Dock 图标上的「退出」只关窗口并隐掉 Dock 图标。菜单里的「退出」和 ⌘Q 才真正退出。
+        if ProcessInfo.processInfo.systemUptime - lastQuitKeyAt > 1 {
+            hideFromDock(nil)
+            return .terminateCancel
+        }
         guard MediaCaptionsController.shared.needsFlushBeforeQuit else { return .terminateNow }
         Task { @MainActor in
             await MediaCaptionsController.shared.flushForQuit()
@@ -576,8 +615,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         prefs.target = self
         appMenu.addItem(prefs)
         appMenu.addItem(NSMenuItem.separator())
-        let quit = NSMenuItem(title: L("退出 Korgino"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L("退出 Korgino"), action: #selector(quitFromMenu(_:)), keyEquivalent: "q")
         quit.keyEquivalentModifierMask = [.command]
+        quit.target = self
         appMenu.addItem(quit)
         appItem.submenu = appMenu
 

@@ -60,20 +60,10 @@ final class FnDictate {
         releaseField(session: session)
     }
 
-    /// 引导里「去试试」用的开始。走当前模式，不看前台是哪个应用，也不改 Fn 手势。
-    /// 用户接着说，松开仍走原来的写入。
-    func beginForOnboarding() {
-        begin(pid: 0, ignoreAppGate: true)
-    }
-
     func begin(pid: pid_t) {
-        begin(pid: pid, ignoreAppGate: false)
-    }
-
-    private func begin(pid: pid_t, ignoreAppGate: Bool) {
         let app = pid == 0 ? nil : NSRunningApplication(processIdentifier: pid)
-        // 这个来源应用关了语音，按住 Fn 也不开始听。引导没有来源应用，不走这一关。
-        guard ignoreAppGate || AppConfig.shared.isAppOn(.voice, bundleID: app?.bundleIdentifier) else {
+        // 这个来源应用关了语音，按住 Fn 也不开始听。
+        guard AppConfig.shared.isAppOn(.voice, bundleID: app?.bundleIdentifier) else {
             NSSound.beep()
             return
         }
@@ -610,6 +600,22 @@ final class FnDictate {
         let language = cfg.resolvedDictateTarget(bundleID: bundleID)
         return Lang.plan(text, target: language, mutual: false)
     }
+}
+
+/// 引导的体验步借来听一句，只出文字，不写进输入框。
+@MainActor
+final class TryoutMic {
+    private let ear: DictateEar
+
+    init(engine: String, language: ASRLanguage, onPartial: @escaping @MainActor (String) -> Void) throws {
+        ear = try DictateEar(engine: engine, language: language) { text in
+            DispatchQueue.main.async { MainActor.assumeIsolated { onPartial(text) } }
+        }
+    }
+
+    func start() throws { try ear.start() }
+    func cancel() { ear.cancel() }
+    func transcript() async -> String { await ear.transcript() }
 }
 
 private final class DictateEar: @unchecked Sendable {
