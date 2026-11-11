@@ -1,5 +1,7 @@
 # 发布包放在公开仓库
 
+2026-11-11 起由 `0073` 替换：源码改为公开，安装包发在本仓库。
+
 ## 结论
 
 源码在私有仓库 `sliiu/korgino-code`。安装包在公开仓库 `sliiu/korgino` 的 GitHub Releases。应用里的检查更新读的是公开仓库，`githubReleasesRepo` 是 `sliiu/korgino`。

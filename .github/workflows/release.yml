@@ -1,8 +1,5 @@
-# Tag v* on this private repo builds two disk images and publishes them to the
-# public sliiu/korgino repo, which is what the in-app update check reads.
-#
-# Needs a fine-grained PAT in KORGINO_RELEASES_TOKEN: contents read/write on
-# sliiu/korgino only. The org plan has no cross-repo token, so this is a secret.
+# Tag v* builds two disk images and publishes them as a Release on this repo,
+# which is what the in-app update check reads.
 name: release
 
 on:
@@ -10,7 +7,7 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -53,15 +50,11 @@ jobs:
           make_dmg "Korgino-${version}-macos15" dist/Korgino-macos15.app
           rm -rf "$stage"
 
-      - name: Publish to sliiu/korgino
+      - name: Publish the release
         env:
-          GH_TOKEN: ${{ secrets.KORGINO_RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "KORGINO_RELEASES_TOKEN is not set" >&2
-            exit 1
-          fi
           notes="$(mktemp)"
           cat > "$notes" <<EOF
           macOS 26: Korgino-${version}-macos26.dmg
@@ -70,7 +63,6 @@ jobs:
           Both builds unlock Pro until 2026-12-31. Signed ad-hoc; not notarized.
           EOF
           gh release create "$GITHUB_REF_NAME" \
-            --repo sliiu/korgino \
             --title "$GITHUB_REF_NAME" \
             --notes-file "$notes" \
             "dist/Korgino-${version}-macos26.dmg" \
