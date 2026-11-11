@@ -1508,12 +1508,12 @@ struct FileTranslateView: View {
                 .pickerStyle(.inline)
                 .labelsHidden()
             } label: {
-                Text("→ \(page.language.shortTitle)")
-                    .font(Theme.TypeScale.caption).fontWeight(.medium)
+                MenuLabel {
+                    Text("→ \(page.language.shortTitle)")
+                        .font(Theme.TypeScale.caption).fontWeight(.medium)
+                }
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.visible)
-            .fixedSize()
+            .menuChevron()
             .help(L("这一页的目标语言，不改设置"))
             if let p = AppConfig.shared.catalogTargets().first(where: { $0.id == page.targetID })?.aiProfile {
                 ModelOverrideMenu(profile: p, override: Binding(
@@ -1560,14 +1560,15 @@ struct FileTranslateView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11)
-                Text(model.pageName(page))
-                    .font(Theme.TypeScale.caption)
+            MenuLabel {
+                HStack(spacing: 4) {
+                    ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11)
+                    Text(model.pageName(page))
+                        .font(Theme.TypeScale.caption)
+                }
             }
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        .menuChevron()
         .help(Pro.unlocked ? L("这一页用的翻译服务，不改设置") : L("更换翻译服务"))
     }
 

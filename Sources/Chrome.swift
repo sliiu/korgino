@@ -38,6 +38,28 @@ struct ChromeChevron: View {
     }
 }
 
+/// 文字下拉的标签：文字后面跟一个自绘折线箭头，并藏掉系统 Menu 自己画的那个。
+/// 图标按钮（加号、省略号、三点）不是下拉框，不要用这个。
+struct MenuLabel<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 4) {
+            content()
+            ChromeChevron()
+        }
+    }
+}
+
+extension View {
+    /// 无边按钮样式的菜单，只留自绘箭头。配 `MenuLabel` 用。
+    func menuChevron() -> some View {
+        menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+    }
+}
+
 private struct ChromeChevronMark: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()

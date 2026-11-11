@@ -17,6 +17,13 @@ import UniformTypeIdentifiers
 final class SystemAudioTranslateController: ObservableObject {
     static let shared = SystemAudioTranslateController()
 
+    /// 两路识别默认是空的，而填上默认那一路的 `normalizeAsrEngines()` 没有调用点。
+    /// 不在这里补上的话，实时页展开设置时「识别与翻译」下面什么都没有，
+    /// 挂在每一行上的沉浸字幕开关也就不存在。
+    private init() {
+        seedLanes()
+    }
+
     enum State: Equatable {
         case idle
         case requestingPermission

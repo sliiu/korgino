@@ -3026,7 +3026,7 @@ struct PreferencesPane: View {
                     HStack(spacing: 8) {
                         TextField("", text: ttsBinding(idx, \.voice))
                             .textFieldStyle(.roundedBorder)
-                        Menu(L("预设")) {
+                        Menu {
                             ForEach(preset?.voices ?? []) { voice in
                                 Button(voice.name) {
                                     guard config.ttsProfiles.indices.contains(idx) else { return }
@@ -3035,8 +3035,13 @@ struct PreferencesPane: View {
                                     config.ttsProfiles[idx] = p
                                 }
                             }
+                        } label: {
+                            MenuLabel {
+                                Text(L("预设"))
+                                    .font(Theme.TypeScale.caption)
+                            }
                         }
-                        .fixedSize()
+                        .menuChevron()
                     }
                 }
             } else if !(preset?.voices ?? []).isEmpty || !profile.voice.isEmpty {
