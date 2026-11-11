@@ -406,7 +406,10 @@ struct SidebarGroupLabel: View {
 extension View {
     func floatingPanel(radius: CGFloat = Theme.panelRadius) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        return background { shape.fill(.regularMaterial) }
+        return background {
+            shape.fill(.regularMaterial)
+                .overlay { shape.fill(Theme.panelMat.opacity(Theme.panelMatCover)) }
+        }
             .overlay { shape.strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5) }
             .clipShape(shape)
             .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)

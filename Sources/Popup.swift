@@ -210,11 +210,19 @@ struct PopupView: View {
         min(1, max(0.35, config.panelOpacity))
     }
 
+    /// 效果图 `.mat`：regularMaterial 上盖 82% 罩色。滑杆拉低一档才把整块底乘上透明度，默认不乘，模糊才取得到窗后的内容。字不跟着淡。
+    @ViewBuilder
     private var panelGlass: some View {
-        panelShape
+        let frosted = panelShape
             .fill(.regularMaterial)
-            .compositingGroup()
-            .opacity(glassOpacity)
+            .overlay {
+                panelShape.fill(Theme.panelMat.opacity(Theme.panelMatCover))
+            }
+        if glassOpacity >= 0.999 {
+            frosted
+        } else {
+            frosted.compositingGroup().opacity(glassOpacity)
+        }
     }
 
     /// Fixed-height title bar — pin icon / symbol metrics must not change chrome height.
@@ -805,10 +813,10 @@ struct PopupView: View {
     }
 
     private func providerBlock(_ o: ProviderOutcome, index: Int, open: Bool) -> some View {
-        ProviderHoverRow {
+        ProviderHoverRow { hovering in
             VStack(alignment: .leading, spacing: 6) {
                 if open {
-                    expandedProvider(o, index: index)
+                    expandedProvider(o, index: index, actionsSolid: hovering)
                 } else {
                     collapsedProvider(o, index: index)
                 }
@@ -819,10 +827,10 @@ struct PopupView: View {
     }
 
     @ViewBuilder
-    private func expandedProvider(_ o: ProviderOutcome, index: Int) -> some View {
+    private func expandedProvider(_ o: ProviderOutcome, index: Int, actionsSolid: Bool) -> some View {
         if o.loading, o.text == nil {
             loadingRow(loadingTitle)
-            providerNameRow(o, index: index, open: true)
+            providerNameRow(o, index: index, open: true, actionsSolid: actionsSolid)
         } else if let e = o.error {
             errorText(e)
             if o.applePackMissing {
@@ -830,10 +838,10 @@ struct PopupView: View {
                     AppleLangPack.presentDownloadPrompt(force: true)
                 }
             }
-            providerNameRow(o, index: index, open: true)
+            providerNameRow(o, index: index, open: true, actionsSolid: actionsSolid)
         } else if let t = o.text {
             resultText(t)
-            providerNameRow(o, index: index, open: true, text: t)
+            providerNameRow(o, index: index, open: true, text: t, actionsSolid: actionsSolid)
         }
     }
 
@@ -870,8 +878,8 @@ struct PopupView: View {
         .help(L("展开"))
     }
 
-    /// 服务名一行：朗读、复制、写回。悬停这一家时变实。
-    private func providerNameRow(_ o: ProviderOutcome, index: Int, open: Bool, text: String? = nil) -> some View {
+    /// 服务名一行：朗读、复制、写回。操作常驻次要色，悬停这一家时变实。译文本身不跟着淡。
+    private func providerNameRow(_ o: ProviderOutcome, index: Int, open: Bool, text: String? = nil, actionsSolid: Bool) -> some View {
         HStack(spacing: 4) {
             Button {
                 toggleProvider(o.id, open: open)
@@ -891,10 +899,14 @@ struct PopupView: View {
             modelMenu(o)
             Spacer(minLength: 4)
             if let text {
-                SpeakButton(text: text, language: targetSpeechCode, tag: "popup.\(o.id)")
-                favoriteButton(translation: text, providerName: o.name)
-                copyButton(id: o.id, text: text)
-                writeBackButton(id: o.id, text: text, index: index)
+                HStack(spacing: 4) {
+                    SpeakButton(text: text, language: targetSpeechCode, tag: "popup.\(o.id)")
+                    favoriteButton(translation: text, providerName: o.name)
+                    copyButton(id: o.id, text: text)
+                    writeBackButton(id: o.id, text: text, index: index)
+                }
+                .opacity(actionsSolid ? 1 : 0.72)
+                .animation(.easeOut(duration: 0.12), value: actionsSolid)
             }
             if model.outcomes.count > 1 {
                 providerChevron(open: true) { toggleProvider(o.id, open: true) }
@@ -1096,9 +1108,11 @@ struct PopupView: View {
         .help(open ? L("收起") : L("展开"))
     }
 
+    /// 译文是这一块的主体：15 磅中等、主要色。原文仍是 13 磅次要色。
     @ViewBuilder
     private func resultText(_ t: String) -> some View {
         InlineMarkdownText(text: t, font: Theme.TypeScale.reading)
+            .foregroundStyle(.primary)
             .lineSpacing(3)
     }
 
@@ -2796,14 +2810,13 @@ private struct PopupFollowUpBar: View {
 }
 
 /// 一家译文。操作行常驻、次要色，鼠标停在这一家上时变实。
+/// 悬停只交给操作按钮。译文和折起的一行不在这里变淡。
 private struct ProviderHoverRow<Content: View>: View {
-    @ViewBuilder var content: () -> Content
+    @ViewBuilder var content: (Bool) -> Content
     @State private var hovering = false
 
     var body: some View {
-        content()
-            .opacity(hovering ? 1 : 0.72)
-            .animation(.easeOut(duration: 0.12), value: hovering)
+        content(hovering)
             .onHover { hovering = $0 }
     }
 }

@@ -16,6 +16,11 @@ enum Theme {
     static let panelShadow = Color.black.opacity(0.18)
     static let panelShadowRadius: CGFloat = 12
     static let panelShadowY: CGFloat = 4
+    /// 浮层罩色。效果图 `--mat` 盖在 regularMaterial 上，少透一点。
+    /// 浅色 #FAFAFC；深色用抬一点的面板色，避免整块发灰发白。
+    static let panelMat = Color(nsColor: dynamic(light: 0xFAFAFC, dark: 0x2C2C31))
+    /// 罩色盖住的比例。效果图是 82%，底下仍能透出一点模糊。
+    static let panelMatCover: Double = 0.82
     static let cardFill = Color(nsColor: dynamic(light: 0xFFFFFF, dark: 0x2A2A2F))
     static let wellFill = Color.primary.opacity(0.045)
     /// 设置填写块底。效果图黑 1.8%。
