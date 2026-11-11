@@ -26,14 +26,17 @@ struct PageCard<Content: View>: View {
 }
 
 /// 右边那个 6 磅折线箭头。系统 Menu 自己也会画一个，所以语言选择不用 Menu。
+/// 对着 `.pop::after`：6×6，右边和下边各 1.4 磅，转 45 度。返回箭头是同一支转 180 度。
 struct ChromeChevron: View {
     var color: Color = Color.secondary
+    var pointsLeft = false
 
     var body: some View {
         ChromeChevronMark()
             .stroke(color, style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
             .frame(width: 6, height: 6)
-            .padding(.leading, 2)
+            .rotationEffect(.degrees(pointsLeft ? 90 : 0))
+            .padding(.leading, pointsLeft ? 0 : 2)
             .accessibilityHidden(true)
     }
 }
