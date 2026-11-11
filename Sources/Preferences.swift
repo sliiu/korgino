@@ -420,7 +420,7 @@ struct SettingsSidebar: View {
         VStack(alignment: .leading, spacing: 1) {
             Button(action: onBack) {
                 HStack(spacing: 6) {
-                    ChromeChevron(pointsLeft: true)
+                    BackChevron()
                     Text(L("返回"))
                         .font(Theme.TypeScale.label)
                 }

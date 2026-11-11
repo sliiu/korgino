@@ -25,19 +25,28 @@ struct PageCard<Content: View>: View {
     }
 }
 
-/// 右边那个折线箭头。系统 Menu 自己也会画一个，所以语言选择不用 Menu。
+/// 下拉框右边那个折线箭头。系统 Menu 自己也会画一个，所以语言选择不用 Menu。
 /// 效果图里是浅折线：两臂约 70 度张开，每臂 4 磅，高 2.6 磅，1.4 磅线宽。
-/// 返回箭头是同一支朝左。
 struct ChromeChevron: View {
     var color: Color = Color.secondary
-    var pointsLeft = false
 
     var body: some View {
         ChromeChevronMark()
             .stroke(color, style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
-            .frame(width: pointsLeft ? 4 : 8, height: pointsLeft ? 8 : 4)
-            .rotationEffect(.degrees(pointsLeft ? 90 : 0))
-            .padding(.leading, pointsLeft ? 0 : 1)
+            .frame(width: 8, height: 4)
+            .padding(.leading, 1)
+            .accessibilityHidden(true)
+    }
+}
+
+/// 设置页左上角的返回箭头。效果图里是 90 度的直角折线：左边和底边各 1.5 磅，转 45 度。
+struct BackChevron: View {
+    var color: Color = Color.secondary
+
+    var body: some View {
+        BackChevronMark()
+            .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            .frame(width: 6, height: 6)
             .accessibilityHidden(true)
     }
 }
@@ -70,6 +79,16 @@ private struct ChromeChevronMark: Shape {
         path.move(to: CGPoint(x: rect.minX, y: rect.minY + 0.7))
         path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - 0.7))
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + 0.7))
+        return path
+    }
+}
+
+private struct BackChevronMark: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + 0.75, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - 0.75))
+        path.addLine(to: CGPoint(x: rect.maxX - 0.75, y: rect.midY))
         return path
     }
 }
