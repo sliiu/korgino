@@ -911,7 +911,7 @@ struct PreferencesPane: View {
                             .font(Theme.TypeScale.caption)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
-                        Button(checkingUpdate ? L("检查中…") : L("检查更新…")) {
+                        PageButton(title: checkingUpdate ? L("检查中…") : L("检查更新…")) {
                             checkingUpdate = true
                             Task {
                                 let outcome = await UpdateChecker.check()
@@ -919,7 +919,6 @@ struct PreferencesPane: View {
                                 UpdateChecker.presentResult(outcome)
                             }
                         }
-                        .controlSize(.small)
                         .disabled(checkingUpdate)
                     }
                 }
@@ -990,36 +989,32 @@ struct PreferencesPane: View {
     }
 
     private var accountStatusCard: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "sparkle")
-                .font(Theme.TypeScale.title)
+        HStack(alignment: .center, spacing: 14) {
+            // 效果图状态卡的图标是 40 磅底、圆角 8、强调色 12%，里面一颗四角星。
+            KIconView(.spark, size: 20)
                 .foregroundStyle(Theme.accent)
-                .frame(width: 36, height: 36)
+                .frame(width: 40, height: 40)
                 .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.accent.opacity(0.12)))
             VStack(alignment: .leading, spacing: 2) {
                 Text(accountHeadline)
-                    .font(Theme.TypeScale.body)
+                    .font(Theme.TypeScale.reading)
                     .fontWeight(.semibold)
                 Text(accountSubline)
-                    .font(Theme.TypeScale.caption)
+                    .font(Theme.TypeScale.label)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
             if !pro.purchased && !Pro.testAccessOpen {
                 if Pro.channel == .store {
-                    Button(pro.products[Pro.productID].map { String(format: L("购买 Pro（%@）"), $0.displayPrice) } ?? L("购买 Pro")) {
+                    PageButton(title: pro.products[Pro.productID].map { String(format: L("购买 Pro（%@）"), $0.displayPrice) } ?? L("购买 Pro"), primary: true) {
                         Task { await pro.purchase(Pro.productID) }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
                     .disabled(pro.busy || pro.products[Pro.productID] == nil)
                 } else {
-                    Button(L("购买 Pro")) {
+                    PageButton(title: L("购买 Pro"), primary: true) {
                         if let url = LicenseEndpoint.purchaseURL { NSWorkspace.shared.open(url) }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
                     .disabled(LicenseEndpoint.purchaseURL == nil)
                 }
             }
@@ -1072,10 +1067,9 @@ struct PreferencesPane: View {
             settingsGroup(L("购买")) {
                 settingsRow(L("试用")) {
                     if pro.trialEnd == nil {
-                        Button(String(format: L("免费试用 %@ 天"), String(Pro.trialDays))) {
+                        PageButton(title: String(format: L("免费试用 %@ 天"), String(Pro.trialDays))) {
                             Task { await pro.purchase(Pro.trialID) }
                         }
-                        .controlSize(.small)
                         .disabled(pro.busy || pro.products[Pro.trialID] == nil)
                     } else {
                         Text(L("试用已用过"))
@@ -1084,10 +1078,9 @@ struct PreferencesPane: View {
                     }
                 }
                 settingsRow(L("已经买过")) {
-                    Button(L("恢复购买")) {
+                    PageButton(title: L("恢复购买")) {
                         Task { await pro.restore() }
                     }
-                    .controlSize(.small)
                     .disabled(pro.busy)
                 }
                 if pro.products[Pro.productID] == nil {
@@ -1100,42 +1093,47 @@ struct PreferencesPane: View {
             }
         } else if Pro.channel == .direct && !pro.purchased && !Pro.testAccessOpen {
             settingsGroup(L("钥匙")) {
+                // 效果图里钥匙输入框 252，加页按钮之后整列仍是 300。
                 fieldRow(L("钥匙")) {
                     HStack(spacing: 8) {
                         TextField("", text: $keyInput, prompt: Text("KORG-XXXX-XXXX-XXXX"))
                             .textFieldStyle(.roundedBorder)
-                        Button(L("填入")) {
+                            .frame(width: 252)
+                        PageButton(title: L("填入")) {
                             let k = keyInput
                             Task {
                                 await license.enter(key: k)
                                 if license.isActive { keyInput = "" }
                             }
                         }
-                        .controlSize(.small)
                         .disabled(license.busy || keyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .frame(width: SettingsMetrics.controlWidth)
                 }
-                Button(L("忘了钥匙？")) { showReissue.toggle() }
-                    .buttonStyle(.plain)
-                    .font(Theme.TypeScale.body)
+                Button { showReissue.toggle() } label: {
+                    HStack(spacing: 4) {
+                        Text(L("忘了钥匙？"))
+                        ChromeChevron()
+                            .rotationEffect(.degrees(showReissue ? 180 : 0))
+                    }
+                    .font(Theme.TypeScale.label)
                     .foregroundStyle(Theme.accent)
-                    .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: 38)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 38)
                 if showReissue {
                     fieldRow(L("付款时用的邮箱")) {
                         HStack(spacing: 8) {
                             TextField("", text: $emailInput, prompt: Text("name@example.com"))
                                 .textFieldStyle(.roundedBorder)
-                            Button(L("发回")) {
+                                .frame(width: 252)
+                            PageButton(title: L("发回")) {
                                 let e = emailInput
                                 Task { await license.reissue(email: e) }
                             }
-                            .controlSize(.small)
                             .disabled(license.busy || emailInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
-                        .frame(width: SettingsMetrics.controlWidth)
                     }
                 }
                 if let note = license.note {
@@ -1162,10 +1160,9 @@ struct PreferencesPane: View {
                             .foregroundStyle(.secondary)
                     }
                     HStack {
-                        Button(L("让出这台的名额")) {
+                        PageButton(title: L("让出这台的名额")) {
                             Task { await license.release() }
                         }
-                        .controlSize(.small)
                         .disabled(license.busy)
                         Spacer(minLength: 0)
                     }
@@ -2085,11 +2082,12 @@ struct PreferencesPane: View {
         SettingsRow(title: title, detail: detail, control: control)
     }
 
-    /// 填写块里的一行。左标签 13 磅，右控件宽 300，说明写在控件下面。
+    /// 填写块里的一行。左标签 13 磅，右控件默认宽 300，说明写在控件下面。
     private func fieldRow<Control: View>(
         _ title: String,
         note: String? = nil,
         showsDivider: Bool = true,
+        controlWidth: CGFloat = SettingsMetrics.controlWidth,
         @ViewBuilder control: () -> Control
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -2099,7 +2097,7 @@ struct PreferencesPane: View {
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 control()
-                    .frame(width: SettingsMetrics.controlWidth, alignment: .trailing)
+                    .frame(width: controlWidth, alignment: .trailing)
             }
             .frame(minHeight: SettingsChrome.rowMinHeight)
             if let note, !note.isEmpty {
