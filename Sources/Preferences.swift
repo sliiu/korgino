@@ -1921,6 +1921,10 @@ struct PreferencesPane: View {
                     Text(L("免费版只用默认一家"))
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.secondary)
+                    // 两句之间要有个隔断，否则会读成「免费版只用默认一家 Pro 不限家数」。
+                    Text("·")
+                        .font(Theme.TypeScale.caption)
+                        .foregroundStyle(.tertiary)
                     Text(L("Pro 不限家数，按这个顺序排。"))
                         .font(Theme.TypeScale.caption)
                         .foregroundStyle(.tertiary)
