@@ -188,6 +188,24 @@ if [[ "$RELEASE" -eq 1 ]]; then
   exit 0
 fi
 
+# 装上去的都是同一个签名（designated requirement 只认证书，不认 cdhash），
+# 重装不该再触发钥匙串授权。代码没变时连二进制都一样，直接换不换都行——
+# 不换还能少一次 LaunchServices 重新登记和一次重签。
+INSTALLED="$HOME/Applications/Korgino.app"
+signed_hash() {
+  codesign -d -vvv "$1" 2>&1 | awk -F'CDHash=' 'NF>1 {print $2; exit}'
+}
+signed_req() {
+  codesign -d -r- "$1" 2>&1 | sed -n 's/^designated => //p'
+}
+if [[ -d "$INSTALLED" ]] && [[ "$(signed_hash "$APP")" == "$(signed_hash "$INSTALLED")" ]] \
+   && [[ -n "$(signed_hash "$APP")" ]] && [[ "$(signed_req "$APP")" == "$(signed_req "$INSTALLED")" ]]; then
+  echo "Binary and signature unchanged; keeping $INSTALLED as is."
+  echo "BUILD OK -> $INSTALLED"
+  open "$INSTALLED"
+  exit 0
+fi
+
 mkdir -p "$HOME/Applications"
 # 三个名字都杀：改名前后留下的旧进程如果还活着，用户点到的是旧二进制的窗口。
 pkill -x Korgino 2>/dev/null || true

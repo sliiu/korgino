@@ -871,6 +871,14 @@ final class AppConfig: ObservableObject {
     // MARK: Hotkeys
     /// 跨文件（Config+Hotkeys）读取：首次加载完成前不写回，免得把默认值盖掉。
     var hotkeysReady = false
+    /// 密钥读完没有。没读完之前所有网络请求先等它（`awaitSecrets`）。
+    /// 只在 Config+Secrets 的 `applySecrets()` 里置 true。
+    @Published var secretsReady = false
+    var secretsLoading = false
+    /// 首次启动要按密钥决定开哪几家词典；密钥没回来先挂着。
+    var dictDefaultsPending = false
+    /// 老安装的 ASR 档迁移要按旧密钥决定建不建档，同样等密钥。
+    var asrLegacyPending = false
 
     @Published var hotkeySelect: HotkeySpec {
         didSet { persistHotkey(.select, hotkeySelect) }
@@ -1032,17 +1040,17 @@ final class AppConfig: ObservableObject {
         mediaAsrOrder = d.stringArray(forKey: ConfigKeys.media_asrOrder) ?? []
         mediaDefaultTranslateID = d.string(forKey: ConfigKeys.use_mediaTranslate) ?? ""
         deeplUseFreeAPI = d.object(forKey: ConfigKeys.deeplUseFreeAPI) as? Bool ?? true
-        googleCloudKey = Keychain.get("googleCloud") ?? ""
-        deeplKey = Keychain.get("deepl") ?? ""
-        microsoftKey = Keychain.get("microsoft") ?? ""
+        
+        
+        
         microsoftRegion = d.string(forKey: ConfigKeys.microsoftRegion) ?? "global"
         baiduAppID = d.string(forKey: ConfigKeys.baiduAppID) ?? ""
-        baiduSecret = Keychain.get("baiduSecret") ?? ""
+        
         youdaoAppKey = d.string(forKey: ConfigKeys.youdaoAppKey) ?? ""
-        youdaoSecret = Keychain.get("youdaoSecret") ?? ""
-        caiyunToken = Keychain.get("caiyun") ?? ""
+        
+        
         libreTranslateURL = d.string(forKey: ConfigKeys.libreTranslateURL) ?? "https://libretranslate.com"
-        libreTranslateKey = Keychain.get("libreTranslate") ?? ""
+        
         lingvaURL = d.string(forKey: ConfigKeys.lingvaURL) ?? "https://lingva.ml"
         fileAIProfileID = d.string(forKey: ConfigKeys.fileAIProfileID) ?? ""
         quickProviderID = d.string(forKey: ConfigKeys.quickProviderID) ?? ""
@@ -1076,22 +1084,10 @@ final class AppConfig: ObservableObject {
         let dictKnown = Set(DictionaryProviderID.allCases.map(\.rawValue))
         var dictOn: Set<String>
         if d.object(forKey: ConfigKeys.dict_enabled) == nil {
+            // 首次启动要开哪几家，取决于密钥在不在，而密钥这时还没读回来。
+            // 先只开免费那家，等 applySecrets() 拿真密钥重算（见 freshDictionaryDefaults）。
+            dictDefaultsPending = true
             dictOn = [DictionaryProviderID.freeDictionary.rawValue]
-            let sim = Set(d.stringArray(forKey: ConfigKeys.activeSimultaneous) ?? fresh)
-            let youdaoKey = (d.string(forKey: ConfigKeys.youdaoAppKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let youdaoSec = (Keychain.get("youdaoSecret") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let baiduID = (d.string(forKey: ConfigKeys.baiduAppID) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let baiduSec = (Keychain.get("baiduSecret") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let caiyun = (Keychain.get("caiyun") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            if sim.contains(ProviderID.youdao.rawValue), !youdaoKey.isEmpty, !youdaoSec.isEmpty {
-                dictOn.insert(DictionaryProviderID.youdao.rawValue)
-            }
-            if sim.contains(ProviderID.baidu.rawValue), !baiduID.isEmpty, !baiduSec.isEmpty {
-                dictOn.insert(DictionaryProviderID.baidu.rawValue)
-            }
-            if sim.contains(ProviderID.caiyun.rawValue), !caiyun.isEmpty {
-                dictOn.insert(DictionaryProviderID.caiyun.rawValue)
-            }
         } else {
             dictOn = Set(d.stringArray(forKey: ConfigKeys.dict_enabled) ?? []).intersection(dictKnown)
             if dictOn.isEmpty { dictOn = [DictionaryProviderID.freeDictionary.rawValue] }
@@ -1134,19 +1130,27 @@ final class AppConfig: ObservableObject {
         ocrEnabled = ocrOn
         ocrBaiduSync = d.object(forKey: ConfigKeys.ocrBaiduSync) as? Bool ?? true
         ocrBaiduAppID = d.string(forKey: ConfigKeys.ocrBaiduAppID) ?? ""
-        ocrBaiduSecret = Keychain.get("ocrBaiduSecret") ?? ""
+        
         ocrYoudaoSync = d.object(forKey: ConfigKeys.ocrYoudaoSync) as? Bool ?? true
         ocrYoudaoAppKey = d.string(forKey: ConfigKeys.ocrYoudaoAppKey) ?? ""
-        ocrYoudaoSecret = Keychain.get("ocrYoudaoSecret") ?? ""
+        
         ocrGoogleSync = d.object(forKey: ConfigKeys.ocrGoogleSync) as? Bool ?? true
-        ocrGoogleKey = Keychain.get("ocrGoogleKey") ?? ""
+        
         tencentSecretID = d.string(forKey: ConfigKeys.tencentSecretID) ?? ""
-        tencentSecretKey = Keychain.get("tencentSecretKey") ?? ""
+        
         azureVisionEndpoint = d.string(forKey: ConfigKeys.azureVisionEndpoint) ?? ""
-        azureVisionKey = Keychain.get("azureVision") ?? ""
-        ocrSpaceKey = Keychain.get("ocrSpace") ?? ""
+        
+        
         ocrAIProfileID = d.string(forKey: ConfigKeys.ocrAIProfileID) ?? ""
-        let asr = Self.loadASRState(d)
+        let asr: (apple: Bool, profiles: [ASRProfile], selection: String)
+        if d.data(forKey: ConfigKeys.asrProfiles) == nil {
+            // 老安装：这一步要按旧密钥决定建不建 openai/groq 档，还会把结果写进偏好。
+            // 密钥没回来就迁，等于把有密钥的档判成空的、写死丢掉。等 applySecrets()。
+            asrLegacyPending = true
+            asr = (true, [], "apple")
+        } else {
+            asr = Self.loadASRState(d)
+        }
         asrAppleEnabled = asr.apple
         asrAnalyzerEnabled = d.object(forKey: ConfigKeys.asrAnalyzerEnabled) as? Bool ?? true
         asrAppleOnDevice = d.object(forKey: ConfigKeys.asrAppleOnDevice) as? Bool ?? true
@@ -1199,13 +1203,12 @@ final class AppConfig: ObservableObject {
         let port = d.object(forKey: ConfigKeys.proxyPort) as? Int ?? 7890
         proxyPort = (1...65535).contains(port) ? port : 7890
         proxyUsername = d.string(forKey: ConfigKeys.proxyUsername) ?? ""
-        proxyPassword = Keychain.get("proxyPassword") ?? ""
+        
         var loaded: [AIProfile] = []
         if let data = d.data(forKey: ConfigKeys.aiProfiles),
            let list = try? JSONDecoder().decode([AIProfile].self, from: data) {
             loaded = list.map { Self.normalizeProfile($0) }
         }
-        loaded = LegacyMigrate.pruneUnusedPresetsIfNeeded(profiles: loaded)
         aiProfiles = loaded
         if let data = try? JSONEncoder().encode(aiProfiles) {
             d.set(data, forKey: ConfigKeys.aiProfiles)
@@ -1223,12 +1226,11 @@ final class AppConfig: ObservableObject {
                 aiProfiles[i] = p
             }
         }
-        seedFeatureDefaultsIfNeeded()
-        enforceReadyInvariant()
         proxyReady = true
         hotkeysReady = true
         L10n.use(appLanguage)
         syncAppleLanguages()
+        startSecretsLoad()
     }
 
     @Published var appLanguage: AppLanguage = .system {

@@ -334,6 +334,7 @@ enum TTSLang {
 
 enum TTSEngine {
     static func synthesize(text: String, request: TTSRequest, languageCode: String?) async throws -> Data {
+        await AppConfig.shared.awaitSecrets()
         switch request.wire {
         case .openai: return try await openai(text, request)
         case .elevenlabs: return try await elevenlabs(text, request)

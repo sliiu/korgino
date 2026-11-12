@@ -79,6 +79,7 @@ enum DictionaryLookup {
     static func lookup(_ text: String, explainIn: TargetLanguage? = nil, source: TargetLanguage? = nil) async throws -> DictionaryEntry {
         let q = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { throw TErr(L("查询词为空")) }
+        await AppConfig.shared.awaitSecrets()
         let payload = try await MaskedSend.prepare(
             q,
             destination: AppConfig.shared.dictProvider.displayName

@@ -217,6 +217,7 @@ struct WhisperASRConfig: Sendable {
 
 enum WhisperASR {
     static func transcribe(wav: Data, config: WhisperASRConfig, language: String?, prompt: String? = nil) async throws -> String {
+        await AppConfig.shared.awaitSecrets()
         do {
             return try await transcribeOnce(wav: wav, config: config, language: language, prompt: prompt)
         } catch is CancellationError {

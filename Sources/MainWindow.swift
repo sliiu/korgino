@@ -328,6 +328,7 @@ private struct TranslatePage: View {
     @EnvironmentObject private var config: AppConfig
     @ObservedObject private var files = FileTranslateController.shared
     @StateObject private var model = TranslatePageModel()
+    @State private var showReadingKeys = false
 
     var body: some View {
         let _ = config.appLanguage
@@ -353,6 +354,10 @@ private struct TranslatePage: View {
             }
             VStack(alignment: .leading, spacing: 14) {
                 toolbar
+                if showReadingKeys {
+                    LoadingLine(text: L("正在读取密钥…"))
+                        .transition(.opacity)
+                }
                 sourceCard
                 if model.hasResults {
                     results
@@ -365,6 +370,15 @@ private struct TranslatePage: View {
         .onAppear {
             model.refreshPermissions()
             consumePending()
+            // 密钥在后台读，正常十几毫秒就回来了，那条提示会闪一下，很难看。
+            // 只有真慢（钥匙串要弹授权框）才显示。
+            Task {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                if !config.secretsReady { withAnimation(.easeOut(duration: 0.15)) { showReadingKeys = true } }
+            }
+        }
+        .onChange(of: config.secretsReady) { _, ready in
+            if ready, showReadingKeys { withAnimation(.easeOut(duration: 0.15)) { showReadingKeys = false } }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refreshPermissions()

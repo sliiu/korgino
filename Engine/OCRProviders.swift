@@ -49,6 +49,7 @@ enum CloudOCR {
     private nonisolated(unsafe) static var baiduToken: (client: String, value: String, exp: Date)?
 
     static func recognizeText(png: Data, provider: OCRProviderID) async throws -> String {
+        await AppConfig.shared.awaitSecrets()
         switch provider {
         case .appleVision:
             throw TErr(L("Apple Vision 只在 Mac 上可用"))

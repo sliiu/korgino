@@ -158,6 +158,8 @@ enum Translator {
     private static func translatePrepared(_ text: String, target: TranslateTarget,
                                           plan: Lang.Plan,
                                           prepared: SourceSkeleton.Prepared? = nil) async throws -> String {
+        // 启动后头一个请求可能赶在密钥读回来之前。等一下，别拿着空密钥去报「未填」。
+        await AppConfig.shared.awaitSecrets()
         if case .ai(let profile) = target {
             if returnsSource(target, plan: plan) { return text }
             let custom = profile.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -237,6 +237,15 @@ final class DirectLicense: ObservableObject {
 
     func dismissNote() { note = nil }
 
+    /// 启动时钥匙还没从钥匙串读回来（读在后台），`record` 会是空的，Pro 就错判成免费。
+    /// 密钥到位后补读一次。已经有记录就不动。
+    func reloadRecordIfNeeded() {
+        guard record == nil else { return }
+        record = Self.load()
+        Pro.shared.applyDirect(purchased: isActive)
+        if isActive { Task { await recheck() } }
+    }
+
     private static func load() -> LicenseRecord? {
         guard let s = MacKeychain.get(account), let d = s.data(using: .utf8) else { return nil }
         let dec = JSONDecoder()
