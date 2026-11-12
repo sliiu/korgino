@@ -166,6 +166,8 @@ struct PopupView: View {
     @State private var chatPaneShown: CGFloat = 0
     /// 原文超过三行时点开看全。每次重新翻译收回去。
     @State private var sourceExpanded = false
+    /// 原文有没有被三行封顶。没超就不显示展开按钮。
+    @State private var sourceOverflows = false
     /// 「再加一家」就地弹出的服务列表。
     @State private var addProviderOpen = false
 
@@ -186,7 +188,6 @@ struct PopupView: View {
             panelShape.strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         }
         .clipShape(panelShape)
-        .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
         .controlSize(.small)
         .onChange(of: chat.messages.count) { _, _ in
             DispatchQueue.main.async { onRelayout() }
@@ -233,7 +234,7 @@ struct PopupView: View {
         ZStack {
             WindowDragHandle()
             HStack(spacing: 2) {
-                directionMenu
+                directionMenus
                 Spacer(minLength: 8)
                 IconButton(
                     icon: .pin,
@@ -259,51 +260,46 @@ struct PopupView: View {
         .clipped()
     }
 
-    private struct DirectionChoice: Hashable {
-        enum Kind: Hashable { case target, source }
-        var kind: Kind
-        var language: TargetLanguage
-        var title: String
+    /// 原文语言可选的：自动检测 + 所有语言。
+    private var sourceChoices: [TargetLanguage] {
+        [.auto] + TargetLanguage.specific
     }
 
-    /// 顶栏方向本身就是目标语言选择。原文语言留在同一个菜单里，不再另放一个下拉。
-    private var popupDirectionChoices: [DirectionChoice] {
-        let targets = TargetLanguage.specific.map {
-            DirectionChoice(kind: .target, language: $0, title: $0.shortTitle)
-        }
-        let sources = [DirectionChoice(kind: .source, language: .auto, title: L("自动检测"))]
-            + TargetLanguage.specific.map {
-                DirectionChoice(kind: .source, language: $0, title: $0.shortTitle)
-            }
-        return targets + sources
-    }
-
-    private var directionMenu: some View {
-        MenuChip(
-            title: "\(sourceLabel) → \(targetLabel)",
-            options: popupDirectionChoices,
-            label: { $0.title },
-            isSelected: { choice in
-                switch choice.kind {
-                case .target: return choice.language == model.targetLanguage
-                case .source: return choice.language == model.sourceLanguage
-                }
-            },
-            select: { choice in
-                switch choice.kind {
-                case .target:
-                    model.targetLanguage = choice.language
-                case .source:
-                    guard choice.language != model.sourceLanguage else { return }
-                    model.sourceLanguage = choice.language
+    /// 顶栏拆成两个下拉：左边选原文语言，右边选译成什么。
+    /// 原来挤在一个菜单里，三十多项连成一片，选原文要往下翻半屏。
+    private var directionMenus: some View {
+        HStack(spacing: 4) {
+            MenuChip(
+                title: sourceLabel,
+                options: sourceChoices,
+                label: { $0 == .auto ? L("自动检测") : $0.shortTitle },
+                isSelected: { $0 == model.sourceLanguage },
+                select: { language in
+                    guard language != model.sourceLanguage else { return }
+                    model.sourceLanguage = language
                     if canRetranslate && !model.pendingFirstTranslate { onRetranslate() }
                 }
-            }
-        )
-        .disabled(model.loading)
-        .help(model.targetPending
-            ? L("目标语言已改，点原文旁的重新翻译生效")
-            : L("这一页的目标语言，不改设置"))
+            )
+            .disabled(model.loading)
+            .help(L("原文语言"))
+
+            Text("→")
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.tertiary)
+                .allowsHitTesting(false)
+
+            MenuChip(
+                title: targetLabel,
+                options: TargetLanguage.specific,
+                label: { $0.shortTitle },
+                isSelected: { $0 == model.targetLanguage },
+                select: { model.targetLanguage = $0 }
+            )
+            .disabled(model.loading)
+            .help(model.targetPending
+                ? L("目标语言已改，点原文旁的重新翻译生效")
+                : L("这一页的目标语言，不改设置"))
+        }
     }
 
     /// 已启用、并且这一次还没在译的服务。勾上只管这一次。
@@ -558,9 +554,13 @@ struct PopupView: View {
         VStack(alignment: .leading, spacing: 0) {
             // 水平内边距都在 sourceWell / resultColumn 里，避免再叠 12。
             sourceWell
-                .padding(.bottom, showsResults ? 0 : 12)
+                .padding(.bottom, showsResults ? 2 : 12)
                 .layoutPriority(1)
             if showsResults {
+                // 原文和译文分属两件事，中间要有条界线，不然长段落会连成一片。
+                Rectangle()
+                    .fill(Theme.hairline)
+                    .frame(height: 0.5)
                 resultScroller
                     .layoutPriority(0)
             }
@@ -661,25 +661,25 @@ struct PopupView: View {
     }
 
     /// 原文和译文在同一块面板上。次要色、最多三行，点开看全。没有灰底。
+    ///
+    /// 原文一直可改：查错字、改个词直接改完点重新翻译，不用回原 App 重新划词。
+    /// 折叠时高度封在三行，编辑器内部自己滚动。
     private var sourceWell: some View {
         VStack(alignment: .leading, spacing: 2) {
             if model.showsOCRShot, let shot = model.ocrShot {
                 ocrShotPreview(shot)
-            } else if model.pendingFirstTranslate {
-                SourceEditor(text: $model.source, isEnabled: !model.loading, onHeightChange: onRelayout)
             } else {
-                Text(model.source)
-                    .font(Theme.TypeScale.body)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(sourceExpanded ? nil : 3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        sourceExpanded.toggle()
-                        onRelayout()
+                SourceEditor(
+                    text: $model.source,
+                    isEnabled: !model.loading,
+                    maxLines: sourceExpanded ? nil : SourceEditor.collapsedLines,
+                    onHeightChange: onRelayout,
+                    onOverflow: { over in
+                        guard over != sourceOverflows else { return }
+                        sourceOverflows = over
+                        if !over { sourceExpanded = false }
                     }
-                    .help(sourceExpanded ? L("收起原文") : L("点开看全文"))
+                )
             }
             sourceActions
         }
@@ -689,11 +689,29 @@ struct PopupView: View {
         .padding(.bottom, 8)
     }
 
+    /// 原文被折叠时才出现：展开看全文 / 收起。
+    @ViewBuilder
+    private var sourceExpandToggle: some View {
+        if sourceOverflows || sourceExpanded {
+            IconButton(
+                icon: sourceExpanded ? .chevU : .chevD,
+                help: sourceExpanded ? L("收起原文") : L("展开看全文"),
+                size: 11,
+                action: {
+                    sourceExpanded.toggle()
+                    onRelayout()
+                }
+            )
+            .opacity(0.72)
+        }
+    }
+
     @ViewBuilder
     private var sourceActions: some View {
         if model.pendingFirstTranslate {
             HStack(spacing: 2) {
                 ocrShotToggle
+                sourceExpandToggle
                 Spacer(minLength: 0)
                 Button(L("翻译")) { onRetranslate() }
                     .buttonStyle(.borderedProminent)
@@ -704,6 +722,7 @@ struct PopupView: View {
         } else {
             HStack(spacing: 2) {
                 ocrShotToggle
+                sourceExpandToggle
                 Spacer(minLength: 0)
                 SpeakButton(text: model.source, help: L("朗读原文"), tag: "popup.source")
                     .disabled(model.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1372,9 +1391,16 @@ final class OCRShotCanvasView: NSView {
 }
 
 private struct SourceEditor: NSViewRepresentable {
+    /// 折叠时最多显示几行。超了才给「展开」按钮。
+    static let collapsedLines = 3
+
     @Binding var text: String
     var isEnabled: Bool
+    /// 折叠时封顶的行数。nil 表示不封顶（仍有 8 行的安全上限）。
+    var maxLines: Int? = nil
     var onHeightChange: () -> Void
+    /// 内容是否超过 `maxLines`。折叠时只有它超过三行才需要「展开」按钮。
+    var onOverflow: ((Bool) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -1432,7 +1458,17 @@ private struct SourceEditor: NSViewRepresentable {
         }
         let width = scroll.contentSize.width > 1 ? scroll.contentSize.width : (scroll.bounds.width > 1 ? scroll.bounds.width : 0)
         guard width > 1 else { return }
-        let height = layout(textView, width: width)
+        let full = fullHeight(textView, width: width)
+        let height = layout(textView, width: width, maxLines: maxLines)
+        if let onOverflow {
+            // 永远按折叠时的 3 行量。按 maxLines 量的话，一展开就「不超了」，
+            // 按钮消失、又缩回去，来回打架。
+            let over = full > (lineHeight(textView) * CGFloat(SourceEditor.collapsedLines)) + textView.textContainerInset.height * 2 + 0.5
+            if over != context.coordinator.overflowing {
+                context.coordinator.overflowing = over
+                DispatchQueue.main.async { onOverflow(over) }
+            }
+        }
         guard abs(height - context.coordinator.reported) > 0.5 else { return }
         context.coordinator.reported = height
         DispatchQueue.main.async { [onHeightChange] in onHeightChange() }
@@ -1441,28 +1477,41 @@ private struct SourceEditor: NSViewRepresentable {
     func sizeThatFits(_ proposal: ProposedViewSize, nsView scroll: NSScrollView, context: Context) -> CGSize? {
         guard let textView = scroll.documentView as? NSTextView else { return nil }
         let width = proposal.width ?? scroll.bounds.width
-        let height = width > 1 ? layout(textView, width: width) : context.coordinator.reported
+        let height = width > 1 ? layout(textView, width: width, maxLines: maxLines) : context.coordinator.reported
         return CGSize(width: max(width, 1), height: max(height, 1))
     }
 
-    private func layout(_ textView: NSTextView, width: CGFloat) -> CGFloat {
+    private func lineHeight(_ textView: NSTextView) -> CGFloat {
+        guard let manager = textView.layoutManager else { return 16 }
+        return ceil(manager.defaultLineHeight(for: textView.font ?? Theme.TypeScale.nsBody))
+    }
+
+    /// 内容需要的完整高度，不受胶囊上限影响。
+    private func fullHeight(_ textView: NSTextView, width: CGFloat) -> CGFloat {
         let contentWidth = max(width, 1)
         textView.textContainer?.containerSize = NSSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude)
         guard let manager = textView.layoutManager, let container = textView.textContainer else { return 22 }
         manager.ensureLayout(for: container)
-        let line = manager.defaultLineHeight(for: textView.font ?? Theme.TypeScale.nsBody)
         let inset = textView.textContainerInset.height * 2
-        let full = max(ceil(manager.usedRect(for: container).height), ceil(line)) + inset
+        return max(ceil(manager.usedRect(for: container).height), lineHeight(textView)) + inset
+    }
+
+    private func layout(_ textView: NSTextView, width: CGFloat, maxLines: Int?) -> CGFloat {
+        let contentWidth = max(width, 1)
+        let full = fullHeight(textView, width: contentWidth)
+        let line = lineHeight(textView)
+        let inset = textView.textContainerInset.height * 2
         if abs(textView.frame.width - contentWidth) > 0.5 || abs(textView.frame.height - full) > 0.5 {
             textView.setFrameSize(NSSize(width: contentWidth, height: full))
         }
-        return min(max(full, ceil(line) + inset), ceil(line) * 8 + inset)
+        return min(max(full, line + inset), line * CGFloat(maxLines ?? 8) + inset)
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SourceEditor
         var applying = false
         var reported: CGFloat = 0
+        var overflowing = false
 
         init(_ parent: SourceEditor) { self.parent = parent }
 
@@ -1517,6 +1566,25 @@ private struct PopupChatSplit: Layout {
         let lowerIdeal = subviews[1].sizeThatFits(ProposedViewSize(width: width, height: nil)).height
         return min(max(min(lowerIdeal, available * 0.5), floor), ceiling)
     }
+}
+
+/// 浮层的容器。按圆角裁掉外面的一切，圆角之外的像素是真透明，透出桌面。
+/// 不靠 SwiftUI 的 clipShape：材质和阴影各画各的，边角容易漏出一块底色。
+private final class PopupContainerView: NSView {
+    override func layout() {
+        super.layout()
+        guard let layer else { return }
+        layer.cornerRadius = Theme.panelRadius
+        layer.cornerCurve = .continuous
+        layer.masksToBounds = true
+    }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
 /// Drag strip on the top edge of a lower pane. Dragging up gives the pane more room.
@@ -2083,7 +2151,7 @@ final class PopupController {
         edges.onBegan = { [weak self] in
             self?.userSized = true
         }
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 80))
+        let container = PopupContainerView(frame: NSRect(x: 0, y: 0, width: 380, height: 80))
         container.autoresizesSubviews = true
         let panel = TranslatePanel(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 80),
@@ -2093,7 +2161,9 @@ final class PopupController {
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = false
+        // 阴影交给窗口自己画。SwiftUI 的 .shadow 会在窗口里糊出一圈，
+        // 四个角的缺口被那层灰铺满，看着就像圆角外面不透明。
+        panel.hasShadow = true
         panel.hidesOnDeactivate = false
         panel.isMovable = true
         panel.isMovableByWindowBackground = false
