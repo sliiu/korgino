@@ -512,28 +512,32 @@ private struct TranslatePage: View {
 }
 
 /// 文档翻译：现有的文件翻译视图，顶上加「‹ 返回」。
+/// 右边是文件翻译自己的工具按钮：选文件、布局、整页直读、同步滚动、翻译。
+/// 它们原先浮在视图顶上，跌进「译文」和页标签那一行，两套东西挤在一起。
 private struct TranslateFilePane: View {
     @ObservedObject var files: FileTranslateController
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
+        let view = FileTranslateView(model: files)
+        return VStack(spacing: 0) {
+            HStack(spacing: 8) {
                 Button {
                     files.leaveEmbedded()
                 } label: {
                     HStack(spacing: 6) {
-                        KIconView(.chevL, size: 10)
+                        BackChevron()
                         Text(L("返回"))
                             .font(Theme.TypeScale.label)
                     }
                 }
                 .buttonStyle(.borderless)
-                Spacer()
+                Spacer(minLength: 8)
+                view.embeddedActions
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 10)
             .padding(.bottom, 4)
-            FileTranslateView(model: files)
+            view
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

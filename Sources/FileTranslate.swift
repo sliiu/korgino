@@ -3,7 +3,6 @@ import Combine
 import AppKit
 import NaturalLanguage
 import PDFKit
-import Quartz
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
@@ -152,13 +151,14 @@ enum VisionFileReader {
         url: URL,
         profile: AIProfile,
         language: TargetLanguage,
+        source: String? = nil,
         onProgress: @escaping @Sendable (Int, Int) -> Void
     ) async throws -> String {
         guard profile.supportsVision else {
             throw TErr(String(format: L("%@ 看不了图片，换一个视觉模型，或关闭「直读页面」"), String(describing: profile.name)))
         }
         let total = try pageCount(url: url)
-        let system = directSystem(profile: profile, language: language)
+        let system = directSystem(profile: profile, language: language, source: source)
         var outs: [String] = []
         let doc = isImage(url) ? nil : PDFDocument(url: url)
         for i in 0..<total {
@@ -186,10 +186,12 @@ enum VisionFileReader {
 
     /// 直读时没有 <text> 段可标，术语表与占位符保护不适用，所以给一条只针对整页的提示。
     /// 用户自己写的系统提示仍然接在后面，偏好不会被悄悄丢掉。
-    private static func directSystem(profile: AIProfile, language: TargetLanguage) -> String {
+    private static func directSystem(profile: AIProfile, language: TargetLanguage, source: String? = nil) -> String {
+        let from = source.flatMap(TargetLanguage.fromAppleCode)?.promptName
         var lines = [
             "You are a professional translation engine, not a tutor or assistant.",
-            "The user sends one page image of a document. Translate every piece of text on the page into \(language.resolvedDestination.promptName).",
+            from.map { "The user sends one page image of a document written in \($0). Translate every piece of text on the page into \(language.resolvedDestination.promptName)." }
+                ?? "The user sends one page image of a document. Translate every piece of text on the page into \(language.resolvedDestination.promptName).",
             "",
             "Rules:",
             "- Output ONLY the translation, as Markdown, in the page's natural reading order.",
@@ -279,6 +281,8 @@ final class FileTranslateController: ObservableObject {
     @Published var overFreeLimit = false
     @Published var sourceURL: URL?
     @Published var sourcePreview = ""
+    /// 整份文件共用的原文语言。自动检测识别错了就在这里改，改了之后已经翻过的页重翻。
+    @Published var sourceLanguage: TargetLanguage = .auto
     /// 译文区的几页，标签切换。
     @Published var pages: [FilePage] = []
     @Published var selectedPageID: UUID?
@@ -349,7 +353,9 @@ final class FileTranslateController: ObservableObject {
     }
 
     var scrollSyncAvailable: Bool {
-        sourceMode != .original || sourceURL?.pathExtension.lowercased() == "pdf"
+        // 原文件以前是系统预览，滚动发生在别的进程里，对不上位置，所以关掉。
+        // 现在 PDF 和网页都是自己滚的，两种模式都能同步。
+        true
     }
 
     func applyScrollSync() {
@@ -628,6 +634,18 @@ final class FileTranslateController: ObservableObject {
         updatePage(id) { $0.language = language }
     }
 
+    /// 换了原文语言，已经翻过的页全部重翻。还没翻过就只记下，下次翻译带上。
+    func setSourceLanguage(_ language: TargetLanguage) {
+        guard language != sourceLanguage else { return }
+        sourceLanguage = language
+        let retranslate = hasTranslation || isRunning
+        for id in tasks.keys { tasks[id]?.cancel() }
+        tasks.removeAll()
+        for i in pages.indices { pages[i].clearResult() }
+        refreshRunning()
+        if retranslate { translate(pageIDs: pages.map(\.id)) }
+    }
+
     /// 选回设置里的模型就等于没换。
     func setPageModel(_ id: UUID, _ model: String?) {
         guard Pro.unlocked, let i = pageIndex(id),
@@ -723,6 +741,7 @@ final class FileTranslateController: ObservableObject {
             let useDirect = directProfile?.supportsVision == true
             pages[i].loading = true
             let language = pages[i].language
+            let source = sourceLanguage == .auto ? nil : sourceLanguage.appleCode
             let name = pageName(pages[i])
             let url = sourceURL
             tasks[id] = Task { @MainActor in
@@ -732,7 +751,7 @@ final class FileTranslateController: ObservableObject {
                         result = .success(try await Background.run {
                             try await Self.withSecurityScope(url) {
                                 try await VisionFileReader.translateDirect(
-                                    url: url, profile: profile, language: language
+                                    url: url, profile: profile, language: language, source: source
                                 ) { cur, total in
                                     Task { @MainActor in
                                         FileTranslateController.shared.setProgress(
@@ -751,7 +770,7 @@ final class FileTranslateController: ObservableObject {
                             throw TErr(L("原文为空，这一页需要文字才能翻译"))
                         }
                         result = .success(try await Background.run {
-                            try await Translator.translateFileText(plain, target: target, timed: timedKind, language: language) { cur, total in
+                            try await Translator.translateFileText(plain, target: target, timed: timedKind, language: language, source: source) { cur, total in
                                 Task { @MainActor in
                                     FileTranslateController.shared.setProgress(id, run: run, String(format: L("%@ 分段 %@/%@"), name, String(cur), String(total)))
                                 }
@@ -877,7 +896,7 @@ final class FileTranslateController: ObservableObject {
 
         let text = sourcePreview
         let shown = selectedPage?.text != nil ? selectedPage : pages.first { $0.text != nil }
-        let plan = Lang.plan(text, target: shown?.language ?? pages.first?.language, mutual: true)
+        let plan = Lang.plan(text, target: shown?.language ?? pages.first?.language, source: sourceLanguage == .auto ? nil : sourceLanguage.appleCode, mutual: true)
         // 直读时没有原文：历史里用文件名占位，别留一条空记录点不开。
         let histSource = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? (sourceURL?.lastPathComponent ?? L("文件翻译"))
@@ -1109,9 +1128,6 @@ struct FileTranslateView: View {
         .frame(minWidth: model.embedded ? 0 : 720, maxWidth: .infinity, minHeight: model.embedded ? 0 : 480, maxHeight: .infinity)
         .background(Theme.windowFill)
         .toolbar { if !model.embedded { toolbarContent } }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if model.embedded { embeddedBar }
-        }
         .onAppear { model.applyScrollSync() }
         .controlSize(.small)
     }
@@ -1138,11 +1154,12 @@ struct FileTranslateView: View {
     private var contentArea: some View {
         Group {
             if model.splitLayout {
+                // 两边下限、理想宽度都一样，窗口变窄时一起缩，而不是译文栏被自己的下限撑住。
                 HSplitView {
                     sourceEditor
-                        .frame(minWidth: 280, idealWidth: 420)
+                        .frame(minWidth: 200, idealWidth: 420)
                     resultPane
-                        .frame(minWidth: 280, idealWidth: 420)
+                        .frame(minWidth: 200, idealWidth: 420)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -1225,14 +1242,14 @@ struct FileTranslateView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// 嵌在翻译页里时没有窗口工具栏，同一排按钮放在视图顶上。
-    private var embeddedBar: some View {
+    /// 嵌在翻译页里时没有窗口工具栏，这排按钮交给顶上「‹ 返回」那一行的右边。
+    /// 不再自己浮一行：那行会跌进「译文」和页标签的高度带，两套东西挤在一起。
+    var embeddedActions: some View {
         HStack(spacing: 2) {
             IconButton(icon: .folder, help: L("选择文件…"), size: 12) {
                 model.chooseFile()
             }
             .disabled(model.isRunning)
-            Spacer(minLength: 8)
             IconButton(
                 systemImage: model.splitLayout ? "rectangle.split.2x1" : "rectangle.split.1x2",
                 help: model.splitLayout ? L("布局：左右") : L("布局：上下"),
@@ -1266,17 +1283,14 @@ struct FileTranslateView: View {
                         KIconView(model.hasTranslation ? .retry : .tr, size: 13)
                         Text(model.hasTranslation ? L("重新翻译") : L("翻译"))
                     }
-                    .font(Theme.TypeScale.label)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .buttonStyle(ToolbarProminentButtonStyle())
                 .disabled(model.sourcePreview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                           && !(model.directVision && model.canDirectVision))
                 .help(L("用当前原文（可先编辑）调用已启用的翻译引擎"))
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.leading, 8)
     }
 
     @ToolbarContentBuilder
@@ -1383,9 +1397,8 @@ struct FileTranslateView: View {
 
     private var resultPane: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
                 SectionHeader(L("译文"))
-                    .padding(.top, 4)
                 pageTabs
             }
             .padding(.leading, 20)
@@ -1433,10 +1446,11 @@ struct FileTranslateView: View {
                     }
                     Text(model.pageName(page))
                         .lineLimit(1)
-                        .frame(maxWidth: 140)
+                        .layoutPriority(-1)
                     Text(page.language.shortTitle)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .layoutPriority(1)
                 }
                 .padding(.leading, 10)
                 .padding(.trailing, model.pages.count > 1 ? 2 : 10)
@@ -1465,6 +1479,8 @@ struct FileTranslateView: View {
             Capsule(style: .continuous)
                 .fill(active ? Color.accentColor.opacity(0.14) : Color.primary.opacity(0.05))
         )
+        // 按内容收，但一行比栏宽还长时服务名截断，不把胶囊切出窗口。
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// 新开一页时先挑一家。语言跟正在看的那一页，开了再改。
@@ -1488,32 +1504,36 @@ struct FileTranslateView: View {
             .help(Pro.unlocked ? L("新开一页，可以选同一家换个语言") : L("免费版不能再加"))
             if !Pro.unlocked {
                 ProBadge(help: L("Pro 可以开几页，每页一家、一种语言"))
+                    .padding(.leading, 4)
             }
         }
     }
 
-    /// 这一页的设置：服务、目标语言、模型。只改这一页，不写回设置。
+    /// 这一页的设置：服务、原文语言、目标语言、模型。只改这一页，不写回设置。
+    /// 原文语言整份文件共用：一份文件一种原文，不跟页走。
     private func pageBar(_ page: FilePage) -> some View {
-        HStack(spacing: 4) {
+        // 放不下就整颗换到下一行。截断会把语言名切成省略号，不如让字保持完整。
+        FlowTags(spacing: 4) {
             pageServiceMenu(page)
-            Menu {
-                Picker(L("目标语言"), selection: Binding(
-                    get: { page.language },
-                    set: { model.setPageLanguage(page.id, $0) }
-                )) {
-                    ForEach(TargetLanguage.specific) { lang in
-                        Text(lang.shortTitle).tag(lang)
-                    }
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
-            } label: {
-                MenuLabel {
-                    Text("→ \(page.language.shortTitle)")
-                        .font(Theme.TypeScale.caption).fontWeight(.medium)
-                }
-            }
-            .menuChevron()
+            // 语言走 MenuChip：系统 Menu 的箭头藏不干净，和别的语言下拉对不齐。
+            MenuChip(
+                title: model.sourceLanguage == .auto ? L("自动检测") : model.sourceLanguage.shortTitle,
+                options: [.auto] + TargetLanguage.specific,
+                label: { $0 == .auto ? L("自动检测") : $0.shortTitle },
+                isSelected: { $0 == model.sourceLanguage },
+                select: { model.setSourceLanguage($0) }
+            )
+            .help(L("原文语言，整份文件共用"))
+            Text("→")
+                .font(Theme.TypeScale.caption)
+                .foregroundStyle(.tertiary)
+            MenuChip(
+                title: page.language.shortTitle,
+                options: TargetLanguage.specific,
+                label: { $0.shortTitle },
+                isSelected: { $0 == page.language },
+                select: { model.setPageLanguage(page.id, $0) }
+            )
             .help(L("这一页的目标语言，不改设置"))
             if let p = AppConfig.shared.catalogTargets().first(where: { $0.id == page.targetID })?.aiProfile {
                 ModelOverrideMenu(profile: p, override: Binding(
@@ -1533,42 +1553,34 @@ struct FileTranslateView: View {
                         .lineLimit(1)
                 }
             }
-            Spacer()
-            if let text = page.text, !text.isEmpty {
-                SpeakButton(text: text, language: Lang.plan(model.sourcePreview, target: page.language, mutual: true).tgt, tag: "file.translation")
-                CopyMarkdownMenu(id: "file", text: text, copiedID: $copiedID)
+            // 预览和朗读复制跟着语言菜单走，换行时整组一起下，不单剩一个在下一行。
+            HStack(spacing: 4) {
+                if let text = page.text, !text.isEmpty {
+                    SpeakButton(text: text, language: Lang.plan(model.sourcePreview, target: page.language, source: model.sourceLanguage == .auto ? nil : model.sourceLanguage.appleCode, mutual: true).tgt, tag: "file.translation")
+                    CopyMarkdownMenu(id: "file", text: text, copiedID: $copiedID)
+                }
+                PillSegmented(
+                    selection: $model.resultEditing,
+                    options: [(false, L("预览")), (true, L("编辑"))]
+                )
             }
-            PillSegmented(
-                selection: $model.resultEditing,
-                options: [(false, L("预览")), (true, L("编辑"))]
-            )
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// 这一页用哪一家。免费只有默认那一家。
+    /// 不用系统 Menu：它的标签里放位图时，按图片原始像素撑高，128 的标变成一百多点。
+    /// MenuChip 是自绘的，图标大小由自己的 frame 说了算。
     private func pageServiceMenu(_ page: FilePage) -> some View {
-        Menu {
-            ForEach(Pro.unlocked ? config.catalogTargets() : config.translateTargets(.file)) { t in
-                Button {
-                    model.setPageTarget(page.id, t.id)
-                } label: {
-                    if t.id == page.targetID {
-                        Label(t.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(t.displayName)
-                    }
-                }
-            }
-        } label: {
-            MenuLabel {
-                HStack(spacing: 4) {
-                    ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11)
-                    Text(model.pageName(page))
-                        .font(Theme.TypeScale.caption)
-                }
-            }
-        }
-        .menuChevron()
+        let choices = Pro.unlocked ? config.catalogTargets() : config.translateTargets(.file)
+        return MenuChip(
+            title: model.pageName(page),
+            options: choices.map(\.id),
+            label: { id in choices.first { $0.id == id }?.displayName ?? id },
+            isSelected: { $0 == page.targetID },
+            select: { model.setPageTarget(page.id, $0) },
+            icon: AnyView(ProviderIconView(outcomeID: page.targetID, name: model.pageName(page), size: 11))
+        )
         .help(Pro.unlocked ? L("这一页用的翻译服务，不改设置") : L("更换翻译服务"))
     }
 
@@ -1684,7 +1696,7 @@ struct FileTranslateView: View {
                         FavoritesStore.add(
                             source: src,
                             translation: tr,
-                            direction: Lang.plan(src, target: page?.language, mutual: true).directionLabel,
+                            direction: Lang.plan(src, target: page?.language, source: model.sourceLanguage == .auto ? nil : model.sourceLanguage.appleCode, mutual: true).directionLabel,
                             providerName: name,
                             kind: "file"
                         )
@@ -1939,7 +1951,7 @@ struct MarkdownWebView: NSViewRepresentable {
     var fileDrop: FileDropHandler? = nil
     var side: ScrollSyncSide = .right
 
-    private static let scrollScript = """
+    static let scrollScript = """
     window.__korgiScrollTo = function (r) {
       var m = document.documentElement.scrollHeight - window.innerHeight;
       window.scrollTo(0, r * Math.max(m, 0));
@@ -1980,7 +1992,16 @@ struct MarkdownWebView: NSViewRepresentable {
         let md = markdown
         Task.detached(priority: .userInitiated) {
             let body = SimpleMarkdownHTML.convert(md)
-    let html = """
+            let html = Self.document(body)
+            await MainActor.run {
+                webView.loadHTMLString(html, baseURL: nil)
+            }
+        }
+    }
+
+    /// 预览页。译文和原文的「原文件」共用，样式只写这一份。
+    static func document(_ body: String) -> String {
+        """
             <!DOCTYPE html>
             <html><head><meta charset="utf-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -2017,15 +2038,11 @@ struct MarkdownWebView: NSViewRepresentable {
               table { border-collapse: collapse; margin: 0.7em 0; width: 100%; font-size: 12.5px; }
               th, td { border: 1px solid color-mix(in srgb, CanvasText 22%, transparent); padding: 6px 8px; text-align: left; vertical-align: top; }
               th { background: color-mix(in srgb, CanvasText 8%, transparent); font-weight: 600; }
-              img { max-width: 100%; height: auto; }
+              img { max-width: 100%; max-height: 320px; height: auto; object-fit: contain; }
               del { opacity: 0.75; }
             </style></head>
             <body>\(body)</body></html>
             """
-                        await MainActor.run {
-                webView.loadHTMLString(html, baseURL: nil)
-            }
-        }
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -2231,9 +2248,21 @@ struct OriginalFileView: NSViewRepresentable {
                 if let scroll = pdf.documentView?.enclosingScrollView { broker.attach(scroll, side: .left) }
             }
         } else {
-            let ql = QLPreviewView(frame: host.bounds, style: .normal)!
-            ql.previewItem = url as NSURL
-            view = ql
+            // 不用 QLPreviewView：它在别的进程里排版，窄栏里内容比栏宽，滚动条贴在内容右边、
+            // 跑到栏外，栏里够不着也滚不动，这边改不了它的宽度。
+            // 用和译文同一套 Markdown 排版，按栏宽折行，滚动条贴着栏边。
+            let conf = WKWebViewConfiguration()
+            conf.userContentController.addUserScript(
+                WKUserScript(source: MarkdownWebView.scrollScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+            )
+            conf.userContentController.add(context.coordinator, name: "korgiScroll")
+            let web = WKWebView(frame: host.bounds, configuration: conf)
+            web.setValue(false, forKey: "drawsBackground")
+            web.navigationDelegate = context.coordinator
+            context.coordinator.broker = broker
+            broker.attach(web, side: .left)
+            view = web
+            DispatchQueue.main.async { Self.loadPreview(url, into: web) }
         }
         view.frame = host.bounds
         view.autoresizingMask = [.width, .height]
@@ -2242,15 +2271,40 @@ struct OriginalFileView: NSViewRepresentable {
 
     static func dismantleNSView(_ host: NSView, coordinator: Coordinator) {
         for v in host.subviews {
-            (v as? QLPreviewView)?.close()
+            if let web = v as? WKWebView {
+                web.configuration.userContentController.removeScriptMessageHandler(forName: "korgiScroll")
+            }
             v.removeFromSuperview()
         }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    final class Coordinator {
+    /// 读出原文，按 Markdown 排进网页。读文件在后台，排版回主线程。
+    private static func loadPreview(_ url: URL, into web: WKWebView) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let raw = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+            let body = SimpleMarkdownHTML.convert(raw)
+            let html = MarkdownWebView.document(body)
+            DispatchQueue.main.async {
+                guard web.window != nil else { return }
+                web.loadHTMLString(html, baseURL: nil)
+            }
+        }
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var url: URL?
+        var broker: ScrollSyncBroker?
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            MainActor.assumeIsolated { broker?.webDidLoad(side: .left) }
+        }
+
+        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard let ratio = message.body as? Double else { return }
+            MainActor.assumeIsolated { broker?.webScrolled(ratio, side: .left) }
+        }
     }
 }
 

@@ -571,16 +571,25 @@ struct MissingKeyLabel: View {
 }
 
 /// 一行放不下就折到下一行。设置里的服务列表和文件窗口的页标签都用它。
+/// 单个标签比整行还宽时，按行宽收，名字截断，不能让它按内容原宽撑开。
 struct FlowTags: Layout {
     var spacing: CGFloat = 6
+
+    private func fitted(_ subviews: Subviews, maxWidth: CGFloat) -> [CGSize] {
+        subviews.map { sub in
+            let ideal = sub.sizeThatFits(.unspecified)
+            guard ideal.width > maxWidth else { return ideal }
+            let shrunk = sub.sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
+            return CGSize(width: min(shrunk.width, maxWidth), height: max(shrunk.height, ideal.height))
+        }
+    }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
+        for size in fitted(subviews, maxWidth: maxWidth) {
             if x > 0, x + spacing + size.width > maxWidth {
                 x = 0
                 y += rowHeight + spacing
@@ -593,7 +602,7 @@ struct FlowTags: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let sizes = fitted(subviews, maxWidth: bounds.width)
         var rows: [[Int]] = [[]]
         var rowWidth: CGFloat = 0
         var rowHeights: [CGFloat] = [0]
