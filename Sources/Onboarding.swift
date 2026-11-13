@@ -998,14 +998,13 @@ private struct OnboardingView: View {
     private var selectCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             stepRow(1, L("把下面这句读一遍，然后在上面拖选整句。"), done: bridge.touched || bridge.landed != nil)
-            ZStack(alignment: .topLeading) {
+            VStack(alignment: .leading, spacing: 6) {
                 SelectableText(text: samples.readForeign)
-                    .frame(height: 42)
+                    .frame(height: 22)
                 if !(bridge.touched || bridge.landed != nil) {
                     Text(L("在这句话上拖动鼠标，把它选上"))
                         .font(Theme.TypeScale.caption)
-                        .foregroundStyle(.secondary.opacity(0.7))
-                        .padding(.top, 3)
+                        .foregroundStyle(.secondary)
                         .allowsHitTesting(false)
                 }
             }
