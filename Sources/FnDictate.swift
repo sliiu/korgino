@@ -7,6 +7,9 @@ import Speech
 final class FnDictate {
     static let shared = FnDictate()
     static var sessionEngineID = ""
+    /// 引导里读用户念的那句：按选定语言认，不写回窗口，只把结果交给引导。
+    static var trialLocaleID = ""
+    static var trialMode: VoiceMode?
 
     private var token = 0
     private var ear: DictateEar?
@@ -77,7 +80,7 @@ final class FnDictate {
         keepOverlay = false
         beganAt = ProcessInfo.processInfo.systemUptime
         bundleID = app?.bundleIdentifier
-        mode = AppConfig.shared.resolvedVoiceMode(bundleID: bundleID)
+        mode = FnDictate.trialMode ?? AppConfig.shared.resolvedVoiceMode(bundleID: bundleID)
         heard = ""
         translated = ""
         renderedFor = ""
@@ -161,7 +164,7 @@ final class FnDictate {
         let choices = cfg.liveASRChoices()
         let picked = Pro.unlocked && choices.contains { $0.id == FnDictate.sessionEngineID } ? FnDictate.sessionEngineID : cfg.resolvedDictateAsr()
         let engine = choices.contains { $0.id == picked } ? picked : (choices.first?.id ?? "apple")
-        let language = ASRLanguage(id: cfg.dictateLocaleID)
+        let language = ASRLanguage(id: FnDictate.trialLocaleID.isEmpty ? cfg.dictateLocaleID : FnDictate.trialLocaleID)
         if stopped(current) { return }
         if cfg.isSystemASR(engine) {
             let status = await withCheckedContinuation { (cont: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>) in
@@ -304,6 +307,7 @@ final class FnDictate {
             return
         }
         VoiceCapsule.shared.busy(L("识别中"))
+        TryProbe.touched(.voice)
         let text = await ear.transcript()
         guard current == token else { return }
         let plain = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -444,7 +448,8 @@ final class FnDictate {
     /// 松开后才润色。没有 AI 或润色失败时仍用原来的字。
     private static func prepareSpeech(_ text: String, bundleID: String?) async -> (text: String, note: String) {
         let cfg = AppConfig.shared
-        guard cfg.voicePolish else { return (text, "") }
+        // 引导里的体验要让人看到自己刚说的原话，润色交给日常使用。
+        guard cfg.voicePolish, FnDictate.trialMode == nil else { return (text, "") }
         guard let profile = cfg.voicePolishProfile(bundleID: bundleID) else {
             return (text, L("没有可用来润色的 AI"))
         }
@@ -511,6 +516,12 @@ final class FnDictate {
     }
 
     private func deliver(_ text: String, source: String, direction: String, translation: String?, session: Int, notice: String) async {
+        TryProbe.land(.voice, source: source, translation: translation)
+        // 引导那一关只在图里展示，不往窗口里写。
+        if FnDictate.trialMode != nil {
+            VoiceCapsule.shared.hide()
+            return
+        }
         let front = await writeField(text, session: session)
         guard token == session else { return }
         remember(source: source, translation: translation, direction: direction, front: front)
@@ -1017,6 +1028,7 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
     private var target: AVAudioFormat?
     private var converter: AVAudioConverter?
     private var held: [AVAudioPCMBuffer] = []
+    private var speechAnalyzer: SpeechAnalyzer?
 
     init(locale: Locale, terms: [String], onPartial: @escaping @Sendable (String) -> Void) {
         self.locale = locale
@@ -1032,7 +1044,9 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
         let locale = locale
         let terms = terms
         task = Task { [weak self] in
-            guard let supported = await SpeechTranscriber.supportedLocale(equivalentTo: locale) else { return }
+            guard let supported = await SpeechTranscriber.supportedLocale(equivalentTo: locale) else {
+                return
+            }
             let transcriber = SpeechTranscriber(
                 locale: supported,
                 transcriptionOptions: [],
@@ -1046,10 +1060,13 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
                 try? await analyzer.setContext(context)
             }
             let natural = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)
-            guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber], considering: natural) else { return }
+            guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber], considering: natural) else {
+                return
+            }
             try? await analyzer.prepareToAnalyze(in: format)
             let (stream, continuation) = AsyncStream.makeStream(of: AnalyzerInput.self)
             let pending = self?.arm(format, continuation) ?? []
+            self?.attach(analyzer)
             for pcm in pending { self?.append(pcm) }
             try? await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask { [weak self] in
@@ -1062,7 +1079,7 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
                     } catch {}
                 }
                 group.addTask {
-                    try await analyzer.start(inputSequence: stream)
+                    try? await analyzer.start(inputSequence: stream)
                 }
                 try await group.waitForAll()
             }
@@ -1071,7 +1088,8 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
 
     func append(_ buffer: AVAudioPCMBuffer) {
         let slot = hold(buffer)
-        guard let input = slot.input, let target = slot.target, let converted = convert(buffer, to: target) else { return }
+        guard let input = slot.input, let target = slot.target else { return }
+        guard let converted = convert(buffer, to: target) else { return }
         input.yield(AnalyzerInput(buffer: converted))
     }
 
@@ -1082,9 +1100,11 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
         takeInput()?.finish()
+        // SpeechAnalyzer 不主动吐结果，得让它把末尾这段收完，否则一条都拿不到。
+        try? await speechAnalyzer?.finalizeAndFinishThroughEndOfInput()
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.task?.value }
-            group.addTask { try? await Task.sleep(nanoseconds: 800_000_000) }
+            group.addTask { try? await Task.sleep(nanoseconds: 900_000_000) }
             await group.next()
             group.cancelAll()
         }
@@ -1094,6 +1114,12 @@ private final class DictateAnalyzer: DictateAnalyzerSession, @unchecked Sendable
     func cancel() {
         takeInput()?.finish()
         task?.cancel()
+    }
+
+    private func attach(_ analyzer: SpeechAnalyzer) {
+        lock.lock()
+        speechAnalyzer = analyzer
+        lock.unlock()
     }
 
     private func note(_ text: String) {

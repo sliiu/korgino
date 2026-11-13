@@ -10,6 +10,12 @@ protocol LiveAudioSink: AnyObject {
     func append(pcm: AVAudioPCMBuffer)
     func append(sampleBuffer: CMSampleBuffer)
     func stop()
+    /// 停下来，并把还在路上的最后一句等出来再交回。
+    func finish() async
+}
+
+extension LiveAudioSink {
+    func finish() async { stop() }
 }
 
 final class LiveWhisperLane: @unchecked Sendable {
@@ -263,6 +269,8 @@ final class LiveAnalyzerLane: LiveAudioSink, @unchecked Sendable {
     private var pitchSource: AVAudioFormat?
     private var stopped = false
     private var task: Task<Void, Never>?
+    /// 收尾要用它把最后一句挤出来，光取消任务会把没吐完的结果一起丢掉。
+    private var analyzer: SpeechAnalyzer?
 
     init(
         source: SystemAudioTranslateController.SourceKind,
@@ -321,6 +329,7 @@ final class LiveAnalyzerLane: LiveAudioSink, @unchecked Sendable {
                     }
                     self.targetFormat = format
                     self.input = continuation
+                    self.analyzer = analyzer
                     self.clock = 0
                     self.speakerLock.lock()
                     self.stamps.removeAll()
@@ -366,13 +375,36 @@ final class LiveAnalyzerLane: LiveAudioSink, @unchecked Sendable {
     }
 
     func stop() {
-        queue.sync {
+        _ = closeInput()
+        task?.cancel()
+    }
+
+    func finish() async {
+        // 先把入口关掉，再让分析器把缓冲里剩下的话收完。直接 cancel 会让尾巴整句消失。
+        guard let (analyzer, task) = closeInput() else { return }
+        do { try await analyzer.finalizeAndFinishThroughEndOfInput() } catch {}
+        // 终稿由分析器异步送回来，给它一点时间落地再收工。
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await task?.value }
+            group.addTask { try? await Task.sleep(nanoseconds: 900_000_000) }
+            await group.next()
+            group.cancelAll()
+        }
+        task?.cancel()
+    }
+
+    /// 关掉输入口，交出分析器和任务；调用方负责把它们收尾。
+    private func closeInput() -> (SpeechAnalyzer, Task<Void, Never>?)? {
+        let closed = queue.sync { () -> SpeechAnalyzer? in
             stopped = true
             input?.finish()
             input = nil
             held.removeAll()
+            defer { self.analyzer = nil }
+            return self.analyzer
         }
-        task?.cancel()
+        guard let closed else { return nil }
+        return (closed, task)
     }
 
     /// Speaker at an analyzer timestamp. Results arrive later than the audio, so the person is whoever was speaking then, not whoever is speaking when the text shows up.

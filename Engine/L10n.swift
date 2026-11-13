@@ -59,10 +59,13 @@ enum L10n {
             return
         }
         sourceKeys = false
-        if let path = Bundle.main.path(forResource: code, ofType: "lproj"),
-           let localized = Bundle(path: path) {
-            bundle = localized
-            return
+        // 还没译的语言（俄、葡、意、泰、印尼、阿）退到英文，不跟着系统落回中文。
+        for candidate in [code, "en"] {
+            if let path = Bundle.main.path(forResource: candidate, ofType: "lproj"),
+               let localized = Bundle(path: path) {
+                bundle = localized
+                return
+            }
         }
         bundle = .main
     }

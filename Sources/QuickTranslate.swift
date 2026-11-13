@@ -115,6 +115,7 @@ enum QuickTranslate {
         switch outcome {
         case .done:
             overlay.succeed()
+            TryProbe.land(.quick, source: read.text, translation: plain)
         case .changed:
             overlay.fail(L("输入框里的字已经变了，没有替换"), rect: read.rect)
             return
@@ -420,10 +421,39 @@ enum QuickAX {
     private static let lock = NSLock()
     /// 打开辅助功能树的时刻。刚启动的 Chromium 要两秒左右才交出焦点，这段时间里读不到就接着等。
     nonisolated(unsafe) private static var opened: [pid_t: Date] = [:]
+    /// 引导里让自家的输入框当目标。只在这一段时间内认自己的进程。
+    nonisolated(unsafe) private static var trial = false
+
+    static func setTrial(_ on: Bool) {
+        lock.lock()
+        trial = on
+        lock.unlock()
+    }
+
+    private static func isTrial() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return trial
+    }
 
     static func run<T>(_ body: @escaping () -> T) async -> T {
-        await withCheckedContinuation { cont in
+        // 引导里目标就是自己：AX 写属性会直接落回自家的 NSTextView，那条路径只能在主线程走。
+        if isTrial() {
+            return await withCheckedContinuation { cont in
+                DispatchQueue.main.async { cont.resume(returning: body()) }
+            }
+        }
+        return await withCheckedContinuation { cont in
             queue.async { cont.resume(returning: body()) }
+        }
+    }
+
+    /// 不等结果的版本，同样在主线程接自己的窗口。
+    static func spawn(_ body: @escaping () -> Void) {
+        if isTrial() {
+            DispatchQueue.main.async(execute: body)
+        } else {
+            queue.async(execute: body)
         }
     }
 
@@ -581,7 +611,7 @@ enum QuickAX {
         }
         guard let found else { return nil }
         var owner: pid_t = 0
-        if AXUIElementGetPid(found, &owner) == .success, owner == getpid() { return nil }
+        if AXUIElementGetPid(found, &owner) == .success, owner == getpid(), !isTrial() { return nil }
         AXUIElementSetMessagingTimeout(found, timeout)
         return found
     }
@@ -889,6 +919,7 @@ final class QuickSpaceTap: @unchecked Sendable {
     private var busy = false
     private var excluded: Set<String> = []
     private var dictate = false
+    private var trial = false
     private var frontPid: pid_t = 0
     private var frontBundle: String?
     private var trusted = false
@@ -1055,6 +1086,14 @@ final class QuickSpaceTap: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// 引导里把自家窗口当成目标应用。跟着辅助功能那边一起开、一起关。
+    func setTrial(_ on: Bool) {
+        lock.lock()
+        trial = on
+        lock.unlock()
+        QuickAX.setTrial(on)
+    }
+
     /// 组合键和手势共用一把锁：同一时间只换一处。
     func claim() -> Bool {
         lock.lock()
@@ -1076,13 +1115,14 @@ final class QuickSpaceTap: @unchecked Sendable {
         var trusted: Bool
         var busy: Bool
         var dictate: Bool
+        var trial: Bool
     }
 
     private func front() -> Front {
         lock.lock()
         defer { lock.unlock() }
         let skip = frontBundle.map { excluded.contains($0) } ?? false
-        return Front(pid: frontPid, excluded: skip, trusted: trusted, busy: busy, dictate: dictate)
+        return Front(pid: frontPid, excluded: skip, trusted: trusted, busy: busy, dictate: dictate, trial: trial)
     }
 
     // MARK: Tap thread
@@ -1197,7 +1237,7 @@ final class QuickSpaceTap: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
         let now = front()
-        guard now.pid != 0, now.pid != getpid(), !now.excluded, now.trusted, !now.busy else {
+        guard now.pid != 0, now.trial || now.pid != getpid(), !now.excluded, now.trusted, !now.busy else {
             cancel(proxy: proxy)
             return Unmanaged.passUnretained(event)
         }
@@ -1238,7 +1278,7 @@ final class QuickSpaceTap: @unchecked Sendable {
         gesture = Gesture(token: token, pid: now.pid, last: at, count: 1, held: 1, probe: .waiting, fireOnAnswer: false)
         owedUps += 1
         let pid = now.pid
-        QuickAX.queue.async { [weak self] in
+        QuickAX.spawn { [weak self] in
             let answer = QuickAX.probeSelection(pid: pid)
             self?.onTap { self?.answered(token, answer) }
         }

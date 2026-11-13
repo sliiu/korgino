@@ -386,6 +386,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 NSSound.beep()
                 return
             }
+            // 引导停在划词那一关时，前台就是我们自己：读引导里的那段字，不必退回别的 App。
+            let guided = front == nil && TryProbe.waiting(.select)
+            if guided { TryProbe.touched(.select) }
             let focused = SelectionGrabber.focusedSelection(in: front)
             var text = focused?.text
             if text == nil { text = await SelectionGrabber.copyViaCmdC() }
@@ -394,6 +397,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     popup.show(source: "")
                     popup.showError(L("划词翻译需要辅助功能权限：系统设置 › 隐私与安全性 › 辅助功能 › 允许 Korgino（用于读取并写回其他 App 中选中的文字）"))
                 } else { NSSound.beep() }
+                return
+            }
+            // 引导那一关不出浮层：对话框还挂在那里，浮层会盖住它要展示的结果。
+            guard !guided else {
+                TryProbe.land(.select, source: t)
                 return
             }
             let writable = focused.map { SelectionGrabber.canWrite($0.element) } ?? true
@@ -464,10 +472,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func ocrTranslate() {
         guard AppConfig.shared.isFeatureEnabled(.ocr) else { return }
         ocrTask?.cancel()
+        let guided = TryProbe.waiting(.screenshot)
+        if guided { TryProbe.touched(.screenshot) }
         ocrTask = Task { @MainActor in
             do {
                 await Task.yield()
                 let captured = try await OCRCapture.captureRegion()
+                // 引导那一关不出浮层：对话框还挂在那里，浮层会盖住它要展示的结果。
+                if guided {
+                    let text = captured.0.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if text.isEmpty {
+                        popup.show(source: "")
+                        popup.showError(L("未识别到文字、链接或二维码"))
+                    } else {
+                        TryProbe.land(.screenshot, source: text)
+                    }
+                    return
+                }
                 popup.model.ocrGroups = []
                 popup.showOCRDraft(source: captured.0.text, links: captured.0.links, shot: captured.1)
             } catch {
@@ -801,6 +822,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         guard translateGeneration == generation, !Task.isCancelled else { return }
         popup.showMulti(result, tabID: tabID)
+        if let item = TryProbe.item(forKind: kind) {
+            let first = result.outcomes.first { !($0.text ?? "").isEmpty }?.text
+            TryProbe.land(item, source: text, translation: first)
+        }
         let histResults = result.outcomes.map {
             HistoryProviderResult(id: $0.id, name: $0.name, text: $0.text, error: $0.error)
         }
