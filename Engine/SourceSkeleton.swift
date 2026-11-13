@@ -141,8 +141,9 @@ enum SourceSkeleton {
         return strayTokens.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
     }
 
-    /// 有的引擎会把 `⟦§4⟧` 改成 `⟦ § 4⟧` 或 `⟦ § 4您⟧`：先拼回原样，夹进去的字挪到后面。
-    private static let mangledToken = try! NSRegularExpression(pattern: "⟦\\s*§\\s*(\\d+)\\s*([^⟦⟧\\n]{0,40}?)\\s*⟧")
+    /// 有的引擎会把 `⟦§4⟧` 改成 `⟦ § 4⟧`、`⟦ § 4您⟧`，Apple 还会把开头的 `⟦` 和 `§` 之间塞进空格：
+    /// 先拼回原样，夹进去的字挪到后面。
+    private static let mangledToken = try! NSRegularExpression(pattern: "\\s*⟦\\s*§\\s*(\\d+)\\s*([^⟦⟧\\n]{0,40}?)\\s*⟧")
     private static let strayTokens = try! NSRegularExpression(pattern: "⟦§\\d+⟧")
 
     private static func repairTokens(_ text: String) -> String {
@@ -1003,6 +1004,44 @@ enum SourceSkeleton {
         guard let re = RegexCache.cached("<[^>]+>") else { return s }
         let ns = s as NSString
         return re.stringByReplacingMatches(in: s, range: NSRange(location: 0, length: ns.length), withTemplate: "")
+    }
+
+    // MARK: - Apple marks
+
+    /// Apple 翻译会改写 `⟦§n⟧` 这种占位符，骨架还原不回来，Markdown 就散掉。
+    /// 26.4 起它可以按 `AttributedString` 的 `skipsTranslation` 跳过标记，
+    /// 所以这里把骨架切成一段段，标记段标上不翻译。
+    static func appleSegments(_ text: String) -> [AppleSegment] {
+        var out: [AppleSegment] = []
+        func append(_ raw: String, keep: Bool) {
+            guard !raw.isEmpty else { return }
+            if let last = out.last, last.keep == keep {
+                out[out.count - 1].text += raw
+            } else {
+                out.append(AppleSegment(text: raw, keep: keep))
+            }
+        }
+        var i = text.startIndex
+        var plain = ""
+        while i < text.endIndex {
+            if let (token, end) = tokenAt(text, i) {
+                append(plain, keep: false)
+                plain = ""
+                append(token, keep: true)
+                i = end
+                continue
+            }
+            plain.append(text[i])
+            i = text.index(after: i)
+        }
+        append(plain, keep: false)
+        return out
+    }
+
+    struct AppleSegment: Sendable {
+        var text: String
+        /// 骨架标记，原样保留，不送去翻译。
+        var keep: Bool
     }
 
     // MARK: - Chunks
