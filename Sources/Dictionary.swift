@@ -247,7 +247,7 @@ struct PopupDictionarySection: View {
                 SpeakButton(text: entry.word, language: DictSpeech.language(entry.word), help: L("朗读"), tag: "dict.\(entry.word)")
             }
             Button(action: toggleExpanded) {
-                KIconView(.chevR, size: 9)
+                KIconView(.chevR, size: 10)
                     .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(expanded ? 90 : 0))
                     .frame(width: 22, height: 22)

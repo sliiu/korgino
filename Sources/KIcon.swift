@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 自绘图标集。路径逐个抄自效果图 docs/design/mockups/2026-11-09-main-window.html 顶部 <defs>：
 /// 16×16 视口、线宽 1.3（个别 1.2 / 1.4 / 1.6）、圆头圆角，随 foregroundStyle 着色。
-/// 效果图里没有对应图标的地方（系统菜单勾、控件自带的 chevron 等）继续用 SF Symbols。
+/// 效果图里没有对应图标的地方（系统菜单勾等）继续用 SF Symbols。
 enum KIcon: String, CaseIterable, Identifiable {
     case tr, wave, clock, book, film, mic, gear, clip, shot, doc, spk, copy, back
     case pin, x, warn, pause, text, spark, pen, sum, q, more, search, check

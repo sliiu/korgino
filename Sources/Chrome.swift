@@ -25,33 +25,26 @@ struct PageCard<Content: View>: View {
     }
 }
 
-/// 下拉框右边那个折线箭头。系统 Menu 自己也会画一个，所以语言选择不用 Menu。
-/// 效果图里是浅折线：两臂约 70 度张开，每臂 4 磅，高 2.6 磅，1.4 磅线宽。
+/// 下拉框右边的箭头。和「设置」同一支 KIcon.chevD，10 磅。
+/// 系统 Menu 自己也会画一个，所以语言选择不用系统 Menu。
 struct ChromeChevron: View {
     var color: Color = Color.secondary
 
     var body: some View {
-        ChromeChevronMark()
-            .stroke(color, style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
-            .frame(width: 8, height: 4)
-            .padding(.leading, 1)
+        KIconView(.chevD, size: 10)
+            .foregroundStyle(color)
             .accessibilityHidden(true)
     }
 }
 
-/// 设置页左上角的返回箭头。效果图里是 90 度的直角折线，角朝左。
+/// 返回箭头。文件面板和设置侧栏同一支 KIcon.chevL，10 磅。颜色跟着外面走。
 struct BackChevron: View {
-    var color: Color = Color.secondary
-
     var body: some View {
-        BackChevronMark()
-            .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-            .frame(width: 6, height: 6)
-            .accessibilityHidden(true)
+        KIconView(.chevL, size: 10)
     }
 }
 
-/// 文字下拉的标签：文字后面跟一个自绘折线箭头，并藏掉系统 Menu 自己画的那个。
+/// 文字下拉的标签：文字后面跟设置箭头，并藏掉系统 Menu 自己画的那个。
 /// 图标按钮（加号、省略号、三点）不是下拉框，不要用这个。
 struct MenuLabel<Content: View>: View {
     @ViewBuilder var content: () -> Content
@@ -73,43 +66,32 @@ extension View {
     }
 }
 
-private struct ChromeChevronMark: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY + 0.7))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - 0.7))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + 0.7))
-        return path
-    }
-}
-
-private struct BackChevronMark: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        // SwiftUI 的 y 向下，顶点放在 minX 才朝左。
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY + 0.75))
-        path.addLine(to: CGPoint(x: rect.minX + 0.75, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - 0.75))
-        return path
-    }
-}
-
-/// 白底菜单。高 24、圆角 6、0.5 磅边（黑 14%）、12 磅字，右边只有一个折线箭头。
+/// 白底菜单。高 24、圆角 6、0.5 磅边（黑 14%）、12 磅字，右边只有一个设置箭头。
+/// 语言这类长列表超过一屏就在框里滚，滚动条一直在。短菜单仍按内容收高，不留空槽。
 struct MenuChip<Option: Hashable>: View {
     var title: String
     var options: [Option]
     var label: (Option) -> String
     var isSelected: (Option) -> Bool
     var select: (Option) -> Void
+    /// 标题左边的小图标。没有就只显示文字。
+    var icon: AnyView? = nil
 
     @State private var open = false
     @State private var hover = false
+    @State private var menuSize: CGSize = .zero
+
+    /// 大约 12 行。再高就盖住浮层，下面的语言也够不着。
+    private var menuMaxHeight: CGFloat { 320 }
+    /// 防止某次量出来的宽是无穷（行里的 Spacer），把浮层撑满屏。
+    private var menuMaxWidth: CGFloat { 420 }
 
     var body: some View {
         Button {
             open.toggle()
         } label: {
             HStack(spacing: 5) {
+                if let icon { icon }
                 Text(title)
                     .font(Theme.TypeScale.label)
                     .foregroundStyle(.primary)
@@ -132,33 +114,97 @@ struct MenuChip<Option: Hashable>: View {
         .onHover { hover = $0 }
         .fixedSize()
         .disabled(options.isEmpty)
-        .popover(isPresented: $open, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 1) {
-                ForEach(options, id: \.self) { option in
-                    Button {
-                        select(option)
-                        open = false
-                    } label: {
-                        HStack(spacing: 6) {
-                            KIconView(.check, size: 11)
-                                .foregroundStyle(isSelected(option) ? Color.primary : Color.clear)
-                                .frame(width: 12)
-                            Text(label(option))
-                                .font(Theme.TypeScale.body)
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                            Spacer(minLength: 12)
+        .popover(isPresented: $open, arrowEdge: .top) {
+            menuList
+        }
+    }
+
+    private var menuList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(options, id: \.self) { option in
+                        Button {
+                            select(option)
+                            open = false
+                        } label: {
+                            HStack(spacing: 6) {
+                                KIconView(.check, size: 11)
+                                    .foregroundStyle(isSelected(option) ? Color.primary : Color.clear)
+                                    .frame(width: 12)
+                                Text(label(option))
+                                    .font(Theme.TypeScale.body)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Spacer(minLength: 12)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .id(option)
                     }
-                    .buttonStyle(.plain)
+                }
+                .padding(5)
+                .frame(minWidth: 160, alignment: .leading)
+                .fixedSize(horizontal: true, vertical: true)
+                .background {
+                    GeometryReader { geo in
+                        Color.clear.preference(key: MenuListSize.self, value: geo.size)
+                    }
+                }
+                .background(alignment: .center) { MenuScrollAnchor(pinned: menuOverflows) }
+            }
+            .scrollContentBackground(.hidden)
+            .scrollIndicators(.visible, axes: .vertical)
+            .scrollIndicators(.hidden, axes: .horizontal)
+            .scrollBounceBehavior(.basedOnSize)
+            .onAppear {
+                guard let selected = options.first(where: isSelected) else { return }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    proxy.scrollTo(selected, anchor: .center)
                 }
             }
-            .padding(5)
-            .frame(minWidth: 160)
         }
+        .onPreferenceChange(MenuListSize.self) { menuSize = $0 }
+        .frame(width: menuWidth, height: menuHeight)
+    }
+
+    private var contentHeight: CGFloat {
+        menuSize.height > 1 ? menuSize.height : estimatedHeight
+    }
+
+    private var menuHeight: CGFloat {
+        min(contentHeight, menuMaxHeight)
+    }
+
+    private var menuOverflows: Bool {
+        contentHeight > menuMaxHeight + 1
+    }
+
+    /// 滚动条占一条宽度。不加这一条，最长的语言名会被挤掉字。
+    private var menuWidth: CGFloat? {
+        guard menuSize.width > 1 else { return nil }
+        let raw = min(menuSize.width, menuMaxWidth)
+        guard menuOverflows else { return raw }
+        return raw + NSScroller.scrollerWidth(for: .mini, scrollerStyle: .legacy)
+    }
+
+    /// 第一帧还没量到。一行大约 25，行距 1，上下内边距 10。
+    private var estimatedHeight: CGFloat {
+        let rows = CGFloat(max(options.count, 1))
+        return rows * 25 + (rows - 1) + 10
+    }
+}
+
+private struct MenuListSize: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        let next = nextValue()
+        value = CGSize(width: max(value.width, next.width), height: max(value.height, next.height))
     }
 }
 
