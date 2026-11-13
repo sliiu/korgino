@@ -187,6 +187,9 @@ struct PopupView: View {
             panelShape.strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
         }
         .clipShape(panelShape)
+        // 阴影跟着圆角走。窗口自己的阴影是按矩形窗口算的，圆角裁掉之后四角外面还是一块方的。
+        .shadow(color: Theme.panelShadow, radius: Theme.panelShadowRadius, y: Theme.panelShadowY)
+        .padding(Self.shadowMargin)
         .controlSize(.small)
         .onChange(of: chat.messages.count) { _, _ in
             DispatchQueue.main.async { onRelayout() }
@@ -205,6 +208,9 @@ struct PopupView: View {
     private var panelShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: Theme.panelRadius, style: .continuous)
     }
+
+    /// 阴影要画在窗口里，不能被窗口边裁掉。半径 12、下移 4，四边留 24 够它。
+    static let shadowMargin: CGFloat = 24
 
     private var glassOpacity: Double {
         min(1, max(0.35, config.panelOpacity))
@@ -975,7 +981,7 @@ struct PopupView: View {
             .buttonStyle(.plain)
             .help(L("这次再加一家"))
             .disabled(addableTargets.isEmpty && addableOCR.isEmpty)
-            .popover(isPresented: $addProviderOpen, arrowEdge: .bottom) {
+            .popover(isPresented: $addProviderOpen, arrowEdge: .top) {
                 addProviderPopover
             }
         } else {
@@ -1111,7 +1117,7 @@ struct PopupView: View {
 
     private func providerChevron(open: Bool, toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
-            KIconView(.chevD, size: 9)
+            KIconView(.chevD, size: 10)
                 .foregroundStyle(.tertiary)
                 .rotationEffect(.degrees(open ? 180 : 0))
                 .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: open)
@@ -1567,17 +1573,9 @@ private struct PopupChatSplit: Layout {
     }
 }
 
-/// 浮层的容器。按圆角裁掉外面的一切，圆角之外的像素是真透明，透出桌面。
-/// 不靠 SwiftUI 的 clipShape：材质和阴影各画各的，边角容易漏出一块底色。
+/// 浮层的容器。圆角之外的像素是真透明，透出桌面。
+/// 不裁内容：阴影由面板自己按圆角画，裁掉之后窗口里就没有阴影了。
 private final class PopupContainerView: NSView {
-    override func layout() {
-        super.layout()
-        guard let layer else { return }
-        layer.cornerRadius = Theme.panelRadius
-        layer.cornerCurve = .continuous
-        layer.masksToBounds = true
-    }
-
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
@@ -1641,10 +1639,19 @@ private struct PanelEdges: OptionSet {
 
 /// Hit target around a borderless panel. Clicks in the middle pass through to the translation.
 private final class PanelEdgeResize: NSView {
+    /// 窗口四周的透明留白。拖拽热区贴面板边，不贴窗口边。
+    var inset: CGFloat
     var limits: () -> (min: NSSize, screen: NSRect) = {
         (NSSize(width: 300, height: 150), NSRect(x: 0, y: 0, width: 1200, height: 800))
     }
     var onBegan: () -> Void = {}
+
+    init(frame: NSRect, inset: CGFloat) {
+        self.inset = inset
+        super.init(frame: frame)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     private var drag: (edges: PanelEdges, start: NSRect, mouse: NSPoint, began: Bool)?
 
@@ -1655,17 +1662,18 @@ private final class PanelEdgeResize: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func resetCursorRects() {
+        let edge = inset
         let regions: [(NSRect, PanelEdges)] = [
-            (NSRect(x: bounds.width - 10, y: bounds.height - 10, width: 10, height: 10), [.top, .right]),
-            (NSRect(x: 0, y: bounds.height - 10, width: 10, height: 10), [.top, .left]),
-            (NSRect(x: bounds.width - 16, y: 0, width: 16, height: 16), [.bottom, .right]),
-            (NSRect(x: 0, y: 0, width: 16, height: 16), [.bottom, .left]),
-            (NSRect(x: 10, y: bounds.height - 6, width: max(0, bounds.width - 20), height: 6), [.top]),
-            (NSRect(x: 16, y: 0, width: max(0, bounds.width - 32), height: 12), [.bottom]),
-            (NSRect(x: 0, y: 16, width: 14, height: max(0, bounds.height - 16 - 36)), [.left]),
-            (NSRect(x: 0, y: bounds.height - 36, width: 6, height: 28), [.left]),
-            (NSRect(x: bounds.width - 14, y: 16, width: 14, height: max(0, bounds.height - 16 - 36)), [.right]),
-            (NSRect(x: bounds.width - 6, y: bounds.height - 36, width: 6, height: 28), [.right]),
+            (NSRect(x: bounds.width - edge - 10, y: bounds.height - edge - 10, width: 10, height: 10), [.top, .right]),
+            (NSRect(x: edge, y: bounds.height - edge - 10, width: 10, height: 10), [.top, .left]),
+            (NSRect(x: bounds.width - edge - 16, y: edge, width: 16, height: 16), [.bottom, .right]),
+            (NSRect(x: edge, y: edge, width: 16, height: 16), [.bottom, .left]),
+            (NSRect(x: edge + 10, y: bounds.height - edge - 6, width: max(0, bounds.width - edge * 2 - 20), height: 6), [.top]),
+            (NSRect(x: edge + 16, y: edge, width: max(0, bounds.width - edge * 2 - 32), height: 12), [.bottom]),
+            (NSRect(x: edge, y: edge + 16, width: 14, height: max(0, bounds.height - edge * 2 - 16 - 36)), [.left]),
+            (NSRect(x: edge, y: bounds.height - edge - 36, width: 6, height: 28), [.left]),
+            (NSRect(x: bounds.width - edge - 14, y: edge + 16, width: 14, height: max(0, bounds.height - edge * 2 - 16 - 36)), [.right]),
+            (NSRect(x: bounds.width - edge - 6, y: bounds.height - edge - 36, width: 6, height: 28), [.right]),
         ]
         for (rect, edge) in regions where rect.width > 0 && rect.height > 0 {
             addCursorRect(rect, cursor: cursor(for: edge))
@@ -1704,20 +1712,22 @@ private final class PanelEdgeResize: NSView {
     }
 
     /// Top band stays thin so it does not cover the pin and language buttons.
+    /// 坐标先扣掉四周留白，热区贴的是面板边。
     private func edges(at point: NSPoint) -> PanelEdges? {
-        let w = bounds.width
-        let h = bounds.height
-        guard bounds.contains(point) else { return nil }
-        if point.x >= w - 10, point.y >= h - 10 { return [.top, .right] }
-        if point.x <= 10, point.y >= h - 10 { return [.top, .left] }
-        if point.x >= w - 16, point.y <= 16 { return [.bottom, .right] }
-        if point.x <= 16, point.y <= 16 { return [.bottom, .left] }
+        let local = NSPoint(x: point.x - inset, y: point.y - inset)
+        let w = bounds.width - inset * 2
+        let h = bounds.height - inset * 2
+        guard local.x >= -6, local.y >= -6, local.x <= w + 6, local.y <= h + 6 else { return nil }
+        if local.x >= w - 10, local.y >= h - 10 { return [.top, .right] }
+        if local.x <= 10, local.y >= h - 10 { return [.top, .left] }
+        if local.x >= w - 16, local.y <= 16 { return [.bottom, .right] }
+        if local.x <= 16, local.y <= 16 { return [.bottom, .left] }
         var hit: PanelEdges = []
-        if point.y >= h - 6 { hit.insert(.top) }
-        else if point.y <= 12 { hit.insert(.bottom) }
-        let side: CGFloat = point.y > h - 36 ? 6 : 14
-        if point.x <= side { hit.insert(.left) }
-        else if point.x >= w - side { hit.insert(.right) }
+        if local.y >= h - 6 { hit.insert(.top) }
+        else if local.y <= 12 { hit.insert(.bottom) }
+        let side: CGFloat = local.y > h - 36 ? 6 : 14
+        if local.x <= side { hit.insert(.left) }
+        else if local.x >= w - side { hit.insert(.right) }
         return hit.isEmpty ? nil : hit
     }
 
@@ -1738,6 +1748,9 @@ private final class PanelEdgeResize: NSView {
 
     private func resized(_ start: NSRect, dx: CGFloat, dy: CGFloat, edges: PanelEdges, min: NSSize) -> NSRect {
         var frame = start
+        // `min` 已经含阴影留白。面板内容最宽 560，窗口再加左右两圈留白。
+        let minWidth = min.width
+        let maxWidth: CGFloat = 560 + PopupView.shadowMargin * 2
         if edges.contains(.right) { frame.size.width = start.width + dx }
         if edges.contains(.left) {
             frame.size.width = start.width - dx
@@ -1748,13 +1761,13 @@ private final class PanelEdgeResize: NSView {
             frame.size.height = start.height - dy
             frame.origin.y = start.maxY - frame.height
         }
-        if frame.width < min.width {
-            if edges.contains(.left) { frame.origin.x = start.maxX - min.width }
-            frame.size.width = min.width
+        if frame.width < minWidth {
+            if edges.contains(.left) { frame.origin.x = start.maxX - minWidth }
+            frame.size.width = minWidth
         }
-        if frame.width > 560 {
-            if edges.contains(.left) { frame.origin.x = start.maxX - 560 }
-            frame.size.width = 560
+        if frame.width > maxWidth {
+            if edges.contains(.left) { frame.origin.x = start.maxX - maxWidth }
+            frame.size.width = maxWidth
         }
         if frame.height < min.height {
             if edges.contains(.bottom) { frame.origin.y = start.maxY - min.height }
@@ -1783,7 +1796,7 @@ final class PopupController {
     let chat = ChatSession()
     private var monitors: [Any] = []
     private var anchor = NSPoint.zero
-    /// First layout places the panel. Later layouts keep its top edge while the translation grows.
+    /// First layout places the panel. Later layouts keep its bottom edge, so added content grows downward.
     private var didPlace = false
     /// Set once the user drags an edge. This showing keeps that size; the next popup adapts again.
     /// Opening chat or the dictionary may still grow it, never shrink it.
@@ -2142,7 +2155,7 @@ final class PopupController {
         h.sizingOptions = []
         h.safeAreaRegions = []
         h.autoresizingMask = [.width, .height]
-        let edges = PanelEdgeResize(frame: NSRect(x: 0, y: 0, width: 380, height: 80))
+        let edges = PanelEdgeResize(frame: NSRect(x: 0, y: 0, width: 380, height: 80), inset: PopupView.shadowMargin)
         edges.autoresizingMask = [.width, .height]
         edges.limits = { [weak self] in
             self?.resizeLimits() ?? (NSSize(width: 300, height: 150), NSRect(x: 0, y: 0, width: 1200, height: 800))
@@ -2160,9 +2173,9 @@ final class PopupController {
         panel.level = .floating
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        // 阴影交给窗口自己画。SwiftUI 的 .shadow 会在窗口里糊出一圈，
-        // 四个角的缺口被那层灰铺满，看着就像圆角外面不透明。
-        panel.hasShadow = true
+        // 窗口阴影按矩形窗口画，圆角面板的四角外面会留下一块方影子。
+        // 改由面板自己按圆角画，窗口不再画。
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isMovable = true
         panel.isMovableByWindowBackground = false
@@ -2416,7 +2429,7 @@ final class PopupController {
         relayout()
     }
 
-    /// A new selection places the panel again. Later height changes keep the top edge already on screen.
+    /// A new selection places the panel again. Later height changes keep the bottom edge already on screen.
     private func beginPlacement(at point: NSPoint) {
         anchor = point
         didPlace = false
@@ -2424,6 +2437,7 @@ final class PopupController {
     }
 
     private func resizeLimits() -> (min: NSSize, screen: NSRect) {
+        // 这里返回的是窗口尺寸，阴影留白已经算在里面。
         let minH: CGFloat = model.chatExpanded ? 240 : 150
         let screen = (panel?.screen ?? NSScreen.main)?.visibleFrame.insetBy(dx: 8, dy: 8)
             ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
@@ -2437,9 +2451,7 @@ final class PopupController {
             if model.chatExpanded || model.dictExpanded {
                 let fitted = measuredSize()
                 if fitted.height > frame.height + 0.5 {
-                    let top = frame.maxY
                     frame.size.height = fitted.height
-                    frame.origin.y = top - frame.height
                 }
             }
             clampIntoScreen(&frame)
@@ -2450,7 +2462,7 @@ final class PopupController {
         let size = measuredSize()
         let frame: NSRect
         if didPlace {
-            frame = frameKeepingTop(size, of: p)
+            frame = frameKeepingBottom(size, of: p)
         } else {
             didPlace = true
             frame = initialFrame(size)
@@ -2469,7 +2481,9 @@ final class PopupController {
 
     private func measuredSize() -> NSSize {
         let width: CGFloat = 360
-        let maxH = heightCeiling()
+        // 窗口比面板高一圈留白。上限按面板内容算，留白另外加，不然阴影会吃掉译文的高度。
+        let margin = PopupView.shadowMargin
+        let maxH = max(240, heightCeiling() - margin * 2)
         let minH: CGFloat = model.chatExpanded ? 420 : 120
         let view = makeView(fillsWindow: false)
         let probe: NSHostingController<PopupView>
@@ -2488,29 +2502,35 @@ final class PopupController {
         let settled = probe.sizeThatFits(in: NSSize(width: width, height: max(fitted.height, minH)))
         if settled.height > fitted.height + 0.5 { fitted = settled }
         let height = min(max(ceil(fitted.height), min(minH, maxH)), maxH)
-        return NSSize(width: width, height: height)
+        // 面板四周的留白是给阴影的，窗口要比面板大一圈，阴影才不被窗口边裁成方块。
+        return NSSize(width: width + margin * 2, height: height + margin * 2)
     }
 
-    /// Panel sits above the cursor. If that would leave the screen, it sits below instead.
-    private func initialFrame(_ size: NSSize) -> NSRect {
-        var origin = NSPoint(x: anchor.x - 16, y: anchor.y - 16 - size.height)
-        if let vf = screen(for: origin)?.visibleFrame {
-            if origin.x + size.width > vf.maxX - 8 { origin.x = vf.maxX - 8 - size.width }
-            if origin.x < vf.minX + 8 { origin.x = vf.minX + 8 }
-            if origin.y < vf.minY + 8 { origin.y = anchor.y + 24 }
-            if origin.y + size.height > vf.maxY - 8 { origin.y = vf.maxY - 8 - size.height }
-        }
-        var frame = NSRect(origin: origin, size: size)
+    /// 面板第一次出现在光标上方。之后变高变矮都钉住底边，内容往下长、往上收。
+    /// 底边已经贴着屏幕底时，多出来的高度才往上走。
+    private func frameKeepingBottom(_ size: NSSize, of panel: NSWindow) -> NSRect {
+        var frame = panel.frame
+        let bottom = frame.minY
+        let margin = PopupView.shadowMargin
+        let width = min(560, max(360, frame.width - margin * 2)) + margin * 2
+        frame.size = NSSize(width: width, height: size.height)
+        frame.origin.y = bottom
         clampIntoScreen(&frame)
         return frame
     }
 
-    private func frameKeepingTop(_ size: NSSize, of panel: NSWindow) -> NSRect {
-        var frame = panel.frame
-        let top = frame.maxY
-        let width = min(560, max(360, frame.width))
-        frame.size = NSSize(width: width, height: size.height)
-        frame.origin.y = top - size.height
+    /// Panel sits above the cursor. If that would leave the screen, it sits below instead.
+    private func initialFrame(_ size: NSSize) -> NSRect {
+        // 16 是面板到光标的距离。留白是透明的，光标对的是面板边，不是窗口边。
+        let margin = PopupView.shadowMargin
+        var origin = NSPoint(x: anchor.x - 16 - margin, y: anchor.y - 16 - size.height)
+        if let vf = screen(for: origin)?.visibleFrame {
+            if origin.x + size.width > vf.maxX - 8 { origin.x = vf.maxX - 8 - size.width }
+            if origin.x < vf.minX + 8 { origin.x = vf.minX + 8 }
+            if origin.y < vf.minY + 8 { origin.y = anchor.y + 24 - margin }
+            if origin.y + size.height > vf.maxY - 8 { origin.y = vf.maxY - 8 - size.height }
+        }
+        var frame = NSRect(origin: origin, size: size)
         clampIntoScreen(&frame)
         return frame
     }
@@ -2519,9 +2539,8 @@ final class PopupController {
         guard let vf = screen(for: frame.origin)?.visibleFrame else { return }
         let limit = vf.insetBy(dx: 8, dy: 8)
         if frame.height > limit.height {
-            let top = frame.maxY
             frame.size.height = limit.height
-            frame.origin.y = top - frame.height
+            frame.origin.y = limit.minY
         }
         if frame.minX < limit.minX { frame.origin.x = limit.minX }
         if frame.maxX > limit.maxX { frame.origin.x = limit.maxX - frame.width }
