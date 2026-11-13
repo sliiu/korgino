@@ -286,7 +286,34 @@ enum Lang {
     }
 
     static func detectSource(_ text: String) -> (code: String?, isZh: Bool) {
-        detect(text)
+        detect(proseSample(text))
+    }
+
+    /// 代码不是语言。围栏和行内代码里的包名、命令是一串字母，
+    /// 识别器会把它们当成波兰语、土耳其语。剥掉之后没有字母了，就还用原文。
+    static func proseSample(_ text: String) -> String {
+        var out = ""
+        var i = text.startIndex
+        while i < text.endIndex {
+            if text[i...].hasPrefix("```") {
+                let rest = text.index(i, offsetBy: 3)
+                if let close = text[rest...].range(of: "```") {
+                    i = close.upperBound
+                    continue
+                }
+            }
+            if text[i] == "`" {
+                let rest = text.index(after: i)
+                if let close = text[rest...].firstIndex(of: "`"), !text[rest..<close].contains("\n") {
+                    i = text.index(after: close)
+                    continue
+                }
+            }
+            out.append(text[i])
+            i = text.index(after: i)
+        }
+        guard out.contains(where: \.isLetter) else { return text }
+        return out
     }
 
     /// `mutual` swaps between native language and `target`. Anything else, including a failed detection, goes to the native language. The two may be the same language.
