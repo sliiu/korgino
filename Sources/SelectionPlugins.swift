@@ -343,12 +343,16 @@ final class SelectionPluginBar {
     private var localMonitor: Any?
     private var keyMonitor: Any?
     private var shownAt = Date()
+    /// 条的屏幕位置。打开搜索或「⋯」时窗口围着它长，条本身不动。
+    private var barScreen = NSRect.zero
+    /// 搜索打开前在前台的应用。收起搜索时把键盘还给它。
+    private var frontApp: NSRunningApplication?
 
     static let barHeight: CGFloat = 34
     /// 悬停时写插件名的那一行，摆在条背向选区的一侧，不挡选中的字。
     static let labelRow: CGFloat = 24
-    /// 条四周留出来画阴影。窗口自带的阴影按第一次画出来的样子算，名字一出一隐就对不上了。
-    static let margin: CGFloat = 8
+    /// 条四周留出来画阴影。阴影半径 12、下移 4，留 8 会被窗口边切成一块方的。
+    static let margin: CGFloat = 24
     /// 放大镜就地展开后，搜索框的宽度。
     static let searchWidth: CGFloat = 168
     /// 「⋯」打开后的菜单宽度。
@@ -377,6 +381,7 @@ final class SelectionPluginBar {
         model.mode = .icons
         model.query = ""
         model.highlight = 0
+        model.opensUp = false
         model.onPick = run
         model.onDismiss = { [weak self] in self?.hide() }
         model.onManage = { [weak self] in
@@ -413,6 +418,8 @@ final class SelectionPluginBar {
         model.hovered = nil
         model.mode = .icons
         model.query = ""
+        model.opensUp = false
+        returnKeyboard()
         panel?.orderOut(nil)
         panel?.alphaValue = 0
     }
@@ -455,25 +462,50 @@ final class SelectionPluginBar {
         return min(text + 16, labelMaxWidth)
     }
 
-    /// 搜索或菜单展开时，面板跟着变。条贴着选区的那一边不动，多出来的高度朝另一侧长。
+    /// 搜索或菜单展开时，窗口围着条重排。条的屏幕位置不动，多出来的高度朝菜单那一侧长。
     private func relayout() {
         guard let panel, panel.isVisible else { return }
-        let old = panel.frame
+        let before = barOrigin(in: panel.frame)
         let size = panelSize()
-        var frame = old
-        frame.size = size
-        frame.origin.x = old.midX - size.width / 2
-        if model.labelBelow {
-            frame.origin.y = old.maxY - size.height
-        }
-        if let visible = OverlayPlacement.screen(containing: frame)?.visibleFrame {
-            if frame.minY < visible.minY { frame.origin.y = visible.minY }
-            if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
-            if frame.maxX > visible.maxX { frame.origin.x = visible.maxX - frame.width }
-            if frame.minX < visible.minX { frame.origin.x = visible.minX }
+        let visible = OverlayPlacement.screen(containing: panel.frame)?.visibleFrame
+        let frame = frame(around: barScreen, size: size, visible: visible)
+        let after = barOrigin(in: frame)
+        // 先把内容挪到新窗口里条该在的位置，再改窗口。反过来做，条会先跳一下再回来。
+        if let host = hosting {
+            host.frame = NSRect(
+                x: after.x - before.x,
+                y: after.y - before.y,
+                width: size.width,
+                height: size.height
+            )
         }
         panel.setFrame(frame, display: true)
         hosting?.frame = panel.contentView?.bounds ?? NSRect(origin: .zero, size: size)
+        if model.mode == .icons {
+            returnKeyboard()
+        } else {
+            takeKeyboard()
+        }
+    }
+
+    /// 搜索框要光标、要输入法，窗口必须是 key。手动往里填字接不上中文输入。
+    private func takeKeyboard() {
+        guard panel?.isKeyWindow != true else { return }
+        let front = NSWorkspace.shared.frontmostApplication
+        if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+            frontApp = front
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        panel?.makeKey()
+    }
+
+    /// 搜索收起后把键盘还给刚才在用的应用。
+    private func returnKeyboard() {
+        let back = frontApp
+        frontApp = nil
+        guard back != nil || panel?.isKeyWindow == true else { return }
+        panel?.resignKey()
+        back?.activate(options: [.activateIgnoringOtherApps])
     }
 
     private func currentBarWidth() -> CGFloat {
@@ -532,11 +564,10 @@ final class SelectionPluginBar {
         ) { [weak self] event in
             let key = event.type == .keyDown
             let code = event.keyCode
-            let chars = event.charactersIgnoringModifiers ?? ""
             Task { @MainActor in
                 guard let self, Date().timeIntervalSince(self.shownAt) > 0.2 else { return }
                 if key {
-                    self.handleKey(code: code, characters: chars)
+                    _ = self.handleKey(code: code)
                 } else {
                     self.hide()
                 }
@@ -559,30 +590,37 @@ final class SelectionPluginBar {
             // 图标态下，按键发生在别处（用户还在原来的应用里打字）不该把条收掉。
             // 搜索展开后，方向键、回车、Esc 和输入都归这条。
             if !searching, !frame.contains(NSEvent.mouseLocation) { return event }
-            self.handleKey(code: event.keyCode, characters: event.charactersIgnoringModifiers ?? "")
-            return searching ? nil : event
+            // 只吃掉方向键、回车、Esc。其余交给搜索框，光标和中文输入法才接得上。
+            return self.handleKey(code: event.keyCode) ? nil : event
         }
     }
 
     /// 回车用高亮的那一个，↑↓ 移动，Esc 先收起搜索或菜单，再收起整条。
-    private func handleKey(code: UInt16, characters: String) {
+    /// 返回 true 表示这一下已经用掉，不再交给搜索框。正在拼中文时一律交给输入法。
+    private func handleKey(code: UInt16) -> Bool {
         guard model.mode != .icons else {
             if code == 53 { hide() }
-            return
+            return false
+        }
+        if (panel?.firstResponder as? NSTextView)?.hasMarkedText() == true {
+            return false
         }
         switch code {
         case 53:
             model.closeSearch()
+            return true
         case 125:
             model.moveHighlight(1)
+            return true
         case 126:
             model.moveHighlight(-1)
+            return true
         case 36, 76:
             model.commitHighlight()
+            return true
         default:
-            break
+            return false
         }
-        _ = characters
     }
 
     private func removeOutsideMonitor() {
@@ -623,20 +661,53 @@ final class SelectionPluginBar {
             }
         }
         model.labelBelow = below
-        let extra = size.height - barHeight - Self.margin * 2
-        var frame = NSRect(
-            x: bar.midX - size.width / 2,
-            y: (below ? bar.minY - extra : bar.minY) - Self.margin,
-            width: size.width,
-            height: size.height
-        )
+        barScreen = bar
+        panel.setFrame(frame(around: bar, size: size, visible: visible), display: true)
+    }
+
+    /// 条在窗口里的位置。图标态名字在背向选区的一侧，菜单和搜索打开后条贴着背向菜单的一边。
+    private func barOrigin(in window: NSRect) -> NSPoint {
+        let y: CGFloat
+        if model.mode == .icons {
+            y = model.labelBelow
+                ? window.minY + Self.margin
+                : window.maxY - Self.margin - Self.barHeight
+        } else {
+            y = model.opensUp
+                ? window.minY + Self.margin
+                : window.maxY - Self.margin - Self.barHeight
+        }
+        return NSPoint(x: window.midX - currentBarWidth() / 2, y: y)
+    }
+
+    /// 窗口围着条排。图标态名字在背向选区的一侧；菜单和搜索优先在条下面，
+    /// 下面放不下整块才改到条上面。两种都以条的屏幕位置为准，条不跟着窗口走。
+    private func frame(around bar: NSRect, size: NSSize, visible: NSRect?) -> NSRect {
+        var frame = NSRect(x: bar.midX - size.width / 2, y: 0, width: size.width, height: size.height)
+        if model.mode == .icons {
+            model.opensUp = false
+            let extra = size.height - Self.barHeight - Self.margin * 2
+            frame.origin.y = (model.labelBelow ? bar.minY - extra : bar.minY) - Self.margin
+        } else {
+            let opensUp = menuOpensUp(bar: bar, visible: visible)
+            model.opensUp = opensUp
+            // 往下展开钉住窗口顶边，往上展开钉住窗口底边。
+            frame.origin.y = opensUp ? bar.minY - Self.margin : bar.maxY + Self.margin - size.height
+        }
         if let v = visible {
             if frame.minY < v.minY { frame.origin.y = v.minY }
             if frame.maxY > v.maxY { frame.origin.y = v.maxY - frame.height }
             if frame.maxX > v.maxX { frame.origin.x = v.maxX - frame.width }
             if frame.minX < v.minX { frame.origin.x = v.minX }
         }
-        panel.setFrame(frame, display: true)
+        return frame
+    }
+
+    /// 条下面放不下整块菜单（含阴影留白）时，改到条上面。
+    private func menuOpensUp(bar: NSRect, visible: NSRect?) -> Bool {
+        guard let visible else { return false }
+        let below = panelSize().height - Self.barHeight - Self.margin
+        return bar.minY - below < visible.minY + 4
     }
 
     private func ensurePanel() -> NSPanel {
@@ -681,8 +752,10 @@ final class SelectionPluginBarModel: ObservableObject {
     @Published var hovered: String?
     /// 悬停满 400 ms 才把名字写出来。移开或换一枚就取消。
     @Published var tipID: String?
-    /// 条摆在选区下面时，名字写在条的下面，菜单也改到条的下面。
+    /// 条摆在选区下面时，名字写在条的下面，不挡选中的字。
     @Published var labelBelow = false
+    /// 搜索和「⋯」菜单开在条的上面。平时为 false，菜单优先从条下面展开。
+    @Published var opensUp = false
     @Published var mode: SelectionPluginBarMode = .icons
     @Published var query = ""
     /// 搜索结果或菜单里键盘高亮的那一行。
@@ -806,9 +879,11 @@ struct SelectionPluginBarView: View {
             let margin = SelectionPluginBar.margin
             let barHeight = SelectionPluginBar.barHeight
             let row = SelectionPluginBar.labelRow
-            let barY = margin + (model.labelBelow
-                ? geo.size.height - margin * 2 - barHeight
-                : (model.mode == .icons ? row : 0)) + barHeight / 2
+            // 图标态：条贴着选区，名字写在背向选区的一侧。
+            // 菜单和搜索打开后，条贴着窗口里背向菜单的那一边，菜单优先在条下面。
+            let barY = margin + (model.mode == .icons
+                ? (model.labelBelow ? geo.size.height - margin * 2 - barHeight : row)
+                : (model.opensUp ? geo.size.height - margin * 2 - barHeight : 0)) + barHeight / 2
             ZStack(alignment: .topLeading) {
                 bar
                     .frame(width: barWidth, height: barHeight)
@@ -877,9 +952,10 @@ struct SelectionPluginBarView: View {
         )
     }
 
-    /// 条背向选区的一侧。条在选区上方时卡片在条下，条在选区下方时卡片在条上。
+    /// 菜单和搜索优先在条下面。条下面放不下整块时改到条上面。
+    /// 视图坐标向下增大：条下面是更大的 y。
     private func popoverY(barY: CGFloat, barHeight: CGFloat, height: CGFloat) -> CGFloat {
-        if model.labelBelow {
+        if model.opensUp {
             return barY - barHeight / 2 - 6 - height / 2
         }
         return barY + barHeight / 2 + 6 + height / 2
@@ -952,6 +1028,9 @@ struct SelectionPluginBarView: View {
                 .font(Theme.TypeScale.label)
                 .focused($searchFocused)
                 .onAppear { searchFocused = true }
+                .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+                    searchFocused = true
+                }
                 .onSubmit { model.commitHighlight() }
                 .onChange(of: model.query) { _, _ in model.queryChanged() }
             if !model.query.isEmpty {
@@ -1026,6 +1105,9 @@ struct SelectionPluginBarView: View {
                 .font(Theme.TypeScale.label)
                 .focused($searchFocused)
                 .onAppear { searchFocused = true }
+                .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+                    searchFocused = true
+                }
                 .onSubmit { model.commitHighlight() }
                 .onChange(of: model.query) { _, _ in model.queryChanged() }
         }
@@ -1715,7 +1797,7 @@ private struct SelectionPluginSheet: View {
                     HStack(spacing: 6) {
                         StoredSymbol(name: symbol, size: 16, font: Theme.TypeScale.reading)
                             .frame(width: 20, height: 20)
-                        KIconView(.chevD, size: 9)
+                        KIconView(.chevD, size: 10)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 8)
