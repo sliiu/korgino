@@ -849,8 +849,7 @@ private final class TranslatePageModel: ObservableObject {
 
     private func plan(for text: String) -> Lang.Plan {
         let picked = sourceLanguage == .auto ? nil : sourceLanguage
-        var plan = Lang.plan(text, target: targetLanguage, source: picked?.appleCode, mutual: true)
-        plan.chosenSource = picked
+        let plan = Lang.plan(text, target: targetLanguage, source: picked?.appleCode, mutual: true)
         return plan
     }
 

@@ -5,6 +5,8 @@ struct LiveCaptionSegment: Identifiable, Equatable {
     let id: UUID
     var laneID: UUID = UUID()
     var kind: SystemAudioTranslateController.SourceKind
+    /// The language this lane was told to listen for. Nil means it followed the system language.
+    var recognizedAs: String? = nil
     var source: String
     var speaker: Int
     /// binding key → translation

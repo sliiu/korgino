@@ -157,6 +157,19 @@ enum TargetLanguage: String, CaseIterable, Identifiable, Codable {
         deepLCode.map { $0.hasPrefix("PT") ? "PT" : $0 }
     }
 
+    /// A source code from recognition or a picked language, back into one of the languages a person can pick.
+    /// Codes outside that list return nil, so the translator still detects them itself.
+    static func fromAppleCode(_ code: String) -> TargetLanguage? {
+        let raw = code.replacingOccurrences(of: "_", with: "-").lowercased()
+        guard !raw.isEmpty, raw != "auto" else { return nil }
+        if raw.hasPrefix("zh-hant") || raw.hasPrefix("zh-tw") || raw.hasPrefix("zh-hk") || raw.hasPrefix("zh-mo") || raw.hasPrefix("yue") {
+            return .zhHant
+        }
+        if raw.hasPrefix("zh") { return .zhHans }
+        let base = raw.split(separator: "-").first.map(String.init) ?? raw
+        return specific.first { $0.appleCode == base }
+    }
+
     /// Map macOS system preferred language → translation target. Used as default when unset.
     static func fromSystem() -> TargetLanguage {
         let prefs = Locale.preferredLanguages
@@ -228,6 +241,12 @@ enum Lang {
         var isZhSource: Bool
         /// Source the user picked instead of detection. Services that detect on their own are told it too.
         var chosenSource: TargetLanguage? = nil
+
+        /// Google source code for a picked source language, or `auto` when it was detected.
+        var googleSource: String { chosenSource?.googleCode ?? "auto" }
+
+        /// DeepL source code for a picked source language. Nil leaves detection to DeepL.
+        var deepLSource: String? { chosenSource?.deepLSourceCode }
         /// Kept for older call sites that still read `.isZh`.
         var isZh: Bool { isZhSource }
     }
@@ -353,6 +372,7 @@ enum Lang {
         let tgtApple = destination.appleCode ?? "en"
         let tgtGoogle = destination.googleCode ?? "en"
         let tgtDeepL = destination.deepLCode ?? ""
+        let picked = src.flatMap { TargetLanguage.fromAppleCode($0) }
         return Plan(
             src: src,
             tgt: tgtApple,
@@ -360,7 +380,8 @@ enum Lang {
             tgtDeepL: tgtDeepL,
             tgtName: destination.promptName,
             directionLabel: languagePair(src, tgtApple),
-            isZhSource: isZhSource
+            isZhSource: isZhSource,
+            chosenSource: picked
         )
     }
 }

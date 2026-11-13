@@ -138,6 +138,13 @@ extension AppConfig {
         return quickTargetLanguage(bundleID: bundleID) ?? targetLanguage.resolvedDestination
     }
 
+    /// 这个应用快捷翻译的原文语言。留空是自动检测，返回 nil。
+    func quickSourceLanguage(bundleID: String?) -> TargetLanguage? {
+        guard let raw = quickAppRule(bundleID: bundleID)?.sourceLanguage, !raw.isEmpty else { return nil }
+        guard let lang = TargetLanguage(rawValue: raw), lang != .auto else { return nil }
+        return lang
+    }
+
     /// 语音用的目标语言。来源应用自己指定的最优先，其次是语音页选的，最后跟设置里的目标语言。
     func resolvedDictateTarget(bundleID: String?) -> TargetLanguage {
         quickTargetLanguage(bundleID: bundleID) ?? voiceTargetLanguage

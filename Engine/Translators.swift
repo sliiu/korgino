@@ -118,9 +118,10 @@ enum Translator {
         _ text: String,
         target: TranslateTarget,
         language: TargetLanguage? = nil,
+        source: String? = nil,
         mutual: Bool = false
     ) async throws -> (text: String, direction: String) {
-        let plan = Lang.plan(text, target: language, mutual: mutual)
+        let plan = Lang.plan(text, target: language, source: source, mutual: mutual)
         if returnsSource(target, plan: plan) {
             return (text, plan.directionLabel)
         }
@@ -187,7 +188,7 @@ enum Translator {
         let p = plan
         switch target {
         case .builtin(.googleFree):
-            let (out, _) = try await googleFree(text, tl: p.tgtGoogle, sl: p.chosenSource?.googleCode ?? "auto")
+            let (out, _) = try await googleFree(text, tl: p.tgtGoogle, sl: p.googleSource)
             return out
         case .builtin(.googleCloud):
             return try await googleCloud(text, target: p.tgtGoogle, source: p.chosenSource?.googleCode, key: AppConfig.shared.googleCloudKey, html: html)
@@ -195,7 +196,7 @@ enum Translator {
             guard !p.tgtDeepL.isEmpty else {
                 throw TErr(String(format: L("DeepL 不支持目标语言 %@"), String(describing: p.tgt)))
             }
-            return try await deepl(text, target: p.tgtDeepL, source: p.chosenSource?.deepLSourceCode, key: AppConfig.shared.deeplKey,
+            return try await deepl(text, target: p.tgtDeepL, source: p.deepLSource, key: AppConfig.shared.deeplKey,
                                    free: AppConfig.shared.deeplUseFreeAPI, html: html)
         case .builtin(.apple):
             guard let src = p.src else { throw TErr(L("无法识别源语言")) }
@@ -922,22 +923,25 @@ enum Translator {
     static func translateFileText(_ text: String, profile: AIProfile,
                                   timed: TimedText.Kind? = nil,
                                   language: TargetLanguage? = nil,
+                                  source: String? = nil,
                                   onProgress: @escaping (Int, Int) -> Void) async throws -> String {
-        try await translateFileText(text, target: .ai(profile), timed: timed, language: language, onProgress: onProgress)
+        try await translateFileText(text, target: .ai(profile), timed: timed, language: language, source: source, onProgress: onProgress)
     }
 
     /// Chunk long file text and translate with any enabled provider (builtin or AI).
     /// `timed` keeps times and style, and translates only the spoken lines.
+    /// `source` is the language the user picked for the whole file. Nil leaves detection on.
     static func translateFileText(_ text: String, target: TranslateTarget,
                                   timed: TimedText.Kind? = nil,
                                   language: TargetLanguage? = nil,
+                                  source: String? = nil,
                                   onProgress: @escaping (Int, Int) -> Void) async throws -> String {
         if let timed, let script = TimedText.parse(text, kind: timed) {
-            let plan = Lang.plan(script.dialogue.joined(separator: "\n"), target: language, mutual: true)
+            let plan = Lang.plan(script.dialogue.joined(separator: "\n"), target: language, source: source, mutual: true)
             if returnsSource(target, plan: plan) { return text }
             return try await translateCues(script, target: target, plan: plan, onProgress: onProgress)
         }
-        let plan = Lang.plan(text, target: language, mutual: true)
+        let plan = Lang.plan(text, target: language, source: source, mutual: true)
         let chunks = chunkText(text)
         var outs: [String] = []
         for (i, chunk) in chunks.enumerated() {

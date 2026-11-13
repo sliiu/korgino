@@ -76,7 +76,8 @@ enum QuickTranslate {
             return
         }
         let language = AppConfig.shared.appTargetLanguage(bundleID: bundleID)
-        let plan = Lang.plan(read.text, target: language, mutual: true)
+        let source = AppConfig.shared.quickSourceLanguage(bundleID: bundleID)?.appleCode
+        let plan = Lang.plan(read.text, target: language, source: source, mutual: true)
         overlay.begin(rect: read.rect, provider: target.displayName, language: Lang.languageName(plan.tgt))
         QuickSpaceTap.trace("translate len=\(read.text.count) via=\(target.id)")
 
@@ -87,6 +88,7 @@ enum QuickTranslate {
                 read.text,
                 target: target,
                 language: language,
+                source: source,
                 mutual: true
             )
             translated = result.text

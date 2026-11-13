@@ -1515,6 +1515,7 @@ extension SystemAudioTranslateController {
             id: UUID(),
             laneID: lane.id,
             kind: kind,
+            recognizedAs: asrLanguage(for: kind).appleSource,
             source: shownSource,
             speaker: marksResolve(lane.id, kind, speaker),
             translations: translations,
@@ -1741,7 +1742,8 @@ extension SystemAudioTranslateController {
 
     private func translateDraft(lane: UUID, source: SourceKind, provider: String, text: String) async {
         guard let (target, language) = resolveTranslateTarget(provider) else { return }
-        let plan = Lang.plan(text, target: language, source: asrLanguage(for: source).appleSource)
+        let recognizedAs = (systemLanes + micLanes).first { $0.id == lane }.flatMap { ASRLanguage(id: $0.asrID).appleSource }
+        let plan = Lang.plan(text, target: language, source: recognizedAs)
         do {
             let sent = try await Background.run {
                 try await Translator.translateLive(text, target: target, plan: plan)
@@ -1814,7 +1816,9 @@ extension SystemAudioTranslateController {
         let prior = (kind == .system ? systemSegments : micSegments).filter { $0.laneID == lane }
         if prior.last?.source == fresh { return }
         if let last = prior.last?.source, last.hasPrefix(fresh), last.count - fresh.count < 4 { return }
-        let providers = (systemLanes + micLanes).first { $0.id == lane }?.translatingKeys ?? []
+        let laneRecord = (systemLanes + micLanes).first { $0.id == lane }
+        let providers = laneRecord?.translatingKeys ?? []
+        let recognizedAs = ASRLanguage(id: laneRecord?.asrID ?? "").appleSource
         var translations: [String: String] = [:]
         var loading = Set<String>()
         let drafts = laneDrafts[lane]?.translations ?? [:]
@@ -1836,6 +1840,7 @@ extension SystemAudioTranslateController {
             id: UUID(),
             laneID: lane,
             kind: kind,
+            recognizedAs: recognizedAs,
             source: fresh,
             speaker: speaker,
             translations: translations,
@@ -1944,7 +1949,7 @@ extension SystemAudioTranslateController {
         guard let (target, language) = resolveTranslateTarget(providerID) else { return }
         let segID = seg.id
         let sourceText = seg.source
-        let plan = Lang.plan(sourceText, target: language, source: asrLanguage(for: seg.kind).appleSource)
+        let plan = Lang.plan(sourceText, target: language, source: seg.recognizedAs)
         let key = TranslateKey(segment: segID, provider: providerID)
         translateTasks[key]?.cancel()
         translateTasks[key] = Task { @MainActor in

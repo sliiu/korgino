@@ -17,6 +17,8 @@ final class FnDictate {
     private var beganAt: TimeInterval = 0
     private var mode: VoiceMode = .recognize
     private var bundleID: String?
+    /// 这一轮听的语言。翻译时带给服务，免得服务把识别好的原文再猜一次。
+    private var heardLanguage: ASRLanguage?
     private var heard = ""
     private var translated = ""
     /// 这句译文对应的原文。对得上才不用再译。
@@ -80,6 +82,7 @@ final class FnDictate {
         keepOverlay = false
         beganAt = ProcessInfo.processInfo.systemUptime
         bundleID = app?.bundleIdentifier
+        heardLanguage = nil
         mode = FnDictate.trialMode ?? AppConfig.shared.resolvedVoiceMode(bundleID: bundleID)
         heard = ""
         translated = ""
@@ -165,6 +168,7 @@ final class FnDictate {
         let picked = Pro.unlocked && choices.contains { $0.id == FnDictate.sessionEngineID } ? FnDictate.sessionEngineID : cfg.resolvedDictateAsr()
         let engine = choices.contains { $0.id == picked } ? picked : (choices.first?.id ?? "apple")
         let language = ASRLanguage(id: FnDictate.trialLocaleID.isEmpty ? cfg.dictateLocaleID : FnDictate.trialLocaleID)
+        heardLanguage = language
         if stopped(current) { return }
         if cfg.isSystemASR(engine) {
             let status = await withCheckedContinuation { (cont: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>) in
@@ -280,7 +284,7 @@ final class FnDictate {
             guard token == session, !stopAsked, !Task.isCancelled else { break }
             let text = heard.trimmingCharacters(in: .whitespacesAndNewlines)
             if text.isEmpty || text == renderedSource { continue }
-            guard let out = try? await Self.render(text, bundleID: bundleID) else {
+            guard let out = try? await Self.render(text, bundleID: bundleID, source: heardLanguage) else {
                 renderedSource = text
                 try? await Task.sleep(nanoseconds: 400_000_000)
                 continue
@@ -328,7 +332,7 @@ final class FnDictate {
                     shown = translated
                 } else {
                     VoiceCapsule.shared.busy(L("翻译中"))
-                    let rendered = try await Self.render(basis, bundleID: bundleID)
+                    let rendered = try await Self.render(basis, bundleID: bundleID, source: heardLanguage)
                     shown = rendered.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !shown.isEmpty else { throw TErr(L("没有翻译结果")) }
                 }
@@ -339,7 +343,7 @@ final class FnDictate {
                 return
             }
             guard current == token else { return }
-            let plan = Self.plan(basis, bundleID: bundleID)
+            let plan = Self.plan(basis, bundleID: bundleID, source: heardLanguage)
             VoiceCapsule.shared.note(shown)
             if mode == .interpret {
                 if speechLanguage.isEmpty { speechLanguage = plan.tgt }
@@ -468,7 +472,7 @@ final class FnDictate {
     private func voiceStable(_ full: String) {
         guard full.hasPrefix(voiced) else { return }
         if speechLanguage.isEmpty {
-            speechLanguage = Self.plan(heard, bundleID: bundleID).tgt
+            speechLanguage = Self.plan(heard, bundleID: bundleID, source: heardLanguage).tgt
         }
         let start = full.index(full.startIndex, offsetBy: voiced.count)
         var cut: String.Index?
@@ -591,7 +595,7 @@ final class FnDictate {
         }
     }
 
-    private static func render(_ text: String, bundleID: String?) async throws -> String {
+    private static func render(_ text: String, bundleID: String?, source: ASRLanguage?) async throws -> String {
         let cfg = AppConfig.shared
         guard let target = cfg.dictateTranslateTarget(bundleID: bundleID) else {
             throw TErr(L("没有可用的翻译"))
@@ -599,17 +603,18 @@ final class FnDictate {
         let out = try await Translator.translateQuiet(
             text,
             target: target,
-            language: cfg.resolvedDictateTarget(bundleID: bundleID)
+            language: cfg.resolvedDictateTarget(bundleID: bundleID),
+            source: source?.appleSource
         ).text
         let plain = out.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !plain.isEmpty else { throw TErr(L("没有翻译结果")) }
         return plain
     }
 
-    private static func plan(_ text: String, bundleID: String?) -> Lang.Plan {
+    private static func plan(_ text: String, bundleID: String?, source: ASRLanguage?) -> Lang.Plan {
         let cfg = AppConfig.shared
         let language = cfg.resolvedDictateTarget(bundleID: bundleID)
-        return Lang.plan(text, target: language, mutual: false)
+        return Lang.plan(text, target: language, source: source?.appleSource, mutual: false)
     }
 }
 

@@ -133,8 +133,7 @@ final class PopupModel: ObservableObject {
 
     func plan(for text: String, target: TargetLanguage) -> Lang.Plan {
         let picked = sourceLanguage == .auto ? nil : sourceLanguage
-        var plan = Lang.plan(text, target: target, source: picked?.appleCode, mutual: true)
-        plan.chosenSource = picked
+        let plan = Lang.plan(text, target: target, source: picked?.appleCode, mutual: true)
         return plan
     }
 

@@ -91,7 +91,7 @@ struct QuickAppsSection: View {
                     Text(app.name)
                         .font(Theme.TypeScale.body)
                         .lineLimit(1)
-                    KIconView(.chevR, size: 9)
+                    KIconView(.chevR, size: 10)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(open ? 90 : 0))
                     Spacer(minLength: 8)
@@ -120,6 +120,7 @@ struct QuickAppsSection: View {
                     targetRow(app.bundleID, L("快捷翻译"), L("跟随「翻译」页"), \.quick)
                     targetRow(app.bundleID, L("语音"), L("跟随语音页"), \.voice)
                     languageRow(app.bundleID)
+                    sourceLanguageRow(app.bundleID)
                     voiceModeRow(app.bundleID)
                     pluginsRow(app.bundleID)
                     HStack {
@@ -179,7 +180,8 @@ struct QuickAppsSection: View {
 
     private func isUntouched(_ rule: QuickAppRule) -> Bool {
         rule.select.isEmpty && rule.quick.isEmpty && rule.voice.isEmpty
-            && rule.voiceMode.isEmpty && rule.language.isEmpty && rule.plugins.isEmpty
+            && rule.voiceMode.isEmpty && rule.language.isEmpty
+            && rule.sourceLanguage.isEmpty && rule.plugins.isEmpty
     }
 
     /// 展开区每一行都是左边标签、右边控件贴边。
@@ -251,6 +253,22 @@ struct QuickAppsSection: View {
                 title: languageTitle(language.wrappedValue),
                 options: options,
                 label: languageTitle,
+                isSelected: { $0 == language.wrappedValue },
+                select: { language.wrappedValue = $0 }
+            )
+            .frame(maxWidth: SettingsChrome.controlWidth, alignment: .trailing)
+        }
+    }
+
+    /// 快捷翻译的原文语言。这个应用里打的字识别错了，就在这里指定。
+    private func sourceLanguageRow(_ bundleID: String) -> some View {
+        let language = binding(bundleID, \.sourceLanguage)
+        let options = [""] + TargetLanguage.specific.map(\.rawValue)
+        return SettingsRow(title: L("原文语言")) {
+            MenuChip(
+                title: sourceLanguageTitle(language.wrappedValue),
+                options: options,
+                label: sourceLanguageTitle,
                 isSelected: { $0 == language.wrappedValue },
                 select: { language.wrappedValue = $0 }
             )
@@ -401,6 +419,11 @@ struct QuickAppsSection: View {
     private func languageTitle(_ id: String) -> String {
         if id.isEmpty { return L("跟随默认") }
         if id == QuickAppRule.followVoice { return L("跟随语音页的目标语言") }
+        return TargetLanguage(rawValue: id)?.menuTitle ?? id
+    }
+
+    private func sourceLanguageTitle(_ id: String) -> String {
+        if id.isEmpty { return L("自动检测") }
         return TargetLanguage(rawValue: id)?.menuTitle ?? id
     }
 

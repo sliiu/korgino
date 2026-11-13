@@ -481,6 +481,8 @@ struct QuickAppRule: Codable, Equatable, Identifiable {
     var voiceMode = ""
     /// 空串跟随设置里的目标语言；`followVoice` 跟随语音页选的目标语言；其余是语种代码。
     var language = ""
+    /// 快捷翻译的原文语言。空串是自动检测，其余是语种代码。
+    var sourceLanguage = ""
     /// 划词插件：空串跟随插件页的勾选；`pluginsNone` 这个应用里不弹；`pluginsCustom` 只弹 `pluginIDs`。
     var plugins = ""
     var pluginIDs: [String] = []
@@ -494,7 +496,7 @@ struct QuickAppRule: Codable, Equatable, Identifiable {
     init(bundleID: String) { self.bundleID = bundleID }
 
     private enum CodingKeys: String, CodingKey {
-        case bundleID, select, quick, voice, voiceMode, language, plugins, pluginIDs
+        case bundleID, select, quick, voice, voiceMode, language, sourceLanguage, plugins, pluginIDs
         /// 旧版只有这一家，管的是快捷翻译。
         case legacyProvider = "providerID"
     }
@@ -507,6 +509,7 @@ struct QuickAppRule: Codable, Equatable, Identifiable {
         voice = try c.decodeIfPresent(QuickAppTarget.self, forKey: .voice) ?? QuickAppTarget()
         voiceMode = try c.decodeIfPresent(String.self, forKey: .voiceMode) ?? ""
         language = try c.decodeIfPresent(String.self, forKey: .language) ?? ""
+        sourceLanguage = try c.decodeIfPresent(String.self, forKey: .sourceLanguage) ?? ""
         plugins = try c.decodeIfPresent(String.self, forKey: .plugins) ?? ""
         pluginIDs = try c.decodeIfPresent([String].self, forKey: .pluginIDs) ?? []
         if quick.isEmpty, let legacy = try c.decodeIfPresent(String.self, forKey: .legacyProvider),
@@ -523,6 +526,7 @@ struct QuickAppRule: Codable, Equatable, Identifiable {
         try c.encode(voice, forKey: .voice)
         try c.encode(voiceMode, forKey: .voiceMode)
         try c.encode(language, forKey: .language)
+        try c.encode(sourceLanguage, forKey: .sourceLanguage)
         try c.encode(plugins, forKey: .plugins)
         try c.encode(pluginIDs, forKey: .pluginIDs)
     }
